@@ -1,0 +1,463 @@
+/* ═════════════════════════════════════════════
+   ComfyDeck Nook — js/modals/prompt-edit.js
+   プロンプト直接修正モーダル
+   ═════════════════════════════════════════════ */
+
+function showPromptDialog(turn) {
+  const jp = turn.jp_prompt || '（なし）';
+  const en = turn.en_prompt || '（なし）';
+
+  document.getElementById('promptModal')?.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'promptModal';
+  modal.style.cssText = `
+    position:fixed; inset:0; z-index:500;
+    background:rgba(61,46,30,0.4);
+    display:flex; align-items:flex-end;
+  `;
+  // アンカー情報
+  const anchors   = activeSession?.anchors || [];
+  const activeIdx = activeSession?.active_anchor_idx ?? -1;
+  const anchorInfo = anchors.length
+    ? anchors.map((a, i) => `#${i+1} ターン${a.turn_idx + 1}${i === activeIdx ? '（アクティブ）' : ''}`).join('、')
+    : null;
+
+  modal.innerHTML = `
+    <div style="
+      width:100%; max-width:560px; margin:0 auto;
+      background:var(--bg); border-radius:var(--radius-xl) var(--radius-xl) 0 0;
+      display:flex; flex-direction:column; max-height:80vh;
+    ">
+      <div style="width:36px;height:4px;background:var(--border-input);border-radius:2px;margin:10px auto 0;flex-shrink:0;"></div>
+      <div style="padding:12px 16px;display:flex;align-items:center;border-bottom:0.5px solid var(--border);flex-shrink:0;">
+        <div style="font-family:var(--font-serif);font-size:16px;font-weight:500;color:var(--text);">プロンプト確認</div>
+        <button id="promptModalClose"
+          style="margin-left:auto;width:30px;height:30px;border-radius:50%;background:var(--accent-light);border:none;cursor:pointer;font-size:14px;color:var(--text-mid);">✕</button>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:12px;">
+        ${anchorInfo ? `
+        <div style="background:var(--accent-light);border-radius:var(--radius-sm);padding:8px 12px;font-size:11px;color:var(--accent);">
+          ⚓ アンカー設定中：${escHtml(anchorInfo)}
+        </div>` : ''}
+        <div>
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-weight:500;">JP プロンプト</div>
+          <div id="promptJP" style="
+            background:var(--bg-log);border:0.5px solid var(--border-input);
+            border-radius:var(--radius-sm);padding:10px 12px;
+            font-size:13px;color:var(--text);line-height:1.6;
+            user-select:text;-webkit-user-select:text;
+          "></div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-weight:500;">EN プロンプト</div>
+          <div id="promptEN" style="
+            background:var(--bg-log);border:0.5px solid var(--border-input);
+            border-radius:var(--radius-sm);padding:10px 12px;
+            font-size:13px;color:var(--text);line-height:1.6;
+            user-select:text;-webkit-user-select:text;
+          "></div>
+        </div>
+      </div>
+      <div style="padding:10px 16px 24px;border-top:0.5px solid var(--border);display:flex;gap:8px;flex-shrink:0;">
+        <button id="promptCopyEN"
+          style="flex:1;padding:10px;background:var(--accent-light);border:0.5px solid var(--border-input);border-radius:var(--radius-md);font-size:13px;color:var(--text-mid);cursor:pointer;font-family:var(--font-sans);">
+          ENをコピー
+        </button>
+        <button id="promptCopyJP"
+          style="flex:1;padding:10px;background:var(--accent-light);border:0.5px solid var(--border-input);border-radius:var(--radius-md);font-size:13px;color:var(--text-mid);cursor:pointer;font-family:var(--font-sans);">
+          JPをコピー
+        </button>
+      </div>
+    </div>
+  `;
+
+  // テキストはtextContentで安全にセット
+  modal.querySelector('#promptJP').textContent = jp;
+  modal.querySelector('#promptEN').textContent = en;
+
+  // イベントをJSで直接バインド
+  modal.querySelector('#promptModalClose').addEventListener('click', () => modal.remove());
+  modal.querySelector('#promptCopyEN').addEventListener('click', () =>
+    navigator.clipboard.writeText(en).then(() => showToast('ENをコピーしました')));
+  modal.querySelector('#promptCopyJP').addEventListener('click', () =>
+    navigator.clipboard.writeText(jp).then(() => showToast('JPをコピーしました')));
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+  document.body.appendChild(modal);
+}
+
+async function openPromptEditModal(turnIdx) {
+  const turn = activeSession?.turns?.[turnIdx];
+  if (!turn) return;
+
+  document.getElementById('promptEditModal')?.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'promptEditModal';
+  modal.style.cssText = `
+    position:fixed; inset:0; z-index:500;
+    background:rgba(61,46,30,0.4);
+    display:flex; align-items:flex-end;
+  `;
+
+  modal.innerHTML = `
+    <div style="
+      width:100%; max-width:560px; margin:0 auto;
+      background:var(--bg); border-radius:var(--radius-xl) var(--radius-xl) 0 0;
+      display:flex; flex-direction:column; max-height:92vh;
+    ">
+      <div style="width:36px;height:4px;background:var(--border-input);border-radius:2px;margin:10px auto 0;flex-shrink:0;"></div>
+      <div style="padding:12px 16px;display:flex;align-items:center;border-bottom:0.5px solid var(--border);flex-shrink:0;">
+        <div style="font-family:var(--font-serif);font-size:16px;font-weight:500;color:var(--text);">プロンプトを直接修正</div>
+        <button id="peClose"
+          style="margin-left:auto;width:30px;height:30px;border-radius:50%;background:var(--accent-light);border:none;cursor:pointer;font-size:14px;color:var(--text-mid);">✕</button>
+      </div>
+
+      <div style="flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:12px;">
+
+        <!-- 日本語 -->
+        <div>
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-weight:500;">日本語（任意）</div>
+          <textarea id="peJP" rows="3" style="
+            width:100%;box-sizing:border-box;
+            background:var(--bg-log);border:0.5px solid var(--border-input);
+            border-radius:var(--radius-sm);padding:10px 12px;
+            font-size:13px;color:var(--text);line-height:1.6;
+            font-family:var(--font-sans);resize:vertical;
+          " placeholder="日本語でシーンを記述（任意）"></textarea>
+          <div style="display:flex;gap:6px;margin-top:6px;">
+            <select id="peTranslateMode" style="
+              padding:8px 6px;font-size:12px;
+              background:var(--accent-light);border:0.5px solid var(--border-input);
+              border-radius:var(--radius-sm) 0 0 var(--radius-sm);
+              color:var(--text-mid);cursor:pointer;
+              font-family:var(--font-sans);
+              border-right:none;flex-shrink:0;
+            ">
+              <option value="diff">差分</option>
+              <option value="full">フル</option>
+              <option value="direct">直訳</option>
+            </select>
+            <button id="peBtnJpToEn" style="
+              padding:8px 10px;font-size:12px;
+              background:var(--accent-light);border:0.5px solid var(--border-input);
+              border-radius:0 var(--radius-sm) var(--radius-sm) 0;
+              color:var(--text-mid);cursor:pointer;
+              font-family:var(--font-sans);white-space:nowrap;flex-shrink:0;
+            ">↓ JP→EN</button>
+            <button id="peBtnEnToJp" style="
+              flex:1;padding:8px;font-size:12px;
+              background:var(--accent-light);border:0.5px solid var(--border-input);
+              border-radius:var(--radius-sm);color:var(--text-mid);cursor:pointer;
+              font-family:var(--font-sans);white-space:nowrap;
+            ">↑ EN→JP</button>
+          </div>
+        </div>
+
+        <!-- 英語 -->
+        <div>
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-weight:500;">英語（必須）</div>
+          <textarea id="peEN" rows="5" style="
+            width:100%;box-sizing:border-box;
+            background:var(--bg-log);border:0.5px solid var(--border-input);
+            border-radius:var(--radius-sm);padding:10px 12px;
+            font-size:12px;color:var(--text);line-height:1.6;
+            font-family:monospace;resize:vertical;
+          " placeholder="英語プロンプト（必須）"></textarea>
+        </div>
+
+        <!-- Seed -->
+        <div>
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-weight:500;">Seed</div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <input id="peSeed" type="number" style="
+              flex:1;padding:8px 10px;font-size:13px;
+              background:var(--bg-log);border:0.5px solid var(--border-input);
+              border-radius:var(--radius-sm);color:var(--text);
+              font-family:monospace;
+            " placeholder="Seed値">
+            <button id="peBtnRandSeed" style="
+              padding:8px 12px;font-size:13px;
+              background:var(--accent-light);border:0.5px solid var(--border-input);
+              border-radius:var(--radius-sm);color:var(--text-mid);cursor:pointer;
+              font-family:var(--font-sans);white-space:nowrap;
+            ">🎲 ランダム</button>
+          </div>
+          <div id="peSeedNote" style="font-size:11px;color:var(--text-pale);margin-top:4px;">Seed取得中…</div>
+        </div>
+
+        <!-- プレビュー -->
+        <div id="pePreviewArea" style="display:none;">
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-weight:500;">プレビュー</div>
+          <div id="pePreviewImg" style="
+            width:100%;border-radius:var(--radius-lg);overflow:hidden;
+            border:0.5px solid var(--border-input);background:var(--accent-light);
+            min-height:80px;display:flex;align-items:center;justify-content:center;
+            font-size:12px;color:var(--text-pale);
+          ">生成後に表示されます</div>
+        </div>
+
+      </div>
+
+      <!-- フッターボタン -->
+      <div style="padding:10px 16px 24px;border-top:0.5px solid var(--border);display:flex;gap:8px;flex-shrink:0;">
+        <button id="peBtnCancel" style="
+          flex:1;padding:11px;font-size:13px;
+          background:var(--accent-light);border:0.5px solid var(--border-input);
+          border-radius:var(--radius-md);color:var(--text-mid);cursor:pointer;
+          font-family:var(--font-sans);
+        ">キャンセル</button>
+        <button id="peBtnPreview" style="
+          flex:1;padding:11px;font-size:13px;
+          background:var(--accent-light);border:0.5px solid var(--border-input);
+          border-radius:var(--radius-md);color:var(--accent);cursor:pointer;
+          font-family:var(--font-sans);font-weight:500;
+        ">🖼 プレビュー</button>
+        <button id="peBtnApply" style="
+          flex:2;padding:11px;font-size:13px;
+          background:var(--accent);border:none;
+          border-radius:var(--radius-md);color:var(--bg);cursor:pointer;
+          font-family:var(--font-sans);font-weight:500;
+        ">差し替え</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // 初期値をセット
+  const peJP   = modal.querySelector('#peJP');
+  const peEN   = modal.querySelector('#peEN');
+  const peSeed = modal.querySelector('#peSeed');
+
+  peJP.value = turn.jp_prompt || '';
+  peEN.value = turn.en_prompt || '';
+
+  // Seed初期化: gen_metaがあればそこから即取得、なければhistory逆引き
+  const seedNote = modal.querySelector('#peSeedNote');
+  if (turn.gen_meta?.seed !== undefined) {
+    peSeed.value = turn.gen_meta.seed;
+    seedNote.textContent = `（この画像のSeed: ${turn.gen_meta.seed}）`;
+  } else if (turn.image_url) {
+    seedNote.textContent = 'Seed取得中…';
+    fetchSeedFromHistory(turn.image_url).then(seed => {
+      if (seed !== null) {
+        peSeed.value = seed;
+        seedNote.textContent = `（この画像のSeed: ${seed}）`;
+      } else {
+        const rnd = Math.floor(Math.random() * 2 ** 32);
+        peSeed.value = rnd;
+        seedNote.textContent = '（Seed取得失敗・ランダム値を設定しました）';
+      }
+    });
+  } else {
+    const rnd = Math.floor(Math.random() * 2 ** 32);
+    peSeed.value = rnd;
+    seedNote.textContent = '';
+  }
+
+  // 閉じる
+  const closeModal = () => modal.remove();
+  modal.querySelector('#peClose').addEventListener('click', closeModal);
+  modal.querySelector('#peBtnCancel').addEventListener('click', closeModal);
+  modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+  // ランダムSeed
+  modal.querySelector('#peBtnRandSeed').addEventListener('click', () => {
+    peSeed.value = Math.floor(Math.random() * 2 ** 32);
+  });
+
+  // JP→EN翻訳（モード切替対応）
+  modal.querySelector('#peBtnJpToEn').addEventListener('click', async () => {
+    const jpText = peJP.value.trim();
+    if (!jpText) { showToast('日本語を入力してください'); return; }
+    const mode = modal.querySelector('#peTranslateMode').value;
+    const btn  = modal.querySelector('#peBtnJpToEn');
+    btn.textContent = '⏳…'; btn.disabled = true;
+    try {
+      const narrative = isNarrative(jpText);
+      let result;
+
+      if (mode === 'diff') {
+        // 差分: アンカー＞前ターンEN＞空（初回）
+        const anchor = getAnchorEN();
+        const prevEN = anchor || (turnIdx === 0 ? '' : (activeSession.turns[turnIdx - 1]?.en_prompt || ''));
+        result = await translatePrompt(jpText, prevEN, narrative);
+
+      } else if (mode === 'full') {
+        // フル: 外見・quality_tags込みで初回モード相当（prevEN=''）
+        result = await translatePrompt(jpText, '', narrative);
+
+      } else {
+        // ダイレクト: 外見・quality_tags・前EN一切なし、promptStyleNaturalに従う
+        const isNaturalMode = getSetting('promptStyleNatural', true) !== false;
+        const sceneText = narrative ? stripNarrative(jpText) : jpText;
+        let system;
+        if (isNaturalMode) {
+          system = [
+            'You are a visual scene writer for an AI image generator.',
+            narrative ? 'The user input is a narrative/situation description.' : '',
+            'Translate the following Japanese into a single cohesive English scene description.',
+            'Do not add any character appearance or quality tags — describe only what is given.',
+            'Output only the English scene description, nothing else.',
+          ].filter(Boolean).join('\n');
+        } else {
+          system = [
+            'Translate the following Japanese text into English tags for image generation.',
+            'Output only comma-separated English tags, nothing else. No explanations, no extra text.',
+          ].join('\n');
+        }
+        const raw = await getChatCompletion([
+          { role: 'system', content: system },
+          { role: 'user',   content: sceneText },
+        ], { noThink: true });
+        result = cleanLLMResponse(raw);
+      }
+
+      peEN.value = result;
+      showToast('✓ 翻訳しました');
+    } catch(e) {
+      showToast('❌ 翻訳エラー: ' + e.message.slice(0, 40));
+    } finally {
+      btn.textContent = '↓ JP→EN'; btn.disabled = false;
+    }
+  });
+
+  // EN→JP逆変換
+  modal.querySelector('#peBtnEnToJp').addEventListener('click', async () => {
+    const enText = peEN.value.trim();
+    if (!enText) { showToast('英語プロンプトを入力してください'); return; }
+    const btn = modal.querySelector('#peBtnEnToJp');
+    btn.textContent = '⏳ 変換中…'; btn.disabled = true;
+    try {
+      const result = await getChatCompletion([
+        {
+          role: 'system',
+          content: 'Translate the following English image generation prompt into natural Japanese. Output only the Japanese translation, nothing else.',
+        },
+        { role: 'user', content: enText },
+      ], { noThink: true });
+      peJP.value = cleanLLMResponse(result);
+      showToast('✓ 逆変換しました');
+    } catch(e) {
+      showToast('❌ 変換エラー: ' + e.message.slice(0, 40));
+    } finally {
+      btn.textContent = '↑ EN→JP 逆変換'; btn.disabled = false;
+    }
+  });
+
+  // isGenerating監視：生成中はプレビュー・差し替えをdisabled
+  const btnPreview = modal.querySelector('#peBtnPreview');
+  const btnApply   = modal.querySelector('#peBtnApply');
+  const _syncGenBtns = () => {
+    const busy = isGenerating;
+    // 自分自身が生成中（テキストが変わっている）のときは個別に制御するので
+    // isGeneratingがtrueかつdisabledでないボタンだけをロック
+    if (busy) {
+      if (!btnPreview.dataset.selfBusy) btnPreview.disabled = true;
+      if (!btnApply.dataset.selfBusy)   btnApply.disabled   = true;
+    } else {
+      if (!btnPreview.dataset.selfBusy) btnPreview.disabled = false;
+      if (!btnApply.dataset.selfBusy)   btnApply.disabled   = false;
+    }
+  };
+  const _genPollTimer = setInterval(_syncGenBtns, 300);
+  // モーダルが閉じたらポーリング停止
+  const _origCloseModal = closeModal;
+  const _patchedClose = () => { clearInterval(_genPollTimer); _origCloseModal(); };
+  modal.querySelector('#peClose').removeEventListener('click', _origCloseModal);
+  modal.querySelector('#peBtnCancel').removeEventListener('click', _origCloseModal);
+  modal.querySelector('#peClose').addEventListener('click', _patchedClose);
+  modal.querySelector('#peBtnCancel').addEventListener('click', _patchedClose);
+  modal.addEventListener('click', e => { if (e.target === modal) _patchedClose(); });
+
+  // プレビュー生成（モーダル内のみ、チャットに影響なし）
+  btnPreview.addEventListener('click', async () => {
+    const enText = peEN.value.trim();
+    if (!enText) { showToast('英語プロンプトを入力してください'); return; }
+    if (isGenerating) { showToast('生成中です'); return; }
+
+    const seedVal = parseInt(peSeed.value) || null;
+    btnPreview.textContent = '⏳ 生成中…';
+    btnPreview.dataset.selfBusy = '1';
+    btnPreview.disabled = true;
+    btnApply.disabled   = true;
+
+    const previewArea = modal.querySelector('#pePreviewArea');
+    const previewImg  = modal.querySelector('#pePreviewImg');
+    previewArea.style.display = '';
+    previewImg.textContent = '生成中…';
+
+    try {
+      const { imageUrl } = await generateImage(enText, seedVal);
+      previewImg.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = imageUrl;
+      img.style.cssText = 'width:100%;border-radius:var(--radius-lg);display:block;';
+      previewImg.appendChild(img);
+      modal._previewUrl = imageUrl;
+    } catch(e) {
+      previewImg.textContent = '❌ 生成失敗: ' + e.message.slice(0, 40);
+      showToast('❌ プレビュー失敗: ' + e.message.slice(0, 40));
+    } finally {
+      btnPreview.textContent = '🖼 プレビュー';
+      delete btnPreview.dataset.selfBusy;
+      btnPreview.disabled = false;
+      btnApply.disabled   = false;
+    }
+  });
+
+  // 差し替え（en_promptとimage_urlのみ更新）
+  btnApply.addEventListener('click', async () => {
+    const enText = peEN.value.trim();
+    if (!enText) { showToast('英語プロンプトを入力してください'); return; }
+    if (isGenerating) { showToast('生成中です'); return; }
+
+    btnApply.textContent = '⏳ 差し替え中…';
+    btnApply.dataset.selfBusy = '1';
+    btnApply.disabled   = true;
+    btnPreview.disabled = true;
+
+    try {
+      const seedVal = parseInt(peSeed.value) || null;
+      const prevImageUrl = turn.image_url;
+      const { imageUrl, meta: editMeta } = await generateImage(enText, seedVal);
+
+      // turn を更新（en_prompt / image_url / gen_meta）
+      turn.en_prompt  = enText;
+      turn.image_url  = imageUrl;
+      turn.gen_meta   = { ...editMeta, anchor_turn_idx: activeSession.active_anchor_idx ?? null };
+
+      // DOM更新
+      updateTurnImage(turnIdx, imageUrl);
+
+      // フォトモードの場合はカルーセルも更新
+      if (typeof isPhotoMode === 'function' && isPhotoMode()) {
+        let slideIdx = _photoCarouselSlides.findIndex(s => s.turnIdx === turnIdx);
+        if (slideIdx < 0) {
+          slideIdx = _photoCarouselSlides.findIndex(s => s.url === prevImageUrl);
+        }
+        if (slideIdx >= 0) {
+          _photoCarouselSlides[slideIdx].url = imageUrl;
+          renderPhotoCarousel();
+          photoCarouselGoTo(slideIdx);
+        }
+        // プロンプト表示も更新
+        if (typeof updatePhotoTurnPrompt === 'function') updatePhotoTurnPrompt(turnIdx, enText);
+      }
+
+      // サーバー保存
+      await saveTurnToSession(null);
+
+      showToast('✓ プロンプトと画像を差し替えました');
+      _patchedClose();
+    } catch(e) {
+      showToast('❌ ' + e.message.slice(0, 50));
+      btnApply.textContent = '差し替え';
+      delete btnApply.dataset.selfBusy;
+      btnApply.disabled   = false;
+      btnPreview.disabled = false;
+    }
+  });
+}

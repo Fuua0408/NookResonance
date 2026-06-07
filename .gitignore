@@ -1,0 +1,22 @@
+# Alcove参照ソース（移植完了後に削除）
+.alcove_ref/
+
+# Node.js
+node_modules/
+
+# 環境変数
+.env
+
+# SQLiteデータベース
+*.db
+*.sqlite
+
+# データ・キャッシュ
+data/
+
+# ログ
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
