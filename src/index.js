@@ -37,6 +37,11 @@ app.use('/api/images', imageRoutes);
 app.use('/api/llm',   llmRoutes);
 app.use('/api/comfy', comfyRoutes);
 
+// API fallback must stay JSON; otherwise the SPA fallback returns HTML to fetch().
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'API route not found' });
+});
+
 // SPA fallback
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));

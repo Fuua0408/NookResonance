@@ -60,6 +60,28 @@ function ownsChar(db, charId, userId) {
   return db.prepare('SELECT id FROM characters WHERE id = ? AND user_id = ?').get(charId, userId);
 }
 
+// GET /api/images/cache/count/:char_id
+router.get('/cache/count/:char_id', (req, res) => {
+  const { char_id } = req.params;
+  const db = getDb();
+  if (!ownsChar(db, char_id, req.user.id)) return res.status(404).json({ error: 'Not found' });
+
+  const thumbsDir = getCacheDir(req.user.id, char_id);
+  const metaPath = getMetaPath(req.user.id, char_id);
+  const meta = readMeta(metaPath);
+  const removedFiles = meta.removed_files || [];
+  const removedStems = new Set(removedFiles.map(filename => path.parse(filename).name));
+
+  const count = fs.existsSync(thumbsDir)
+    ? fs.readdirSync(thumbsDir)
+        .filter(f => f.toLowerCase().endsWith('.jpg'))
+        .filter(f => !removedStems.has(path.parse(f).name))
+        .length
+    : 0;
+
+  res.json({ count });
+});
+
 // GET /api/images/:char_id
 router.get('/:char_id', async (req, res) => {
   const { char_id } = req.params;
