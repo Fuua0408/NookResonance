@@ -16,6 +16,10 @@ router.get('/', (req, res) => {
     // "true"/"false" → boolean, "123" → number, その他 → string のまま
     try { obj[key] = JSON.parse(value); } catch { obj[key] = value; }
   }
+  // language が DB 未設定の場合は .env の DEFAULT_LANGUAGE を使う
+  if (!Object.prototype.hasOwnProperty.call(obj, 'language')) {
+    obj.language = process.env.DEFAULT_LANGUAGE || 'ja';
+  }
   res.json(obj);
 });
 

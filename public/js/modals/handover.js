@@ -1,4 +1,4 @@
-/* ═════════════════════════════════════════════
+﻿/* ═════════════════════════════════════════════
    Alcove — js/modals/handover.js
    引き継ぎシステム（セッション終了時のLLM要約・適用）
    ═════════════════════════════════════════════ */
@@ -86,7 +86,14 @@ async function _analyzeSession() {
     return parts.join('\n');
   }).join('\n\n');
 
-  const charContext = `キャラクター名: ${char.name}
+  const charContext = isEnglishMode()
+    ? `Character: ${char.name}
+Current affection: ${stageLabel} (${llmLabel})
+First meeting: ${char.is_first_meeting !== false ? 'yes' : 'no'}
+Current memory notes: ${notes.length ? notes.map(n => `\n  - ${n}`).join('') : '(none)'}
+Current appearance: ${lastState.appearance || '(not set)'}
+Current location: ${lastState.location   || '(not set)'}`
+    : `キャラクター名: ${char.name}
 現在の親愛度: ${stageLabel}（${llmLabel}）
 初対面: ${char.is_first_meeting !== false ? 'はい' : 'いいえ'}
 現在の記憶メモ: ${notes.length ? notes.map(n => `\n  - ${n}`).join('') : '（なし）'}
@@ -95,8 +102,11 @@ async function _analyzeSession() {
 
   // ── Step 1: このセッションで何があったか ──
   _renderHandoverProgress('セッションの内容を読んでいます… (1/5)');
+  const step1System = isEnglishMode()
+    ? `You are an assistant analyzing a conversation session with a character.\n${charContext}\nRead the session content and summarize what happened in 3-5 sentences.`
+    : `あなたはキャラクターとの会話セッションを分析するアシスタントです。\n${charContext}\n\n以下のセッション内容を読んで、このセッションでどんな出来事があったかを3〜5文で要約してください。`;
   const step1 = await getChatCompletion([
-    { role: 'system', content: `あなたはキャラクターとの会話セッションを分析するアシスタントです。\n${charContext}\n\n以下のセッション内容を読んで、このセッションでどんな出来事があったかを3〜5文で要約してください。` },
+    { role: 'system', content: step1System },
     { role: 'user',   content: sessionText },
   ]);
   let summary = cleanLLMResponse(step1);
@@ -107,9 +117,15 @@ async function _analyzeSession() {
 
   // ── Step 2: 関係性への影響の説明 ──
   _renderHandoverProgress('関係性への影響を分析しています… (2/5)');
+  const step2System = isEnglishMode()
+    ? `You are an assistant analyzing the relationship with a character.\n${charContext}`
+    : `あなたはキャラクターとの関係性を分析するアシスタントです。\n${charContext}`;
+  const step2User = isEnglishMode()
+    ? `Session summary:\n${summary}\n\nHow did the relationship (affection) with ${char.name} change through this session? Explain in 2-3 sentences including the reason.`
+    : `セッションの要約:\n${summary}\n\nこのセッションを通じて、${char.name}との関係性（親愛度）はどのように変化しましたか？理由も含めて2〜3文で説明してください。`;
   const step2 = await getChatCompletion([
-    { role: 'system', content: `あなたはキャラクターとの関係性を分析するアシスタントです。\n${charContext}` },
-    { role: 'user',   content: `セッションの要約:\n${summary}\n\nこのセッションを通じて、${char.name}との関係性（親愛度）はどのように変化しましたか？理由も含めて2〜3文で説明してください。` },
+    { role: 'system', content: step2System },
+    { role: 'user',   content: step2User },
   ]);
   let affection_reason = cleanLLMResponse(step2);
   if (typeof isAbnormalOutput === 'function' && isAbnormalOutput(affection_reason)) {
@@ -121,17 +137,26 @@ async function _analyzeSession() {
   _renderHandoverProgress('親愛度の増減値を計算しています… (3/5)');
   const isPerTurn = typeof isAffectionPerTurn === 'function' && isAffectionPerTurn();
   const affRange  = isPerTurn ? 10 : 20;
+  const step3aSystem = isEnglishMode()
+    ? `You are a data extraction assistant. Read the analysis results and return only a single integer for the affection change. Range: -${affRange} to +${affRange}. Examples: 5, -3, 0`
+    : `あなたはデータ抽出アシスタントです。以下の分析結果から親愛度の増減値を数値のみで答えてください。-${affRange}〜+${affRange}の整数1つだけ返してください。例: 5 や -3 や 0`;
   const step3a = await getChatCompletion([
-    { role: 'system', content: `あなたはデータ抽出アシスタントです。以下の分析結果から親愛度の増減値を数値のみで答えてください。-${affRange}〜+${affRange}の整数1つだけ返してください。例: 5 や -3 や 0` },
+    { role: 'system', content: step3aSystem },
     { role: 'user',   content: `セッション要約:\n${summary}\n\n関係性の変化:\n${affection_reason}\n\n親愛度の増減値（整数のみ）:` },
   ], { noThink: true });
   const affection_delta = Math.max(-affRange, Math.min(affRange, parseInt(cleanLLMResponse(step3a).replace(/[^-\d]/g, '')) || 0));
 
   // ── Step 3b: キャラクターの現在の状態 ──
   _renderHandoverProgress('キャラクターの状態を確認しています… (4/5)');
+  const step3bSystem = isEnglishMode()
+    ? `You are a character state management assistant.\n${charContext}`
+    : `あなたはキャラクターの状態管理アシスタントです。\n${charContext}`;
+  const step3bUser = isEnglishMode()
+    ? `Session summary:\n${summary}\n\nDescribe the state of ${char.name} after this session in the following format:\nAppearance: (new appearance if changed, otherwise current appearance)\nLocation: (current location)\nMemory notes: (1-3 items of new information worth remembering for the next session)`
+    : `セッション要約:\n${summary}\n\nこのセッション後の${char.name}の状態を以下の形式で答えてください:\n外見: （変化があれば新しい外見、なければ現在の外見をそのまま）\n場所: （現在いる場所）\n記憶メモ: （このセッションで新たに判明したこと・重要な出来事・ユーザーの好みや習慣・キャラクターの感情変化など、次回セッションに活かせる情報を1〜3件。些細なことでも積極的に記録すること）`;
   const step3b = await getChatCompletion([
-    { role: 'system', content: `あなたはキャラクターの状態管理アシスタントです。\n${charContext}` },
-    { role: 'user',   content: `セッション要約:\n${summary}\n\nこのセッション後の${char.name}の状態を以下の形式で答えてください:\n外見: （変化があれば新しい外見、なければ現在の外見をそのまま）\n場所: （現在いる場所）\n記憶メモ: （このセッションで新たに判明したこと・重要な出来事・ユーザーの好みや習慣・キャラクターの感情変化など、次回セッションに活かせる情報を1〜3件。些細なことでも積極的に記録すること）` },
+    { role: 'system', content: step3bSystem },
+    { role: 'user',   content: step3bUser },
   ]);
   let step3bText = cleanLLMResponse(step3b);
   if (typeof isAbnormalOutput === 'function' && isAbnormalOutput(step3bText)) {
@@ -140,22 +165,43 @@ async function _analyzeSession() {
   }
 
   // 各行をパース
-  const extractLine = (label) => {
-    const m = step3bText.match(new RegExp(`${label}[：:]\\s*(.+)`));
-    return m ? m[1].trim() : '';
-  };
+  const extractLine = isEnglishMode()
+    ? (label) => {
+        const m = step3bText.match(new RegExp(`${label}[：:]?\\s*(.+)`));
+        return m ? m[1].trim() : '';
+      }
+    : (label) => {
+        const m = step3bText.match(new RegExp(`${label}[：:]\\s*(.+)`));
+        return m ? m[1].trim() : '';
+      };
 
-  const appearance = extractLine('外見') || lastState.appearance || '';
-  const location   = extractLine('場所') || lastState.location   || '';
-  const notesRaw   = extractLine('記憶メモ');
-  const new_notes  = !notesRaw || notesRaw === 'なし' ? [] :
+  const appearance = isEnglishMode()
+    ? extractLine('Appearance') || lastState.appearance || ''
+    : extractLine('外見')       || lastState.appearance || '';
+  const location = isEnglishMode()
+    ? extractLine('Location')   || lastState.location   || ''
+    : extractLine('場所')       || lastState.location   || '';
+  const notesRaw = isEnglishMode()
+    ? extractLine('Memory notes')
+    : extractLine('記憶メモ');
+  const new_notes  = !notesRaw || notesRaw === 'なし' || (isEnglishMode() && notesRaw === '(none)') ? [] :
     notesRaw.split(/[、,\n]/).map(n => n.replace(/^[-・\d.]\s*/, '').trim()).filter(Boolean);
 
   // ── Step 4: 次回オープニングメッセージ提案 ──
   _renderHandoverProgress('次回の挨拶を考えています… (5/5)');
+  const step4System = isEnglishMode()
+    ? `You are the character "${char.name}".
+${char.personality || ''}
+Generate a greeting for the start of the next session.
+Based on the previous session content, write 1-3 sentences in the character's voice.
+Return only the dialogue, no narration or explanation.`
+    : `あなたは「${char.name}」というキャラクターです。\n${char.personality || ''}\n\n次のセッション開始時にユーザーに話しかける一言を生成してください。\n今回のセッション内容を踏まえた自然なセリフを、キャラクターの口調で1〜3文で返してください。地の文や説明は不要です。セリフのみ返してください。`;
+  const step4User = isEnglishMode()
+    ? `Previous session summary:\n${summary}\n\nGreeting for the next session start:`
+    : `前回のセッション要約:\n${summary}\n\n次回セッション開始時の一言:`;
   const step4 = await getChatCompletion([
-    { role: 'system', content: `あなたは「${char.name}」というキャラクターです。\n${char.personality || ''}\n\n次のセッション開始時にユーザーに話しかける一言を生成してください。\n今回のセッション内容を踏まえた自然なセリフを、キャラクターの口調で1〜3文で返してください。地の文や説明は不要です。セリフのみ返してください。` },
-    { role: 'user',   content: `前回のセッション要約:\n${summary}\n\n次回セッション開始時の一言:` },
+    { role: 'system', content: step4System },
+    { role: 'user',   content: step4User },
   ]);
   let opening_message = cleanLLMResponse(step4);
   if (typeof isAbnormalOutput === 'function' && isAbnormalOutput(opening_message)) {

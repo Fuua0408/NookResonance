@@ -1,4 +1,4 @@
-/* ═════════════════════════════════════════════
+﻿/* ═════════════════════════════════════════════
    ComfyDeck Nook — llm.js
    LLM呼び出し・翻訳・キャラ反応システム
    ═════════════════════════════════════════════ */
@@ -274,8 +274,8 @@ function isAbnormalOutput(text) {
   // 繰り返しパターン検知（3文字以上のトークンが5回以上連続）
   if (/(.{3,})\1{4,}/.test(text)) return true;
 
-  // 日本語割合チェック（2割未満で異常）
-  if (text.length > 20) {
+  // ENモード時は日本語割合チェックをスキップ
+  if (!isEnglishMode() && text.length > 20) {
     const jpCount = (text.match(/[\u3000-\u9FFF\uF900-\uFAFF\uFF00-\uFFEF]/g) || []).length;
     if (jpCount / text.length < 0.2) return true;
   }
@@ -355,7 +355,22 @@ function _getAttitudeGuide(value) {
   return `ユーザーを深く愛している。特別な存在として扱い、愛情を惜しみなく表現する。`;
 }
 
+function _getAttitudeGuideEN(value) {
+  if (value <= 5)   return `You deeply hate the user. Show open hostility and be aggressive and rejecting. You want to end the conversation quickly.`;
+  if (value <= 36)  return `You dislike the user. You are clearly unfriendly and cold. You will not show any goodwill. You don't hide that you don't want to continue the conversation.`;
+  if (value <= 72)  return `You find the user uncomfortable. Keep your distance and limit responses to the bare minimum.`;
+  if (value <= 109) return `You find the user slightly uncomfortable. You're not unfriendly, but you don't actively want to engage.`;
+  if (value <= 145) return `You have a normal relationship with the user. No special feelings; interact naturally.`;
+  if (value <= 181) return `You like the user. Engage warmly and enjoy the conversation.`;
+  if (value <= 218) return `You really like the user. You trust them and are open with them. Express happiness and joy freely.`;
+  if (value <= 249) return `You love the user. Being together makes you happy, and your emotions overflow. You often act affectionate or shy.`;
+  return `You deeply love the user. Treat them as someone irreplaceable and express your love without reservation.`;
+}
+
 function buildCharSystemPrompt(char, narrative = false) {
+  if (isEnglishMode()) {
+    return _buildCharSystemPromptEN(char, narrative);
+  }
   const lines = [
     `あなたは「${char.name}」というキャラクターです。`,
     `以下の設定に従って、キャラクターとして自然に会話してください。`,
@@ -440,6 +455,87 @@ function buildCharSystemPrompt(char, narrative = false) {
 
   return lines.join('\n');
 }
+
+function _buildCharSystemPromptEN(char, narrative = false) {
+  const lines = [
+    `You are a character named "${char.name}".`,
+    `Follow the settings below and converse naturally as this character.`,
+    ``,
+    `[Appearance]`,
+    char.appearance || '(no appearance defined)',
+    ``,
+    `[Character Settings]`,
+    char.personality || '(no settings defined)',
+  ];
+
+  if (typeof isCharAffectionEnabled === 'function' && isCharAffectionEnabled(char)) {
+    const affValue   = char.affection ?? 130;
+    const llmLabel   = typeof affectionLLMLabel === 'function' ? affectionLLMLabel(affValue) : '';
+    const stageLabel = typeof affectionLabel    === 'function' ? affectionLabel(affValue)    : '';
+    const isFirst    = char.is_first_meeting !== false;
+    const notes      = char.memory_notes || [];
+    const lastState  = char.last_state   || {};
+
+    lines.push(``, `[Current Relationship]`);
+    lines.push(`Current affection level: ${stageLabel} (relationship: ${llmLabel})`);
+    lines.push(`First meeting: ${isFirst ? 'yes' : 'no'}`);
+    if (char.user_name) lines.push(`How to address the user: ${char.user_name}`);
+
+    const attitudeGuide = _getAttitudeGuideEN(affValue);
+    if (attitudeGuide) lines.push(`\n[Attitude based on affection level]\n${attitudeGuide}`);
+
+    if (notes.length) {
+      lines.push(`Memory notes:`);
+      notes.forEach(n => lines.push(`  - ${n}`));
+    }
+    if (lastState.appearance) lines.push(`Current appearance: ${lastState.appearance}`);
+    if (lastState.location)   lines.push(`Current location: ${lastState.location}`);
+  }
+
+  const ctx = activeSession?.context;
+  if (ctx?.summary)    { lines.push(``, `[Previous Session Summary]`); lines.push(ctx.summary); }
+  if (ctx?.appearance) { lines.push(``, `[Current Appearance]`); lines.push(ctx.appearance); }
+  if (ctx?.location)   { lines.push(``, `[Current Location]`); lines.push(ctx.location); }
+
+  const up = char.user_profile || {};
+  const userName           = up.name       || getSetting('userName', '')       || '';
+  const userAppearanceBase = up.appearance || getSetting('userAppearance', '') || '';
+  const userState          = activeSession?.user_state || {};
+  const userAppearance     = userState.appearance || userAppearanceBase;
+  const userLocation       = userState.location   || '';
+  if (userName || userAppearance || userLocation) {
+    lines.push(``, `[User Information]`);
+    if (userName)       lines.push(`Name: ${userName}`);
+    if (userAppearance) lines.push(`Appearance: ${userAppearance}`);
+    if (userLocation)   lines.push(`Current location: ${userLocation}`);
+  }
+
+  lines.push(
+    ``,
+    `[Important Instructions]`,
+    `- Always respond in English`,
+    `- Images may be shared. If so, accept them naturally as part of the situation`,
+    `- Roleplay naturally as this character`,
+    `- No extra explanations or preamble. Return only dialogue`,
+    `- Messages written as "(situation) ..." are narrative descriptions. Accept the situation and respond naturally`,
+  );
+
+  const charLead = document.getElementById('charLeadToggle')?.checked;
+  if (charLead) {
+    lines.push(
+      ``,
+      `[Character-Led Mode (HIGHEST PRIORITY)]`,
+      `- You must fully lead the conversation and narrative`,
+      `- Passive responses or ending with questions are forbidden`,
+      `- Express your emotions, desires, and will proactively`,
+      `- Declare, propose, or act without waiting for user consent`,
+      `- Use assertive language that pulls the user along`,
+    );
+  }
+
+  return lines.join('\n');
+}
+
 async function getCharResponse(imageUrl, userText, narrative = false) {
   if (!activeChar) throw new Error('キャラクターが選択されていません');
   const base64 = await imageUrlToBase64(imageUrl);
@@ -468,10 +564,11 @@ async function getCharResponse(imageUrl, userText, narrative = false) {
   const cleaned = cleanLLMResponse(result);
   if (isAbnormalOutput(cleaned)) {
     if (getSetting('debugMode', false)) console.warn('[Alcove] ABNORMAL_RAW\nPrompt:', messages, '\nResponse:', result);
-    // clean後も異常 → LLMで日本語応答を抽出トライ（1回のみ）
-    if (typeof updateStatusBadge === 'function') updateStatusBadge('リカバリー試行中…');
-    const extracted = await extractJapaneseResponse(result);
-    if (extracted && !isAbnormalOutput(extracted)) return extracted;
+    if (!isEnglishMode()) {
+      if (typeof updateStatusBadge === 'function') updateStatusBadge('リカバリー試行中…');
+      const extracted = await extractJapaneseResponse(result);
+      if (extracted && !isAbnormalOutput(extracted)) return extracted;
+    }
     throw new Error('ABNORMAL_OUTPUT');
   }
   return cleaned;
@@ -498,10 +595,11 @@ async function getCharResponseContinue() {
   const cleaned = cleanLLMResponse(result);
   if (isAbnormalOutput(cleaned)) {
     if (getSetting('debugMode', false)) console.warn('[Alcove] ABNORMAL_RAW\nPrompt:', messages, '\nResponse:', result);
-    // clean後も異常 → LLMで日本語応答を抽出トライ（1回のみ）
-    if (typeof updateStatusBadge === 'function') updateStatusBadge('リカバリー試行中…');
-    const extracted = await extractJapaneseResponse(result);
-    if (extracted && !isAbnormalOutput(extracted)) return extracted;
+    if (!isEnglishMode()) {
+      if (typeof updateStatusBadge === 'function') updateStatusBadge('リカバリー試行中…');
+      const extracted = await extractJapaneseResponse(result);
+      if (extracted && !isAbnormalOutput(extracted)) return extracted;
+    }
     throw new Error('ABNORMAL_OUTPUT');
   }
   return cleaned;
@@ -520,10 +618,11 @@ async function getCharResponseText(userText, narrative = false, excludeTurnIdx =
   const cleaned = cleanLLMResponse(result);
   if (isAbnormalOutput(cleaned)) {
     if (getSetting('debugMode', false)) console.warn('[Alcove] ABNORMAL_RAW\nPrompt:', messages, '\nResponse:', result);
-    // clean後も異常 → LLMで日本語応答を抽出トライ（1回のみ）
-    if (typeof updateStatusBadge === 'function') updateStatusBadge('リカバリー試行中…');
-    const extracted = await extractJapaneseResponse(result);
-    if (extracted && !isAbnormalOutput(extracted)) return extracted;
+    if (!isEnglishMode()) {
+      if (typeof updateStatusBadge === 'function') updateStatusBadge('リカバリー試行中…');
+      const extracted = await extractJapaneseResponse(result);
+      if (extracted && !isAbnormalOutput(extracted)) return extracted;
+    }
     throw new Error('ABNORMAL_OUTPUT');
   }
   return cleaned;
