@@ -6,6 +6,8 @@
 function openSettingsModal() {
   if (typeof initAffectionSettings === 'function') initAffectionSettings();
   initSettingsUI();
+  const langSel = document.getElementById('settingsLanguage');
+  if (langSel) langSel.value = getSetting('language', 'ja');
   if (getCurrentUser()?.is_admin) {
     // グローバルWF設定読み込み（サンプラーリスト + 保存値）
     fetchSamplerList().then(() => loadAdminWfSettings());

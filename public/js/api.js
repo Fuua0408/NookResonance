@@ -189,11 +189,13 @@ async function saveSettingsFromUI() {
   const isAdmin = !!getCurrentUser()?.is_admin;
 
   // 全ユーザー共通設定
+  const language = document.getElementById('settingsLanguage')?.value || 'ja';
   const userSettings = {
     userName:         getFieldValue('userName'),
     userAppearance:   getFieldValue('userAppearance'),
     userAppearanceEn: getFieldValue('userAppearanceEn'),
     accentColor:      document.getElementById('customColorInput')?.value || '#8b6348',
+    language,
   };
   saveSettings(userSettings);
 
@@ -331,4 +333,14 @@ async function restDelete(path) {
     if (e.name === 'TypeError') throw new Error('サーバーに接続できません');
     throw e;
   }
+}
+
+// ─────────────────────────────────────────────
+// 言語ユーティリティ（Phase.0: フラグ参照のみ）
+// ─────────────────────────────────────────────
+function getCurrentLanguage() {
+  return getSetting('language', 'ja');
+}
+function isEnglishMode() {
+  return getCurrentLanguage() === 'en';
 }
