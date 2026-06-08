@@ -29,7 +29,7 @@ router.post('/login', async (req, res) => {
   let token;
   try {
     token = jwt.sign(
-      { id: user.id, username: user.username, is_admin: user.is_admin },
+      { id: user.id, username: user.username, is_admin: user.is_admin, is_advanced: user.is_advanced },
       process.env.JWT_SECRET,
       { expiresIn: '30d' }
     );
@@ -37,7 +37,7 @@ router.post('/login', async (req, res) => {
     return res.status(500).json({ error: 'Token generation failed: ' + err.message });
   }
 
-  res.json({ token, user: { id: user.id, username: user.username, is_admin: user.is_admin } });
+  res.json({ token, user: { id: user.id, username: user.username, is_admin: user.is_admin, is_advanced: user.is_advanced } });
 });
 
 // POST /api/auth/change-password

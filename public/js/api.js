@@ -344,3 +344,51 @@ function getCurrentLanguage() {
 function isEnglishMode() {
   return getCurrentLanguage() === 'en';
 }
+
+// ─────────────────────────────────────────────
+// ユーザー管理UI（管理者のみ）
+// ─────────────────────────────────────────────
+async function loadUserList() {
+  const container = document.getElementById('userListContainer');
+  if (!container) return;
+  try {
+    const users = await restGet('users');
+    renderUserList(users);
+  } catch(e) {
+    container.innerHTML = `<div style="font-size:12px;color:var(--text-pale);padding:8px 0;">${escHtml(e.message)}</div>`;
+  }
+}
+
+function renderUserList(users) {
+  const container = document.getElementById('userListContainer');
+  if (!container) return;
+  if (!users.length) {
+    container.innerHTML = `<div style="font-size:12px;color:var(--text-pale);padding:8px 0;">${t('settings.users_empty', 'ユーザーなし')}</div>`;
+    return;
+  }
+  container.innerHTML = users.map(u => {
+    if (u.is_admin) {
+      return `<div class="num-row" style="padding:6px 0;">
+        <div style="font-size:13px;color:var(--text);flex:1;">${escHtml(u.username)}</div>
+        <div style="font-size:11px;color:var(--accent);padding:2px 8px;border:1px solid var(--accent);border-radius:4px;">${t('settings.users_admin_badge', '管理者')}</div>
+      </div>`;
+    }
+    const isAdv = !!u.is_advanced;
+    return `<div class="num-row" style="padding:6px 0;">
+      <div style="font-size:13px;color:var(--text);flex:1;">${escHtml(u.username)}</div>
+      <button class="btn-secondary" style="font-size:11px;padding:3px 10px;"
+        onclick="toggleUserAdvanced(${u.id}, ${isAdv})">
+        ${isAdv ? t('settings.users_demote', '上級者 ✓') : t('settings.users_promote', '昇格')}
+      </button>
+    </div>`;
+  }).join('<div class="sep"></div>');
+}
+
+async function toggleUserAdvanced(userId, currentState) {
+  try {
+    await restPut(`users/${userId}`, { is_advanced: !currentState });
+    await loadUserList();
+  } catch(e) {
+    showToast(t('error', 'エラー') + ': ' + e.message);
+  }
+}

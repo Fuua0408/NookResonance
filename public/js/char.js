@@ -428,18 +428,19 @@ function openCharEdit(char) {
   }
   closeModal('charOverlay');
   setTimeout(() => openModal('charEditOverlay'), 200);
-  // 非管理者はLoRA・WFパラメータ・Quality Tags/Negativeセクションを非表示
-  const isAdmin = !!getCurrentUser()?.is_admin;
+  // 管理者・上級者以外はLoRA・WFパラメータ・Quality Tags/Negativeセクションを非表示
+  const cu = getCurrentUser();
+  const showAdvanced = !!(cu?.is_admin || cu?.is_advanced);
   const loraSec    = document.getElementById('loraSection');
   const wfSec      = document.getElementById('wfParamSection');
   const qualNegSec = document.getElementById('charQualNegSection');
-  if (loraSec)    loraSec.style.display    = isAdmin ? '' : 'none';
-  if (wfSec)      wfSec.style.display      = isAdmin ? '' : 'none';
-  if (qualNegSec) qualNegSec.style.display = isAdmin ? '' : 'none';
+  if (loraSec)    loraSec.style.display    = showAdvanced ? '' : 'none';
+  if (wfSec)      wfSec.style.display      = showAdvanced ? '' : 'none';
+  if (qualNegSec) qualNegSec.style.display = showAdvanced ? '' : 'none';
   // 親愛度セクションを描画
   if (typeof renderAffectionSection === 'function') renderAffectionSection(char || null);
-  // ComfyUIからLoRA・Sampler・Schedulerリストを自動取得（管理者のみ）
-  if (getCurrentUser()?.is_admin) {
+  // ComfyUIからLoRA・Sampler・Schedulerリストを自動取得（管理者・上級者）
+  if (showAdvanced) {
     if (!_loraNames.length) fetchLoraList();
   }
   fetchSamplerList().then(() => {
@@ -502,12 +503,12 @@ async function saveCharFromUI() {
     appearance_clothing_en: (isNotGeneratedText(document.getElementById('enCacheClothingDisplay')?.textContent?.trim()) ? '' : document.getElementById('enCacheClothingDisplay')?.textContent?.trim()) || existing.appearance_clothing_en || '',
     appearance_en: (isNotGeneratedText(document.getElementById('enCacheBodyDisplay')?.textContent?.trim()) ? '' : document.getElementById('enCacheBodyDisplay')?.textContent?.trim()) || existing.appearance_en || '',
     personality:   getFieldValue('editPersonality'),
-    workflow_id: getCurrentUser()?.is_admin
+    workflow_id: (getCurrentUser()?.is_admin || getCurrentUser()?.is_advanced)
       ? (document.getElementById('editWfSelect')?.value || 'anima')
       : (existing.workflow_id || 'anima'),
     workflow_params: (() => {
       const ep = existing.workflow_params || {};
-      if (getCurrentUser()?.is_admin) {
+      if (getCurrentUser()?.is_admin || getCurrentUser()?.is_advanced) {
         return {
           quality_tags: getFieldValue('editQualityTags') || null,
           negative:     getFieldValue('editNegative')    || null,

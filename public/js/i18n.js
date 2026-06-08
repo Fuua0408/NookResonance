@@ -293,6 +293,12 @@ const I18N = {
     'settings.affection_per_turn': 'Auto-calculate each turn',
     'settings.global_negative_placeholder': 'Blank uses workflow default',
     'settings.new_session_started': 'New session started',
+    'settings.users':             'User Management',
+    'settings.users_loading':     'Loading…',
+    'settings.users_empty':       'No users',
+    'settings.users_admin_badge': 'Admin',
+    'settings.users_promote':     'Promote',
+    'settings.users_demote':      'Advanced ✓',
 
     // ── 引き継ぎ（Handover）──
     'handover.title':      'Session Handover',

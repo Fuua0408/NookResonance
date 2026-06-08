@@ -20,4 +20,11 @@ function adminMiddleware(req, res, next) {
   next();
 }
 
-module.exports = { authMiddleware, adminMiddleware };
+function advancedMiddleware(req, res, next) {
+  if (!req.user?.is_admin && !req.user?.is_advanced) {
+    return res.status(403).json({ error: 'Advanced or admin required' });
+  }
+  next();
+}
+
+module.exports = { authMiddleware, adminMiddleware, advancedMiddleware };

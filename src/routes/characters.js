@@ -57,8 +57,8 @@ router.put('/:id', (req, res) => {
   const { name, ...rest } = body;
   if (!name) return res.status(400).json({ error: 'name is required' });
 
-  // 非管理者はワークフロー・LoRA設定を変更不可 — 既存値を維持
-  if (!req.user.is_admin) {
+  // 管理者・上級者以外はワークフロー・LoRA設定を変更不可 — 既存値を維持
+  if (!req.user.is_admin && !req.user.is_advanced) {
     const prev = JSON.parse(existing.char_data || '{}');
     const pp   = prev.workflow_params || {};
     rest.workflow_id = prev.workflow_id || rest.workflow_id;

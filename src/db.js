@@ -82,6 +82,12 @@ function migrate(db) {
       created_at    TEXT    NOT NULL DEFAULT (datetime('now'))
     );
   `);
+
+  // is_advanced カラムが存在しない場合のみ追加（既存DBへのマイグレーション）
+  const cols = db.prepare('PRAGMA table_info(users)').all();
+  if (!cols.find(c => c.name === 'is_advanced')) {
+    db.prepare('ALTER TABLE users ADD COLUMN is_advanced INTEGER NOT NULL DEFAULT 0').run();
+  }
 }
 
 module.exports = { getDb };

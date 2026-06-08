@@ -586,9 +586,15 @@
 
         <!-- グローバルLoRA -->
         <div style="font-size:12px;color:var(--text-pale);margin-bottom:8px;" data-i18n="settings.global_lora">グローバルLoRA</div>
-        <button class="btn-secondary" style="width:100%;padding:10px;" onclick="openGlobalLoraModal()" data-i18n="settings.manage_global_lora">
+        <button class="btn-secondary" style="width:100%;padding:10px;margin-bottom:12px;" onclick="openGlobalLoraModal()" data-i18n="settings.manage_global_lora">
           🎨 グローバルLoRAを管理
         </button>
+
+        <!-- ユーザー管理 -->
+        <div style="font-size:12px;color:var(--text-pale);margin-bottom:8px;" data-i18n="settings.users">ユーザー管理</div>
+        <div class="field-group" id="userListContainer" style="margin-bottom:12px;">
+          <div style="font-size:12px;color:var(--text-pale);padding:8px 0;" data-i18n="settings.users_loading">読み込み中…</div>
+        </div>
       </div>
 
       <div id="adminSettingsSep" class="sep" style="display:none;"></div>
