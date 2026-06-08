@@ -7,8 +7,10 @@ const cors = require('cors');
 const path = require('path');
 
 const { getDb } = require('./db');
+const { authMiddleware } = require('./auth');
 const authRoutes = require('./routes/auth');
 const characterRoutes = require('./routes/characters');
+const usersRouter = require('./routes/users');
 const sessionRoutes = require('./routes/sessions');
 const workflowRoutes = require('./routes/workflows');
 const settingsRoutes = require('./routes/settings');
@@ -29,6 +31,7 @@ app.use('/data/cache', express.static(path.join(__dirname, '..', 'data', 'cache'
 
 // API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/users', authMiddleware, usersRouter);
 app.use('/api/characters', characterRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/workflows', workflowRoutes);

@@ -13,6 +13,8 @@ function openSettingsModal() {
     fetchSamplerList().then(() => loadAdminWfSettings());
     // グローバルWFセレクトを populateWfSelect と共有
     if (typeof renderWfSelect === 'function') renderWfSelect('globalWfSelect');
+    // ユーザー管理一覧を読み込み
+    loadUserList();
   }
   openModal('settingsOverlay');
 }
