@@ -50,7 +50,7 @@ function renderWfList() {
       <div class="char-avatar" style="font-size:22px;">${escHtml(wf.emoji || '⚙')}</div>
       <div class="char-info">
         <div class="char-name">${escHtml(wf.name)}</div>
-        <div class="char-meta">${isBuiltin ? 'ビルトイン' : 'カスタム'}</div>
+        <div class="char-meta">${isBuiltin ? t('misc.builtin', 'ビルトイン') : t('misc.custom', 'カスタム')}</div>
         <div class="char-wf">Steps:${wf.defaults?.steps} CFG:${wf.defaults?.cfg} ${wf.defaults?.width}x${wf.defaults?.height}</div>
       </div>
       <div class="char-actions">
@@ -66,7 +66,7 @@ function renderWfList() {
 
 function openWfEdit(wf) {
   const isNew = !wf;
-  document.getElementById('wfEditTitle').textContent = isNew ? 'ワークフロー追加' : 'ワークフロー編集';
+  document.getElementById('wfEditTitle').textContent = isNew ? t('wf.add_title', 'ワークフロー追加') : t('wf.edit_title', 'ワークフロー編集');
   document.getElementById('wfDeleteBtn').style.display = isNew ? 'none' : '';
   document.getElementById('wfEditOverlay').dataset.wfId = wf?.id || '';
 
@@ -108,7 +108,7 @@ async function saveWfFromUI() {
   let wfJson = null;
   if (jsonStr) {
     try { wfJson = JSON.parse(jsonStr); }
-    catch(e) { showToast('❌ JSONが不正です: ' + e.message.slice(0, 40)); return; }
+    catch(e) { showToast(t('wf.invalid_json', '❌ JSONが不正です: ') + e.message.slice(0, 40)); return; }
   }
 
   const mapping = {};
@@ -119,7 +119,7 @@ async function saveWfFromUI() {
 
   const wf = {
     id:      wfId || ('wf_' + Date.now()),
-    name:    getFieldValue('wfEditName')    || '無名のWF',
+    name:    getFieldValue('wfEditName')    || t('wf.unnamed', '無名のWF'),
     emoji:   getFieldValue('wfEditEmoji')   || '🎨',
     defaults: {
       steps:     parseInt(getFieldValue('wfEditSteps'))    || 20,
@@ -144,7 +144,7 @@ async function saveWfFromUI() {
         await restPut(`workflows/${wf.id}`, wf);
       }
     } catch(e) {
-      showToast('⚠ サーバー保存失敗: ' + e.message.slice(0, 40));
+      showToast(t('wf.save_failed', '⚠ サーバー保存失敗: ') + e.message.slice(0, 40));
     }
   }
 
@@ -154,7 +154,7 @@ async function saveWfFromUI() {
   cacheCustomWfs(customs);
 
   renderWfSelect();
-  showToast('保存しました');
+  showToast(t('wf.saved', '保存しました'));
   closeModal('wfEditOverlay');
   setTimeout(() => { renderWfList(); openModal('wfOverlay'); }, 200);
 }
@@ -163,7 +163,7 @@ async function deleteCustomWf() {
   const overlay = document.getElementById('wfEditOverlay');
   const wfId    = overlay?.dataset.wfId;
   if (!wfId) return;
-  if (!confirm('このワークフローを削除しますか？')) return;
+  if (!confirm(t('wf.delete_confirm', 'このワークフローを削除しますか？'))) return;
 
   if (isRestEnabled()) {
     try { await restDelete(`workflows/${wfId}`); }
@@ -172,7 +172,7 @@ async function deleteCustomWf() {
 
   cacheCustomWfs(loadCustomWfs().filter(w => w.id !== wfId));
   renderWfSelect();
-  showToast('削除しました');
+  showToast(t('wf.deleted', '削除しました'));
   closeModal('wfEditOverlay');
   setTimeout(() => { renderWfList(); openModal('wfOverlay'); }, 200);
 }

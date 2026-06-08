@@ -11,7 +11,7 @@ function initSession() {
   activeSession = {
     id:                'session_' + Date.now(),
     char_id:           activeChar.id,
-    title:             '新しいセッション',
+    title:             t('session.new', '新しいセッション'),
     created_at:        new Date().toISOString(),
     updated_at:        new Date().toISOString(),
     archived:          false,
@@ -27,6 +27,21 @@ function initSession() {
   document.getElementById('anchorBtn')?.classList.remove('active');
   _anchorSelectMode = false;
   updateHeaderSession();
+}
+function displaySessionTitle(title) {
+  if (!title || title === '新しいセッション') return t('session.new', '新しいセッション');
+  if (title === 'フォトセッション') return t('session.photo', 'フォトセッション');
+  if (title === '無題') return t('session.no_title', '無題');
+  return isEnglishMode()
+    ? String(title).replace(/\[フォト\]/g, `[${t('session.photo_badge', 'フォト')}]`)
+    : title;
+}
+function formatTurnCount(count) {
+  const n = Number(count) || 0;
+  if (isEnglishMode()) {
+    return (n === 1 ? t('session.turn_count_one', '{count} turn') : t('session.turn_count', '{count} turns')).replace('{count}', n);
+  }
+  return `${n}ターン`;
 }
 function isLocalSessionId(id) {
   return typeof id === 'string' && id.startsWith('session_');
@@ -66,7 +81,7 @@ async function saveTurnToSession(turn) {
     updateStatusBadge('SYNC');
   } catch(e) {
     console.warn('[Nook] saveTurn REST failed:', e.message);
-    showToast('⚠ サーバー保存に失敗（ローカル保存）');
+    showToast(t('server_save_failed_local', '⚠ サーバー保存に失敗（ローカル保存）'));
     saveSettings({ [`session_${activeSession.id}`]: activeSession });
   }
 }
@@ -112,7 +127,7 @@ function getAnchorEN() {
 }
 function setAnchor(turnIdx) {
   const turn = activeSession?.turns?.[turnIdx];
-  if (!turn?.en_prompt) { showToast('ENプロンプトがありません'); return; }
+  if (!turn?.en_prompt) { showToast(t('session.en_prompt_missing', 'ENプロンプトがありません')); return; }
 
   if (!activeSession.anchors) activeSession.anchors = [];
 
@@ -128,7 +143,7 @@ function setAnchor(turnIdx) {
 
   updateAnchorUI();
   saveTurnToSession(null).catch(e => console.warn(e));
-  showToast('⚓ アンカーを設定しました');
+  showToast(t('session.anchor_set', '⚓ アンカーを設定しました'));
 }
 function clearAnchor() {
   if (!activeSession) return;
@@ -136,12 +151,12 @@ function clearAnchor() {
   delete activeSession.active_anchor_idx;
   updateAnchorUI();
   saveTurnToSession(null).catch(e => console.warn(e));
-  showToast('アンカーをすべて解除しました');
+  showToast(t('session.anchors_cleared', 'アンカーをすべて解除しました'));
 }
 function startAnchorSelect() {
   if (_anchorSelectMode) { cancelAnchorSelect(); return; }
   if (!activeSession?.turns?.some(t => t.en_prompt)) {
-    showToast('アンカーにできる画像がありません'); return;
+    showToast(t('session.no_anchor_images', 'アンカーにできる画像がありません')); return;
   }
   _anchorSelectMode = true;
 
@@ -152,7 +167,7 @@ function startAnchorSelect() {
     const div = document.createElement('div');
     div.id = 'anchorSelectBanner';
     div.className = 'anchor-banner';
-    div.innerHTML = '⚓ アンカーにする画像をタップしてください　<span style="text-decoration:underline;">キャンセル</span>';
+    div.innerHTML = t('session.anchor_tap', '⚓ アンカーにする画像をタップしてください') + '　<span style="text-decoration:underline;">' + t('cancel', 'キャンセル') + '</span>';
     div.addEventListener('click', cancelAnchorSelect);
     log.parentElement?.insertBefore(div, log);
   }
@@ -199,10 +214,10 @@ function updateAnchorUI() {
 // バッチ処理
 // ─────────────────────────────────────────────
 async function batchRetranslate() {
-  if (isGenerating) { showToast('生成中です'); return; }
+  if (isGenerating) { showToast(t('chat.generating', '生成中です')); return; }
   const targets = activeSession?.turns?.filter(t => t.jp_prompt) || [];
-  if (!targets.length) { showToast('再推論できるターンがありません'); return; }
-  if (!confirm(`${targets.length}ターンのプロンプトを再推論してから全画像を再生成します。`)) return;
+  if (!targets.length) { showToast(t('session.no_retranslate_targets', '再推論できるターンがありません')); return; }
+  if (!confirm(t('session.retranslate_confirm', '{count}ターンのプロンプトを再推論してから全画像を再生成します。').replace('{count}', targets.length))) return;
 
   const inPhoto = typeof isPhotoMode === 'function' && isPhotoMode();
 
@@ -218,7 +233,7 @@ async function batchRetranslate() {
       if (_batchCancelled) break;
       const turn = activeSession.turns[i];
       if (!turn.jp_prompt) continue;
-      updateStatusBadge(`再推論中… ${i+1}/${activeSession.turns.length}`);
+      updateStatusBadge(`${t('session.retranslating', '再推論中…')} ${i+1}/${activeSession.turns.length}`);
       const prevEN = anchor || (i === 0 ? '' : (activeSession.turns[i - 1]?.en_prompt || ''));
       if (!inPhoto && turn.gen_mode === 'char' && turn.char_message) {
         // チャットモードのキャラ主導のみ
@@ -247,16 +262,16 @@ async function batchRetranslate() {
 }
 async function batchReroll() {
   if (!activeChar || !activeSession) {
-    showToast('セッションが選択されていません'); return;
+    showToast(t('session.not_selected', 'セッションが選択されていません')); return;
   }
-  if (isGenerating) { showToast('生成中です'); return; }
+  if (isGenerating) { showToast(t('chat.generating', '生成中です')); return; }
 
   const inPhoto = typeof isPhotoMode === 'function' && isPhotoMode();
 
   const targets = activeSession.turns.filter(t => t.en_prompt);
-  if (!targets.length) { showToast('再生成できるターンがありません'); return; }
+  if (!targets.length) { showToast(t('session.no_regen_targets', '再生成できるターンがありません')); return; }
 
-  if (!confirm(`${targets.length}枚の画像を新しいSeedで再生成します。`)) return;
+  if (!confirm(t('session.reroll_confirm', '{count}枚の画像を新しいSeedで再生成します。').replace('{count}', targets.length))) return;
 
   isGenerating = true;
   _batchCancelled = false;
@@ -272,7 +287,7 @@ async function batchReroll() {
       if (_batchCancelled) break;
       const turn = activeSession.turns[i];
       if (!turn.en_prompt) continue;
-      updateStatusBadge(`再生成中… ${done + 1}/${targets.length}`);
+      updateStatusBadge(`${t('session.regenerating', '再生成中…')} ${done + 1}/${targets.length}`);
       try {
         const { imageUrl, meta: batchMeta } = await generateImage(turn.en_prompt, newSeed);
         turn.image_url = imageUrl;
@@ -290,7 +305,7 @@ async function batchReroll() {
         }
       } catch(e) {
         console.warn(`[Alcove] photo reroll turn ${i} failed:`, e.message);
-        showToast(`⚠ ターン${i+1}の再生成に失敗: ${e.message.slice(0,30)}`);
+        showToast(t('session.regen_turn_failed', '⚠ ターン{turn}の再生成に失敗: ').replace('{turn}', i + 1) + e.message.slice(0,30));
       }
     }
 
@@ -299,13 +314,15 @@ async function batchReroll() {
     document.getElementById('btnReroll').style.display = '';
     document.getElementById('btnCancelReroll').style.display = 'none';
     updateStatusBadge('SYNC');
-    showToast(_batchCancelled ? '再生成をキャンセルしました' : `✓ ${done}枚を再生成しました（Seed: ${newSeed}）`);
+    showToast(_batchCancelled
+      ? t('session.reroll_cancelled', '再生成をキャンセルしました')
+      : t('session.reroll_done', '✓ {count}枚を再生成しました（Seed: {seed}）').replace('{count}', done).replace('{seed}', newSeed));
     updateHeaderSession();
     return;
   }
 
   // ── チャットモード ────────────────────────────
-  updateStatusBadge('セッションを保存中…');
+  updateStatusBadge(t('session.saving', 'セッションを保存中…'));
   if (isRestEnabled()) {
     try {
       if (isLocalSessionId(activeSession.id)) {
@@ -315,7 +332,7 @@ async function batchReroll() {
       await archiveSession(activeChar.id, activeSession.id);
     } catch(e) {
       console.warn('[Alcove] archive failed:', e.message);
-      showToast('⚠ セッションの保存に失敗しました（続行します）');
+      showToast(t('session.save_continue', '⚠ セッションの保存に失敗しました（続行します）'));
     }
   }
 
@@ -347,7 +364,7 @@ async function batchReroll() {
     if (_batchCancelled) break;
     const turn = newTurns[i];
     if (!turn.en_prompt) continue;
-    updateStatusBadge(`再生成中… ${done + 1}/${targets.length}`);
+      updateStatusBadge(`${t('session.regenerating', '再生成中…')} ${done + 1}/${targets.length}`);
     try {
       const { imageUrl, meta: batchMeta } = await generateImage(turn.en_prompt, newSeed);
       turn.image_url = imageUrl;
@@ -368,7 +385,7 @@ async function batchReroll() {
       }
     } catch(e) {
       console.warn(`[Alcove] reroll turn ${i} failed:`, e.message);
-      showToast(`⚠ ターン${i+1}の再生成に失敗: ${e.message.slice(0,30)}`);
+      showToast(t('session.regen_turn_failed', '⚠ ターン{turn}の再生成に失敗: ').replace('{turn}', i + 1) + e.message.slice(0,30));
     }
   }
 
@@ -377,7 +394,9 @@ async function batchReroll() {
   document.getElementById('btnReroll').style.display = '';
   document.getElementById('btnCancelReroll').style.display = 'none';
   updateStatusBadge('SYNC');
-  showToast(_batchCancelled ? '再生成をキャンセルしました' : `✓ ${done}枚を再生成しました（Seed: ${newSeed}）`);
+  showToast(_batchCancelled
+    ? t('session.reroll_cancelled', '再生成をキャンセルしました')
+    : t('session.reroll_done', '✓ {count}枚を再生成しました（Seed: {seed}）').replace('{count}', done).replace('{seed}', newSeed));
   updateHeaderSession();
 }
 function cancelBatchReroll() {
@@ -389,13 +408,13 @@ function cancelBatchReroll() {
 // ターン操作（分岐）
 // ─────────────────────────────────────────────
 async function branchFromTurn(turnIdx) {
-  if (isGenerating) { showToast('生成中です'); return; }
+  if (isGenerating) { showToast(t('chat.generating', '生成中です')); return; }
   if (!activeChar || !activeSession) return;
 
-  if (!confirm(`ターン${turnIdx + 1}から分岐しますか？\n現在のセッションは保存されます。`)) return;
+  if (!confirm(t('session.branch_confirm', 'ターン{turn}から分岐しますか？\n現在のセッションは保存されます。').replace('{turn}', turnIdx + 1))) return;
 
   // 1. 現在のセッションをarchive（未保存なら先にPOST）
-  updateStatusBadge('セッションを保存中…');
+  updateStatusBadge(t('session.saving', 'セッションを保存中…'));
   if (isRestEnabled()) {
     try {
       if (isLocalSessionId(activeSession.id)) {
@@ -410,8 +429,8 @@ async function branchFromTurn(turnIdx) {
 
   // 2. 指定ターンまでのturnsをコピーして新セッション作成
   const branchTurns = activeSession.turns.slice(0, turnIdx + 1).map(t => ({ ...t }));
-  const baseName    = activeSession.title.replace(/ \[分岐.*\]$/, '').replace(/ #\d+$/, '');
-  const newTitle    = `${baseName} [分岐 ターン${turnIdx + 1}]`;
+  const baseName    = displaySessionTitle(activeSession.title).replace(/ \[分岐.*\]$/, '').replace(/ \[Branch.*\]$/, '').replace(/ #\d+$/, '');
+  const newTitle    = `${baseName} ${t('session.branch_suffix', '[分岐 ターン{turn}]').replace('{turn}', turnIdx + 1)}`;
 
   const newSession = {
     id:         'session_' + Date.now(),
@@ -445,7 +464,7 @@ async function branchFromTurn(turnIdx) {
   }
 
   updateStatusBadge('SYNC');
-  showToast(`🌿 ターン${turnIdx + 1}から分岐しました`);
+  showToast(t('session.branch_done', '🌿 ターン{turn}から分岐しました').replace('{turn}', turnIdx + 1));
 }
 
 // ─────────────────────────────────────────────
@@ -455,16 +474,16 @@ async function renderSessionList() {
   const panel = document.getElementById('panelSessionList');
   if (!panel) return;
   if (!activeChar) {
-    panel.innerHTML = '<div style="text-align:center;padding:32px 16px;color:var(--text-pale);font-size:13px;">キャラクターを選択してください</div>';
+    panel.innerHTML = `<div style="text-align:center;padding:32px 16px;color:var(--text-pale);font-size:13px;">${t('chat.no_char', 'キャラクターを選択してください')}</div>`;
     return;
   }
 
-  panel.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-pale);font-size:12px;">読み込み中…</div>';
+  panel.innerHTML = `<div style="text-align:center;padding:16px;color:var(--text-pale);font-size:12px;">${t('loading', '読み込み中…')}</div>`;
 
   const sessions = await fetchSessionsFromServer(activeChar.id);
 
   if (!sessions.length) {
-    panel.innerHTML = '<div style="text-align:center;padding:32px 16px;color:var(--text-pale);font-size:13px;">セッションがありません</div>';
+    panel.innerHTML = `<div style="text-align:center;padding:32px 16px;color:var(--text-pale);font-size:13px;">${t('session.no_sessions', 'セッションがありません')}</div>`;
     return;
   }
 
@@ -478,28 +497,28 @@ async function renderSessionList() {
     div.innerHTML = `
       <div class="session-icon ${sess.archived ? 'pin' : ''}">${icon}</div>
       <div class="session-info" onclick="loadSession('${sess.char_id}','${sess.id}')" style="cursor:pointer;">
-        <div class="session-title">${escHtml(sess.title || '無題')}${sess.mode === 'continuous' ? '<span class="session-mode-badge">フォト</span>' : ''}</div>
+        <div class="session-title">${escHtml(displaySessionTitle(sess.title || '無題'))}${sess.mode === 'continuous' ? `<span class="session-mode-badge">${t('session.photo_badge', 'フォト')}</span>` : ''}</div>
         <div class="session-meta">${sess.updated_at?.slice(0,10) || ''}</div>
-        <div class="session-turns">${sess.turn_count || 0}ターン${isCurrent ? ' — 継続中' : ''}</div>
+        <div class="session-turns">${formatTurnCount(sess.turn_count || 0)}${isCurrent ? t('misc.session_ongoing', ' — 継続中') : ''}</div>
       </div>
       <div style="display:flex;gap:6px;flex-shrink:0;">
         ${!sess.archived && sess.mode !== 'continuous'
-          ? `<div class="btn-icon-sm" title="引き継ぎ" onclick="openHandoverFor('${sess.char_id}','${sess.id}')">📝</div>`
+          ? `<div class="btn-icon-sm" title="${t('session.handover', '引き継ぎ')}" onclick="openHandoverFor('${sess.char_id}','${sess.id}')">📝</div>`
           : ''
         }
         ${sess.mode !== 'continuous'
-          ? `<div class="btn-icon-sm" title="概要を作成" onclick="createSessionSummary('${sess.char_id}','${sess.id}')">📋</div>`
+          ? `<div class="btn-icon-sm" title="${t('session.create_summary', '概要を作成')}" onclick="createSessionSummary('${sess.char_id}','${sess.id}')">📋</div>`
           : ''
         }
         ${!sess.archived && sess.mode !== 'continuous'
-          ? `<div class="btn-icon-sm" title="フォトモードに変換" onclick="handleConvertToPhoto('${sess.char_id}','${sess.id}')">📷</div>`
+          ? `<div class="btn-icon-sm" title="${t('session.convert_photo_title', 'フォトモードに変換')}" onclick="handleConvertToPhoto('${sess.char_id}','${sess.id}')">📷</div>`
           : ''
         }
         ${sess.archived
-          ? `<div class="btn-icon-sm" title="保存解除" onclick="handleUnarchive('${sess.char_id}','${sess.id}')">📌</div>`
-          : `<div class="btn-icon-sm" title="完全保存" onclick="handleArchive('${sess.char_id}','${sess.id}')">📌</div>`
+          ? `<div class="btn-icon-sm" title="${t('session.unarchive', '保存解除')}" onclick="handleUnarchive('${sess.char_id}','${sess.id}')">📌</div>`
+          : `<div class="btn-icon-sm" title="${t('session.archive', '完全保存')}" onclick="handleArchive('${sess.char_id}','${sess.id}')">📌</div>`
         }
-        <div class="btn-icon-sm" title="削除" onclick="handleDeleteSession('${sess.char_id}','${sess.id}')" style="color:var(--accent);">🗑</div>
+        <div class="btn-icon-sm" title="${t('delete', '削除')}" onclick="handleDeleteSession('${sess.char_id}','${sess.id}')" style="color:var(--accent);">🗑</div>
       </div>
     `;
     panel.appendChild(div);
@@ -507,7 +526,7 @@ async function renderSessionList() {
 }
 async function loadSession(charId, sessionId) {
   const sess = await loadSessionFromServer(charId, sessionId);
-  if (!sess) { showToast('セッションの読み込みに失敗しました'); return; }
+  if (!sess) { showToast(t('session.load_fail', 'セッションの読み込みに失敗しました')); return; }
 
   activeSession = sess;
   clearChatLog();
@@ -535,7 +554,7 @@ async function loadSession(charId, sessionId) {
   updateHeaderSession();
   restoreScrollPosition(sess.id);
   closeModal('charOverlay');
-  showToast('セッションを読み込みました');
+  showToast(t('session.load_ok', 'セッションを読み込みました'));
 }
 async function handleConvertToPhoto(charId, sessionId) {
   if (typeof convertToPhotoMode === 'function') {
@@ -546,25 +565,25 @@ async function handleConvertToPhoto(charId, sessionId) {
 async function handleArchive(charId, sessionId) {
   try {
     await archiveSession(charId, sessionId);
-    showToast('完全保存しました');
+    showToast(t('session.saved_permanent', '完全保存しました'));
     renderSessionList();
-  } catch(e) { showToast('エラー: ' + e.message.slice(0,40)); }
+  } catch(e) { showToast(t('error_prefix', 'エラー: ') + e.message.slice(0,40)); }
 }
 async function handleUnarchive(charId, sessionId) {
   try {
     await unarchiveSession(charId, sessionId);
-    showToast('保存を解除しました');
+    showToast(t('session.unarchived', '保存を解除しました'));
     renderSessionList();
-  } catch(e) { showToast('エラー: ' + e.message.slice(0,40)); }
+  } catch(e) { showToast(t('error_prefix', 'エラー: ') + e.message.slice(0,40)); }
 }
 async function handleDeleteSession(charId, sessionId) {
-  if (!confirm('このセッションを削除しますか？')) return;
+  if (!confirm(t('session.delete_confirm', 'このセッションを削除しますか？'))) return;
   try {
     await deleteSession(charId, sessionId);
     if (activeSession?.id === sessionId) initSession();
-    showToast('削除しました');
+    showToast(t('toast.deleted', '削除しました'));
     renderSessionList();
-  } catch(e) { showToast('エラー: ' + e.message.slice(0,40)); }
+  } catch(e) { showToast(t('error_prefix', 'エラー: ') + e.message.slice(0,40)); }
 }
 
 // ─────────────────────────────────────────────
@@ -572,15 +591,15 @@ async function handleDeleteSession(charId, sessionId) {
 // ─────────────────────────────────────────────
 async function exportSessionHTML() {
   if (!activeSession || !activeChar) {
-    showToast('セッションを選択してください'); return;
+    showToast(t('session.selected_required', 'セッションを選択してください')); return;
   }
-  if (isGenerating) { showToast('生成中です'); return; }
+  if (isGenerating) { showToast(t('chat.generating', '生成中です')); return; }
 
   const turns = activeSession.turns;
-  if (!turns.length) { showToast('ターンがありません'); return; }
+  if (!turns.length) { showToast(t('turn.none', 'ターンがありません')); return; }
 
-  updateStatusBadge('エクスポート中…');
-  showToast('⏳ 画像を読み込み中…');
+  updateStatusBadge(t('status.exporting', 'エクスポート中…'));
+  showToast(t('session.loading_images', '⏳ 画像を読み込み中…'));
 
   // 画像をbase64に変換
   async function toBase64(url) {
@@ -753,7 +772,7 @@ async function exportSessionHTML() {
     <div class="header-name">${escHtml(activeChar.name)}</div>
     <div class="header-session">${escHtml(activeSession.title)}</div>
   </div>
-  <div class="header-meta">${turns.length}ターン・${exportDate}エクスポート</div>
+  <div class="header-meta">${formatTurnCount(turns.length)} · ${exportDate} ${t('status.exporting', 'エクスポート')}</div>
 </div>
 <div class="chat-log">
 ${turnsHTML}
@@ -774,31 +793,31 @@ ${turnsHTML}
   URL.revokeObjectURL(url);
 
   updateStatusBadge('SYNC');
-  showToast('✓ エクスポートしました');
+  showToast(t('exported', '✓ エクスポートしました'));
 }
 
 // ─────────────────────────────────────────────
 // セッション概要を作成してactiveSession.contextに保存
 // ─────────────────────────────────────────────
 async function createSessionSummary(charId, sessionId) {
-  if (!activeChar) { showToast('キャラクターを選択してください'); return; }
+  if (!activeChar) { showToast(t('chat.no_char', 'キャラクターを選択してください')); return; }
 
   // 対象セッションを取得
   let session = activeSession;
   if (!session || session.id !== sessionId) {
-    if (!isRestEnabled()) { showToast('REST接続が必要です'); return; }
+    if (!isRestEnabled()) { showToast(t('rest.required', 'REST接続が必要です')); return; }
     try {
       session = await restGet(`sessions/${charId}/${sessionId}`);
     } catch(e) {
-      showToast('❌ セッション取得失敗: ' + e.message.slice(0, 40));
+      showToast(t('session.fetch_failed', '❌ セッション取得失敗: ') + e.message.slice(0, 40));
       return;
     }
   }
 
-  if (!session.turns?.length) { showToast('ターンがありません'); return; }
+  if (!session.turns?.length) { showToast(t('turn.none', 'ターンがありません')); return; }
 
-  updateStatusBadge('概要を生成中…');
-  showToast('⏳ 概要を生成しています…');
+  updateStatusBadge(t('status.summarizing', '概要を生成中…'));
+  showToast(t('session.summary_generating', '⏳ 概要を生成しています…'));
 
   try {
     const char = activeChar;
@@ -824,7 +843,7 @@ async function createSessionSummary(charId, sessionId) {
       await saveTurnToSession(null);
     }
 
-    showToast('✓ 概要を作成しました');
+    showToast(t('session.summary_created', '✓ 概要を作成しました'));
     _showSummaryModal(summary);
 
   } catch(e) {

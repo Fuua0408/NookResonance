@@ -5,8 +5,10 @@
 
 function openRenameSession() {
   if (!activeSession) return;
-  const current = activeSession.title || '新しいセッション';
-  const title   = prompt('セッション名を入力してください', current);
+  const current = typeof displaySessionTitle === 'function'
+    ? displaySessionTitle(activeSession.title)
+    : (activeSession.title || t('session.new', '新しいセッション'));
+  const title   = prompt(t('session.rename_prompt', 'セッション名を入力してください'), current);
   if (title === null) return; // キャンセル
   const trimmed = title.trim() || current;
   activeSession.title = trimmed;
@@ -16,7 +18,7 @@ function openRenameSession() {
     restPut(`sessions/${activeChar.id}/${activeSession.id}`, activeSession)
       .catch(e => console.warn('[Nook] rename session failed:', e.message));
   }
-  showToast(`「${trimmed}」に名前を設定しました`);
+  showToast(t('session.renamed', '名前を設定しました: ') + trimmed);
 }
 
 async function openCharModal() {
@@ -31,13 +33,13 @@ function handleCharFooter() {
     openCharEdit(null);
   } else {
     // チャットセッション開始
-    if (!activeChar) { showToast('キャラクターを選択してください'); return; }
+    if (!activeChar) { showToast(t('chat.no_char', 'キャラクターを選択してください')); return; }
     initSession();
     clearChatLog();
     if (typeof updatePhotoUI === 'function') updatePhotoUI();
     appendDateSep(new Date().toLocaleDateString('ja-JP', { year:'numeric', month:'long', day:'numeric' }));
     closeModal('charOverlay');
-    showToast('新しいセッションを開始しました');
+    showToast(t('settings.new_session_started', '新しいセッションを開始しました'));
     if (typeof autoShowCharInfoIfNeeded === 'function') autoShowCharInfoIfNeeded();
 
     // オープニングメッセージ
@@ -60,7 +62,7 @@ function handleCharFooter() {
 }
 
 function handlePhotoFooter() {
-  if (!activeChar) { showToast('キャラクターを選択してください'); return; }
+  if (!activeChar) { showToast(t('chat.no_char', 'キャラクターを選択してください')); return; }
   if (typeof startPhotoSession === 'function') {
     startPhotoSession();
     closeModal('charOverlay');
@@ -78,10 +80,10 @@ function switchCharTab(tab) {
   const fb  = document.getElementById('charFooterBtn');
   const fb2 = document.getElementById('charFooterBtn2');
   if (isList) {
-    if (fb)  { fb.textContent = '＋ 新しいキャラクターを作成'; fb.style.display = ''; }
+    if (fb)  { fb.textContent = t('char.create', '＋ 新しいキャラクターを作成'); fb.style.display = ''; }
     if (fb2) fb2.style.display = 'none';
   } else {
-    if (fb)  { fb.textContent = '💬 チャットセッション'; fb.style.display = ''; }
+    if (fb)  { fb.textContent = t('session.chat', '💬 チャットセッション'); fb.style.display = ''; }
     if (fb2) fb2.style.display = '';
   }
   if (!isList) {

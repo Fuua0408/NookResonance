@@ -11,15 +11,15 @@ const AFFECTION_MIN     = 0;
 const AFFECTION_MAX     = 255;
 
 const AFFECTION_STAGES = [
-  { min:   0, max:   5, label: '憎悪',        llm: '深く憎悪している' },
-  { min:   6, max:  36, label: '大嫌い',      llm: '深く嫌悪している' },
-  { min:  37, max:  72, label: '嫌い',        llm: '苦手意識がある' },
-  { min:  73, max: 109, label: '苦手',        llm: 'どちらかといえば苦手' },
-  { min: 110, max: 145, label: '普通',        llm: '普通の関係' },
-  { min: 146, max: 181, label: '好き',        llm: '気の置けない友人' },
-  { min: 182, max: 218, label: 'とても好き',  llm: '深く信頼し合っている' },
-  { min: 219, max: 249, label: '大好き',      llm: 'かけがえのない存在' },
-  { min: 250, max: 255, label: '愛',          llm: '唯一無二の存在として深く愛している' },
+  { min:   0, max:   5, label: '憎悪',        en: 'Hatred',       llm: '深く憎悪している',       llmEn: 'deeply hateful' },
+  { min:   6, max:  36, label: '大嫌い',      en: 'Loathing',     llm: '深く嫌悪している',       llmEn: 'deeply disgusted' },
+  { min:  37, max:  72, label: '嫌い',        en: 'Dislike',      llm: '苦手意識がある',         llmEn: 'uncomfortable' },
+  { min:  73, max: 109, label: '苦手',        en: 'Uneasy',       llm: 'どちらかといえば苦手',   llmEn: 'somewhat uncomfortable' },
+  { min: 110, max: 145, label: '普通',        en: 'Neutral',      llm: '普通の関係',             llmEn: 'neutral relationship' },
+  { min: 146, max: 181, label: '好き',        en: 'Fond',         llm: '気の置けない友人',       llmEn: 'comfortable friends' },
+  { min: 182, max: 218, label: 'とても好き',  en: 'Close',        llm: '深く信頼し合っている',   llmEn: 'deep mutual trust' },
+  { min: 219, max: 249, label: '大好き',      en: 'Devoted',      llm: 'かけがえのない存在',     llmEn: 'irreplaceable' },
+  { min: 250, max: 255, label: '愛',          en: 'Love',         llm: '唯一無二の存在として深く愛している', llmEn: 'deeply loved as one of a kind' },
 ];
 
 // ─────────────────────────────────────────────
@@ -30,10 +30,18 @@ function getAffectionStage(value) {
     || AFFECTION_STAGES[3]; // デフォルト「普通」
 }
 function affectionLabel(value) {
-  return getAffectionStage(value).label;
+  const stage = getAffectionStage(value);
+  return isEnglishMode() ? stage.en : stage.label;
 }
 function affectionLLMLabel(value) {
-  return getAffectionStage(value).llm;
+  const stage = getAffectionStage(value);
+  return isEnglishMode() ? stage.llmEn : stage.llm;
+}
+function affectionStageLabel(stage) {
+  return isEnglishMode() ? stage.en : stage.label;
+}
+function affectionStageLLMLabel(stage) {
+  return isEnglishMode() ? stage.llmEn : stage.llm;
 }
 function clampAffection(value) {
   return Math.max(AFFECTION_MIN, Math.min(AFFECTION_MAX, Math.round(value)));
@@ -82,7 +90,7 @@ function renderAffectionBar(containerId, value, showValue = false) {
       <div class="affection-bar-bg">
         <div class="affection-bar-fill" style="width:${pct.toFixed(1)}%"></div>
       </div>
-      <div class="affection-label">${stage.label}</div>
+      <div class="affection-label">${affectionStageLabel(stage)}</div>
       ${showValue ? `<div class="affection-value">${value}</div>` : ''}
     </div>
   `;
@@ -108,11 +116,11 @@ function renderAffectionSection(char) {
 
   sec.innerHTML = `
     <div class="sep"></div>
-    <div class="section-label">親愛度</div>
+    <div class="section-label">${t('aff.title', '親愛度')}</div>
     <div class="field-group">
-      ${!enabled ? `<div style="font-size:12px;color:var(--text-pale);">※ グローバル設定で無効化されています</div>` : ''}
+      ${!enabled ? `<div style="font-size:12px;color:var(--text-pale);">${t('aff.disabled_global', '※ グローバル設定で無効化されています')}</div>` : ''}
       <div class="num-row">
-        <div class="num-label" style="font-size:13px;">このキャラクターで使用する</div>
+        <div class="num-label" style="font-size:13px;">${t('aff.use_for_character', 'このキャラクターで使用する')}</div>
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
           <input type="checkbox" id="editAffectionEnabled"
             style="accent-color:var(--accent);width:18px;height:18px;"
@@ -126,7 +134,7 @@ function renderAffectionSection(char) {
           <div class="affection-bar-bg">
             <div class="affection-bar-fill" id="editAffectionFill" style="width:${pct.toFixed(1)}%"></div>
           </div>
-          <div class="affection-label" id="editAffectionLabel">${stage.label}</div>
+          <div class="affection-label" id="editAffectionLabel">${affectionStageLabel(stage)}</div>
           ${forceEdit ? `<div class="affection-value" id="editAffectionValueDisplay">${value}</div>` : ''}
         </div>
         ${forceEdit ? `
@@ -138,7 +146,7 @@ function renderAffectionSection(char) {
           <span style="font-size:11px;color:var(--text-pale);">0〜255</span>
         </div>` : ''}
         <div style="font-size:11px;color:var(--text-pale);margin-top:4px;">
-          現在の関係性：${stage.llm}
+          ${t('aff.current_relationship', '現在の関係性：')}${affectionStageLLMLabel(stage)}
         </div>
       </div>
     </div>
@@ -158,7 +166,7 @@ function onAffectionInputChange(value) {
   const label   = document.getElementById('editAffectionLabel');
   const display = document.getElementById('editAffectionValueDisplay');
   if (fill)    fill.style.width   = pct.toFixed(1) + '%';
-  if (label)   label.textContent  = stage.label;
+  if (label)   label.textContent  = affectionStageLabel(stage);
   if (display) display.textContent = clamped;
 }
 
@@ -201,12 +209,12 @@ function renderSessionAffectionCtrl(containerEl) {
   div.className = 'field-group';
   div.style.margin = '8px 0';
   div.innerHTML = `
-    <div class="section-label" style="margin-bottom:6px;">親愛度</div>
+    <div class="section-label" style="margin-bottom:6px;">${t('aff.title', '親愛度')}</div>
     <div class="affection-bar-wrap">
       <div class="affection-bar-bg">
         <div class="affection-bar-fill" id="sessionAffectionFill" style="width:${pct.toFixed(1)}%"></div>
       </div>
-      <div class="affection-label" id="sessionAffectionLabel">${stage.label}</div>
+      <div class="affection-label" id="sessionAffectionLabel">${affectionStageLabel(stage)}</div>
     </div>
     <div class="affection-ctrl">
       <div class="affection-btn" onclick="changeSessionAffection(-10)" title="-10">－－</div>
@@ -231,7 +239,7 @@ async function changeSessionAffection(delta) {
   const label = document.getElementById('sessionAffectionLabel');
   const val   = document.getElementById('sessionAffectionVal');
   if (fill)  fill.style.width   = pct.toFixed(1) + '%';
-  if (label) label.textContent  = stage.label;
+  if (label) label.textContent  = affectionStageLabel(stage);
   if (val)   val.textContent    = newVal;
 
   // サーバー保存
@@ -249,20 +257,20 @@ async function changeSessionAffection(delta) {
 // ─────────────────────────────────────────────
 async function quickAffectionUpdate() {
   if (!activeChar || !activeSession) {
-    showToast('セッションを選択してください'); return;
+    showToast(t('session.selected_required', 'セッションを選択してください')); return;
   }
   if (!isCharAffectionEnabled(activeChar)) {
-    showToast('このキャラクターの親愛度が無効です'); return;
+    showToast(t('handover.affection_disabled', 'このキャラクターの親愛度が無効です')); return;
   }
   if (isAffectionPerTurn()) {
-    alert('ターンごと自動計算が有効なため、手動計算は利用できません');
+    alert(t('aff.manual_disabled', 'ターンごと自動計算が有効なため、手動計算は利用できません'));
     return;
   }
   if (!activeSession.turns?.length) {
-    showToast('ターンがありません'); return;
+    showToast(t('turn.none', 'ターンがありません')); return;
   }
 
-  updateStatusBadge('親愛度を分析中…');
+  updateStatusBadge(t('aff.analyzing', '親愛度を分析中…'));
 
   try {
     const char       = activeChar;
@@ -279,17 +287,17 @@ async function quickAffectionUpdate() {
       return parts.join('\n');
     }).filter(Boolean).join('\n\n');
 
-    if (!sessionText) { showToast('会話内容がありません'); updateStatusBadge('SYNC'); return; }
+    if (!sessionText) { showToast(t('aff.no_conversation', '会話内容がありません')); updateStatusBadge('SYNC'); return; }
 
     // Step1: セッション要約
-    updateStatusBadge('会話を読んでいます…');
+    updateStatusBadge(t('aff.reading', '会話を読んでいます…'));
     const summary = await getChatCompletion([
       { role: 'system', content: `あなたはキャラクターとの会話を分析するアシスタントです。\nキャラクター: ${char.name}\n現在の親愛度: ${stageLabel}（${llmLabel}）\n\n会話内容を2〜3文で簡潔に要約してください。` },
       { role: 'user',   content: sessionText },
     ]);
 
     // Step2: 親愛度の増減値
-    updateStatusBadge('親愛度を計算しています…');
+    updateStatusBadge(t('aff.calculating', '親愛度を計算しています…'));
     const deltaRaw = await getChatCompletion([
       { role: 'system', content: `あなたはデータ抽出アシスタントです。会話の要約を読んで、${char.name}との親愛度の増減値を整数1つだけ返してください。範囲: -20〜+20。変化なしは0。数値のみ。` },
       { role: 'user',   content: `要約: ${cleanLLMResponse(summary)}\n\n増減値:` },
@@ -302,12 +310,12 @@ async function quickAffectionUpdate() {
     // 確認トースト → 適用
     const sign = delta > 0 ? `+${delta}` : `${delta}`;
     const msg  = delta === 0
-      ? `親愛度に変化なし（${stageLabel}）`
-      : `親愛度: ${stageLabel} → ${newStage}（${sign}）`;
+      ? `${t('aff.no_change', '親愛度に変化なし')} (${stageLabel})`
+      : `${t('aff.change', '親愛度: ')}${stageLabel} → ${newStage} (${sign})`;
 
     if (delta !== 0) {
-      if (!confirm(`${msg}\n\n適用しますか？`)) {
-        showToast('キャンセルしました');
+      if (!confirm(`${msg}\n\n${t('aff.apply_confirm', '適用しますか？')}`)) {
+        showToast(t('cancelled', 'キャンセルしました'));
         return;
       }
       char.affection = newVal;
@@ -376,7 +384,7 @@ async function perTurnAffectionUpdate(turn) {
     });
     ['sessionAffectionLabel', 'editAffectionLabel'].forEach(id => {
       const el = document.getElementById(id);
-      if (el) el.textContent = stage.label;
+      if (el) el.textContent = affectionStageLabel(stage);
     });
     const valEl = document.getElementById('sessionAffectionVal');
     if (valEl) valEl.textContent = char.affection;

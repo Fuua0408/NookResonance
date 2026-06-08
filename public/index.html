@@ -65,12 +65,12 @@
 <div id="loginOverlay">
   <div class="login-box">
     <div class="login-title">NookResonance</div>
-    <div class="login-subtitle">キャラクターと過ごす場所</div>
+    <div class="login-subtitle" data-i18n="login.subtitle">キャラクターと過ごす場所</div>
     <div class="login-error" id="loginError"></div>
-    <input class="f-input" id="loginUsername" type="text" placeholder="ユーザー名" autocomplete="username">
-    <input class="f-input" id="loginPassword" type="password" placeholder="パスワード" autocomplete="current-password"
+    <input class="f-input" id="loginUsername" type="text" placeholder="ユーザー名" autocomplete="username" data-i18n-placeholder="login.username">
+    <input class="f-input" id="loginPassword" type="password" placeholder="パスワード" autocomplete="current-password" data-i18n-placeholder="login.password"
       onkeydown="if(event.key==='Enter') doLogin()">
-    <button class="btn-primary" onclick="doLogin()" id="loginBtn">ログイン</button>
+    <button class="btn-primary" onclick="doLogin()" id="loginBtn" data-i18n="login.submit">ログイン</button>
   </div>
 </div>
 
@@ -81,27 +81,27 @@
   <div class="bottom-sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
-      <div class="sheet-title">パスワード変更</div>
+      <div class="sheet-title" data-i18n="password.title">パスワード変更</div>
       <button class="sheet-close" onclick="closeModal('pwChangeOverlay')">✕</button>
     </div>
     <div class="sheet-scroll" style="padding:16px;">
       <div class="field">
-        <div class="field-label">現在のパスワード</div>
+        <div class="field-label" data-i18n="password.current">現在のパスワード</div>
         <input class="f-input" id="pwCurrent" type="password" autocomplete="current-password">
       </div>
       <div class="field" style="margin-top:10px;">
-        <div class="field-label">新しいパスワード（6文字以上）</div>
+        <div class="field-label" data-i18n="password.new">新しいパスワード（6文字以上）</div>
         <input class="f-input" id="pwNew" type="password" autocomplete="new-password">
       </div>
       <div class="field" style="margin-top:10px;">
-        <div class="field-label">新しいパスワード（確認）</div>
+        <div class="field-label" data-i18n="password.confirm">新しいパスワード（確認）</div>
         <input class="f-input" id="pwConfirm" type="password" autocomplete="new-password">
       </div>
     </div>
     <div class="sheet-footer">
       <div class="btn-footer-row">
-        <button class="btn-secondary" onclick="closeModal('pwChangeOverlay')">キャンセル</button>
-        <button class="btn-primary" onclick="doPwChange()">変更する</button>
+        <button class="btn-secondary" onclick="closeModal('pwChangeOverlay')" data-i18n="cancel">キャンセル</button>
+        <button class="btn-primary" onclick="doPwChange()" data-i18n="password.submit">変更する</button>
       </div>
     </div>
   </div>
@@ -116,19 +116,19 @@
       <div class="header-name" id="headerName">NookResonance</div>
       <div class="header-session" id="headerSession"
         onclick="event.stopPropagation(); openRenameSession()"
-        style="cursor:pointer;" title="タップしてセッション名を変更">キャラクターを選択してください</div>
+        style="cursor:pointer;" title="タップしてセッション名を変更" data-i18n-title="header.rename_title" data-i18n="header.no_char">キャラクターを選択してください</div>
     </div>
   </div>
   <div class="header-actions">
-    <button class="header-btn" onclick="openCharInfo()" title="キャラクター情報">ℹ</button>
-    <button class="header-btn" onclick="openGallery()" title="ギャラリー">🖼</button>
-    <button class="header-btn" onclick="quickAffectionUpdate()" title="親愛度を更新">💝</button>
-    <button class="header-btn" id="btnReroll" onclick="batchReroll()" title="全画像を再生成（同プロンプト・新Seed）">🎲</button>
-    <button class="header-btn" onclick="batchRetranslate()" title="全プロンプトを再推論して再生成">🔄</button>
+    <button class="header-btn" onclick="openCharInfo()" title="キャラクター情報" data-i18n-title="header.char_info">ℹ</button>
+    <button class="header-btn" onclick="openGallery()" title="ギャラリー" data-i18n-title="header.gallery">🖼</button>
+    <button class="header-btn" onclick="quickAffectionUpdate()" title="親愛度を更新" data-i18n-title="header.update_affection">💝</button>
+    <button class="header-btn" id="btnReroll" onclick="batchReroll()" title="全画像を再生成（同プロンプト・新Seed）" data-i18n-title="header.reroll">🎲</button>
+    <button class="header-btn" onclick="batchRetranslate()" title="全プロンプトを再推論して再生成" data-i18n-title="header.retranslate">🔄</button>
     <button class="header-btn" id="btnCancelReroll" onclick="cancelBatchReroll()"
-      title="再生成をキャンセル" style="display:none;">⏹</button>
-    <button class="header-btn" onclick="exportSessionHTML()" title="セッションをHTMLエクスポート">📄</button>
-    <button class="header-btn" onclick="openSettingsModal()" title="設定">⚙</button>
+      title="再生成をキャンセル" data-i18n-title="header.cancel_reroll" style="display:none;">⏹</button>
+    <button class="header-btn" onclick="exportSessionHTML()" title="セッションをHTMLエクスポート" data-i18n-title="header.export_html">📄</button>
+    <button class="header-btn" onclick="openSettingsModal()" title="設定" data-i18n-title="settings.title">⚙</button>
     <div class="sync-badge" id="syncBadge">SYNC</div>
   </div>
 
@@ -137,13 +137,13 @@
     <div class="photo-carousel-header">
       <span class="photo-carousel-title">📷 PHOTOS</span>
       <span class="photo-carousel-count" id="photoCarouselCount"></span>
-      <span class="photo-carousel-clear" onclick="clearPhotoCarousel()" title="カルーセルの表示をクリア">✕</span>
+      <span class="photo-carousel-clear" onclick="clearPhotoCarousel()" title="カルーセルの表示をクリア" data-i18n-title="photo.clear_title">✕</span>
     </div>
     <div class="photo-carousel-outer" id="photoCarouselOuter">
       <div class="photo-carousel-track" id="photoCarouselTrack">
         <div class="photo-carousel-empty">
           <div>📷</div>
-          <div>生成した画像がここに並びます</div>
+          <div data-i18n="photo.empty">生成した画像がここに並びます</div>
         </div>
       </div>
     </div>
@@ -160,41 +160,42 @@
     <div class="input-controls" id="chatInputControls">
       <label class="gen-toggle">
         <input type="checkbox" id="genToggle" checked onchange="toggleGenMode()">
-        生成する
+        <span data-i18n="chat.generate_toggle">生成する</span>
       </label>
       <div class="gen-mode-toggle" id="genModeToggle">
-        <div class="gen-mode-btn active" id="modeBtnNormal" onclick="setGenMode('normal')" title="画像を見てキャラが反応">📷 通常</div>
-        <div class="gen-mode-btn" id="modeBtnChar" onclick="setGenMode('char')" title="キャラが反応してから画像生成">💬 キャラ主導</div>
+        <div class="gen-mode-btn active" id="modeBtnNormal" onclick="setGenMode('normal')" title="画像を見てキャラが反応" data-i18n-title="chat.normal_title" data-i18n="chat.mode_normal">📷 通常</div>
+        <div class="gen-mode-btn" id="modeBtnChar" onclick="setGenMode('char')" title="キャラが反応してから画像生成" data-i18n-title="chat.char_title" data-i18n="chat.mode_char">💬 キャラ主導</div>
       </div>
-      <div class="anchor-btn" id="anchorBtn" onclick="startAnchorSelect()" title="差分のベースとなるアンカーを設定">⚓</div>
-      <label class="gen-toggle" id="charLeadToggleWrap" style="display:none;" title="キャラが積極的に問いかけ・行動を起こすモード">
+      <div class="anchor-btn" id="anchorBtn" onclick="startAnchorSelect()" title="差分のベースとなるアンカーを設定" data-i18n-title="chat.anchor_title">⚓</div>
+      <label class="gen-toggle" id="charLeadToggleWrap" style="display:none;" title="キャラが積極的に問いかけ・行動を起こすモード" data-i18n-title="chat.char_lead_title">
         <input type="checkbox" id="charLeadToggle">
-        キャラ主導
+        <span data-i18n="chat.char_lead">キャラ主導</span>
       </label>
-      <label class="gen-toggle" id="userFocusToggleWrap" style="display:none;" title="ユーザーを主体にした画像生成">
+      <label class="gen-toggle" id="userFocusToggleWrap" style="display:none;" title="ユーザーを主体にした画像生成" data-i18n-title="chat.user_focus_title">
         <input type="checkbox" id="userFocusToggle">
-        USERフォーカス
+        <span data-i18n="chat.user_focus">USERフォーカス</span>
       </label>
     </div>
     <div class="input-controls" id="photoControls" style="display:none;flex-direction:row;">
       <div class="photo-translate-toggle">
         <div class="photo-translate-btn active" id="photoModeTranslate"
           onclick="setPhotoTranslateMode('translate')"
-          title="日本語→LLM翻訳して生成">🌐 翻訳</div>
+          title="日本語→LLM翻訳して生成" data-i18n-title="photo.translate_title" data-i18n="photo.translate">🌐 翻訳</div>
         <div class="photo-translate-btn" id="photoModeDiff"
           onclick="setPhotoTranslateMode('diff')"
-          title="前回のENプロンプトをベースに変化点のみ反映">🔄 差分</div>
+          title="前回のENプロンプトをベースに変化点のみ反映" data-i18n-title="photo.diff_title" data-i18n="photo.diff">🔄 差分</div>
         <div class="photo-translate-btn" id="photoModeDirect"
           onclick="setPhotoTranslateMode('direct')"
-          title="LLM翻訳なし・ENプロンプトをそのままComfyUIに送信">⚡ 直接</div>
+          title="LLM翻訳なし・ENプロンプトをそのままComfyUIに送信" data-i18n-title="photo.direct_title" data-i18n="photo.direct">⚡ 直接</div>
       </div>
     </div>
     <div class="input-box">
       <textarea id="jpInput" placeholder="プロンプトを入力…" rows="2" oninput="autoResize(this)"
-        onkeydown="handleJpInputKeydown(event)"></textarea>
+        onkeydown="handleJpInputKeydown(event)"
+        data-i18n-placeholder="chat.placeholder"></textarea>
     </div>
     <div class="btn-row">
-      <button class="btn-send" id="btnSend" onclick="submitTurn()">送信 ▶</button>
+      <button class="btn-send" id="btnSend" onclick="submitTurn()" data-i18n="chat.send">送信 ▶</button>
     </div>
   </div>
 
@@ -207,21 +208,21 @@
   <div class="bottom-sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
-      <div class="sheet-title">キャラクター</div>
+      <div class="sheet-title" data-i18n="char.select">キャラクター</div>
       <button class="sheet-close" onclick="closeModal('charOverlay')">✕</button>
     </div>
     <div class="sheet-tabs">
-      <div class="sheet-tab active" id="tabCharList"    onclick="switchCharTab('list')">キャラ一覧</div>
-      <div class="sheet-tab"        id="tabSessionList" onclick="switchCharTab('session')">セッション履歴</div>
+      <div class="sheet-tab active" id="tabCharList"    onclick="switchCharTab('list')" data-i18n="char.list">キャラ一覧</div>
+      <div class="sheet-tab"        id="tabSessionList" onclick="switchCharTab('session')" data-i18n="char.sessions">セッション履歴</div>
     </div>
     <div class="sheet-scroll" id="panelCharList"></div>
     <div class="sheet-scroll" id="panelSessionList" style="display:none;"></div>
     <div class="sheet-footer">
-      <button class="btn-primary" id="charFooterBtn" onclick="handleCharFooter()">
+      <button class="btn-primary" id="charFooterBtn" onclick="handleCharFooter()" data-i18n="char.create">
         ＋ 新しいキャラクターを作成
       </button>
       <button class="btn-secondary" id="charFooterBtn2" onclick="handlePhotoFooter()"
-        style="display:none; margin-top:8px;">
+        style="display:none; margin-top:8px;" data-i18n="session.photo">
         📷 フォトセッション
       </button>
     </div>
@@ -235,7 +236,7 @@
   <div class="bottom-sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
-      <div class="sheet-title" id="charEditTitle">キャラクター作成</div>
+      <div class="sheet-title" id="charEditTitle" data-i18n="char.edit_title_new">キャラクター作成</div>
       <button class="sheet-close" onclick="closeModal('charEditOverlay')">✕</button>
     </div>
     <div class="sheet-scroll">
@@ -247,7 +248,7 @@
         </div>
         <input type="file" id="avatarFileInput" accept="image/*" style="display:none"
           onchange="handleAvatarUpload(this)">
-        <input class="f-input" id="editName" type="text" placeholder="キャラクター名"
+        <input class="f-input" id="editName" type="text" placeholder="キャラクター名" data-i18n-placeholder="char.name_placeholder"
           style="flex:1; font-family:var(--font-serif); font-size:15px;">
       </div>
       <div style="margin-bottom:4px;">
@@ -255,116 +256,116 @@
           onchange="handleCharImport(this)">
         <button class="btn-secondary" style="width:100%;padding:9px;font-size:12px;"
           onclick="document.getElementById('charImportFile').click()">
-          📥 SillyTavernカードをインポート（JSON）
+          <span data-i18n="char.import_st">📥 SillyTavernカードをインポート（JSON）</span>
         </button>
       </div>
       <div>
-        <div class="section-label">身体の特徴</div>
+        <div class="section-label" data-i18n="char.appearance_body">身体の特徴</div>
         <textarea class="f-textarea" id="editAppearanceBody"
-          placeholder="髪色・髪型・目の色・体型・肌など変わらない特徴"></textarea>
+          placeholder="髪色・髪型・目の色・体型・肌など変わらない特徴" data-i18n-placeholder="char.body_placeholder"></textarea>
         <div class="en-row">
-          <div class="en-cache" id="enCacheBodyDisplay">（未生成）</div>
-          <button class="btn-en" onclick="generateAppearanceBodyEN()">🔄 EN変換</button>
+          <div class="en-cache" id="enCacheBodyDisplay" data-i18n="misc.not_generated">（未生成）</div>
+          <button class="btn-en" onclick="generateAppearanceBodyEN()" data-i18n="char.en_convert">🔄 EN変換</button>
         </div>
       </div>
       <div>
-        <div class="section-label">服装</div>
+        <div class="section-label" data-i18n="char.appearance_clothing">服装</div>
         <textarea class="f-textarea" id="editAppearanceClothing"
-          placeholder="初期・デフォルトの服装"></textarea>
+          placeholder="初期・デフォルトの服装" data-i18n-placeholder="char.clothing_placeholder"></textarea>
         <div class="en-row">
-          <div class="en-cache" id="enCacheClothingDisplay">（未生成）</div>
-          <button class="btn-en" onclick="generateAppearanceClothingEN()">🔄 EN変換</button>
+          <div class="en-cache" id="enCacheClothingDisplay" data-i18n="misc.not_generated">（未生成）</div>
+          <button class="btn-en" onclick="generateAppearanceClothingEN()" data-i18n="char.en_convert">🔄 EN変換</button>
         </div>
         <div style="text-align:right;margin-top:4px;">
-          <button class="btn-en" onclick="generateAppearanceAllEN()" style="font-size:11px;">✨ 両方まとめてEN変換</button>
+          <button class="btn-en" onclick="generateAppearanceAllEN()" style="font-size:11px;" data-i18n="char.en_convert_all">✨ 両方まとめてEN変換</button>
         </div>
       </div>
       <input type="hidden" id="editAppearance">
       <div>
-        <div class="section-label">キャラクター設定</div>
+        <div class="section-label" data-i18n="char.personality">キャラクター設定</div>
         <textarea class="f-textarea tall" id="editPersonality"
-          placeholder="性格・口調・年齢・背景など自由に…"></textarea>
+          placeholder="性格・口調・年齢・背景など自由に…" data-i18n-placeholder="char.personality_placeholder"></textarea>
       </div>
       <div>
-        <div class="section-label">オープニングメッセージ <span style="color:var(--text-pale);font-size:11px;font-weight:normal;">（省略可）</span></div>
+        <div class="section-label" data-i18n="char.opening_optional">オープニングメッセージ <span style="color:var(--text-pale);font-size:11px;font-weight:normal;">（省略可）</span></div>
         <textarea class="f-textarea" id="editOpeningMessage"
-          placeholder="セッション開始時にキャラが最初に話しかけるメッセージ。空欄の場合はなし。"></textarea>
+          placeholder="セッション開始時にキャラが最初に話しかけるメッセージ。空欄の場合はなし。" data-i18n-placeholder="char.opening_placeholder"></textarea>
       </div>
       <div>
-        <div class="section-label">ユーザーの呼び方 <span style="color:var(--text-pale);font-size:11px;font-weight:normal;">（省略可）</span></div>
+        <div class="section-label" data-i18n="char.user_call_optional">ユーザーの呼び方 <span style="color:var(--text-pale);font-size:11px;font-weight:normal;">（省略可）</span></div>
         <input class="f-input" type="text" id="editUserName"
-          placeholder="例: 君、さん付け、あだ名など。空欄はキャラに任せる">
+          placeholder="例: 君、さん付け、あだ名など。空欄はキャラに任せる" data-i18n-placeholder="char.user_call_placeholder">
       </div>
       <div>
-        <div class="section-label">ユーザー設定オーバーライド <span style="color:var(--text-pale);font-size:11px;font-weight:normal;">（省略時はグローバル設定を使用）</span></div>
+        <div class="section-label"><span data-i18n="char.user_override">ユーザー設定オーバーライド</span> <span style="color:var(--text-pale);font-size:11px;font-weight:normal;" data-i18n="char.user_override_note">（省略時はグローバル設定を使用）</span></div>
         <div class="field">
-          <div class="field-label">ユーザー名</div>
-          <input class="f-input" type="text" id="editUserProfileName" placeholder="このキャラとの関係での名前">
+          <div class="field-label" data-i18n="settings.user_name">ユーザー名</div>
+          <input class="f-input" type="text" id="editUserProfileName" placeholder="このキャラとの関係での名前" data-i18n-placeholder="settings.user_name">
         </div>
         <div class="field">
-          <div class="field-label">外見特徴（日本語）</div>
-          <textarea class="f-input" id="editUserProfileAppearance" rows="2" placeholder="このキャラとの関係での外見"></textarea>
+          <div class="field-label" data-i18n="char.appearance_ja">外見特徴（日本語）</div>
+          <textarea class="f-input" id="editUserProfileAppearance" rows="2" placeholder="このキャラとの関係での外見" data-i18n-placeholder="settings.user_appearance"></textarea>
         </div>
         <div class="field">
-          <div class="field-label">外見EN <button class="btn-en" onclick="generateUserProfileAppearanceEN()" title="LLMで英訳">✨ EN生成</button></div>
+          <div class="field-label"><span data-i18n="char.appearance_en">外見EN</span> <button class="btn-en" onclick="generateUserProfileAppearanceEN()" title="LLMで英訳" data-i18n-title="char.en_generate" data-i18n="char.en_generate">✨ EN生成</button></div>
           <input class="f-input mono" type="text" id="editUserProfileAppearanceEn" placeholder="appearance tags in English">
         </div>
       </div>
       <div id="charQualNegSection">
-        <div class="section-label">Quality Tags</div>
+        <div class="section-label" data-i18n="char.quality_tags">Quality Tags</div>
         <textarea class="f-textarea" id="editQualityTags"
           placeholder="masterpiece, best quality, ultra detailed…"></textarea>
-        <div style="font-size:11px; color:var(--text-pale); margin-top:4px;">プロンプト先頭に連結されます（グローバル設定より優先）</div>
-        <div class="section-label" style="margin-top:12px;">Negative Prompt</div>
+        <div style="font-size:11px; color:var(--text-pale); margin-top:4px;" data-i18n="char.quality_note">プロンプト先頭に連結されます（グローバル設定より優先）</div>
+        <div class="section-label" style="margin-top:12px;" data-i18n="char.negative">Negative Prompt</div>
         <textarea class="f-textarea" id="editNegative"
-          placeholder="空欄の場合はグローバル設定→WFデフォルトを使用"></textarea>
+          placeholder="空欄の場合はグローバル設定→WFデフォルトを使用" data-i18n-placeholder="char.negative_placeholder"></textarea>
       </div>
       <div id="wfParamSection">
-        <div class="section-label">ワークフロー</div>
+        <div class="section-label" data-i18n="char.workflow">ワークフロー</div>
         <select class="f-select" id="editWfSelect"></select>
         <div class="param-grid">
-          <div class="field"><div class="field-label">Steps</div><input class="f-input" id="editSteps" type="number" placeholder="デフォルト"></div>
-          <div class="field"><div class="field-label">CFG</div><input class="f-input" id="editCfg" type="number" step="0.1" placeholder="デフォルト"></div>
-          <div class="field"><div class="field-label">Width</div><input class="f-input" id="editWidth" type="number" step="64" placeholder="デフォルト"></div>
-          <div class="field"><div class="field-label">Height</div><input class="f-input" id="editHeight" type="number" step="64" placeholder="デフォルト"></div>
+          <div class="field"><div class="field-label">Steps</div><input class="f-input" id="editSteps" type="number" placeholder="デフォルト" data-i18n-placeholder="misc.default"></div>
+          <div class="field"><div class="field-label">CFG</div><input class="f-input" id="editCfg" type="number" step="0.1" placeholder="デフォルト" data-i18n-placeholder="misc.default"></div>
+          <div class="field"><div class="field-label">Width</div><input class="f-input" id="editWidth" type="number" step="64" placeholder="デフォルト" data-i18n-placeholder="misc.default"></div>
+          <div class="field"><div class="field-label">Height</div><input class="f-input" id="editHeight" type="number" step="64" placeholder="デフォルト" data-i18n-placeholder="misc.default"></div>
         </div>
         <div class="field-row" style="margin-top:8px;">
-          <div class="field"><div class="field-label">Sampler</div><select class="f-select" id="editSampler"><option value="">デフォルト</option></select></div>
-          <div class="field"><div class="field-label">Scheduler</div><select class="f-select" id="editScheduler"><option value="">デフォルト</option></select></div>
+          <div class="field"><div class="field-label">Sampler</div><select class="f-select" id="editSampler"><option value="" data-i18n="misc.default">デフォルト</option></select></div>
+          <div class="field"><div class="field-label">Scheduler</div><select class="f-select" id="editScheduler"><option value="" data-i18n="misc.default">デフォルト</option></select></div>
         </div>
       </div>
       <div id="affectionSection"></div>
       <div id="firstMeetingSection" style="margin-top:8px;">
         <div class="num-row">
-          <div class="num-label" style="font-size:13px;">初対面として扱う</div>
+          <div class="num-label" style="font-size:13px;" data-i18n="char.first_meeting">初対面として扱う</div>
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
             <input type="checkbox" id="editFirstMeeting" style="accent-color:var(--accent);width:18px;height:18px;">
           </label>
         </div>
-        <div style="font-size:11px;color:var(--text-pale);padding:2px 0 0 2px;">ONの場合、LLMへのプロンプトに「初対面」として差し込まれます</div>
+        <div style="font-size:11px;color:var(--text-pale);padding:2px 0 0 2px;" data-i18n="char.first_meeting_note">ONの場合、LLMへのプロンプトに「初対面」として差し込まれます</div>
       </div>
       <div id="loraSection">
-        <div class="section-label">LoRA（キャラクター個別）</div>
+        <div class="section-label" data-i18n="char.lora">LoRA（キャラクター個別）</div>
         <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px;">
           <select class="f-select" id="loraSelectAdd" style="flex:1; font-size:12px; padding:7px 10px;">
-            <option value="">— LoRAを選択 —</option>
+            <option value="" data-i18n="char.lora_select">— LoRAを選択 —</option>
           </select>
-          <button class="btn-en" onclick="addLoraFromSelect()">追加</button>
-          <button class="btn-en" onclick="fetchLoraList()" title="ComfyUIから再取得">🔄</button>
+          <button class="btn-en" onclick="addLoraFromSelect()" data-i18n="add">追加</button>
+          <button class="btn-en" onclick="fetchLoraList()" title="ComfyUIから再取得" data-i18n-title="char.fetch_lora">🔄</button>
         </div>
         <div style="font-size:10px; color:var(--text-pale); margin-bottom:8px;">
           <span id="loraFetchStatus">—</span>
-          　ComfyUI未接続の場合はファイル名を直接入力できます
+          <span data-i18n="char.lora_note">　ComfyUI未接続の場合はファイル名を直接入力できます</span>
         </div>
         <div id="loraList" style="display:flex; flex-direction:column; gap:8px;"></div>
-        <div class="btn-lora-add" onclick="addLoraRow()">＋ ファイル名を直接入力</div>
+        <div class="btn-lora-add" onclick="addLoraRow()" data-i18n="char.lora_add_file">＋ ファイル名を直接入力</div>
       </div>
     </div>
     <div class="sheet-footer">
       <div class="btn-footer-row">
-        <button class="btn-secondary" onclick="closeModal('charEditOverlay')">キャンセル</button>
-        <button class="btn-secondary" style="color:var(--accent);border-color:var(--accent);" onclick="handleDeleteChar()">削除</button>
-        <button class="btn-primary" onclick="saveCharFromUI()">保存</button>
+        <button class="btn-secondary" onclick="closeModal('charEditOverlay')" data-i18n="cancel">キャンセル</button>
+        <button class="btn-secondary" style="color:var(--accent);border-color:var(--accent);" onclick="handleDeleteChar()" data-i18n="delete">削除</button>
+        <button class="btn-primary" onclick="saveCharFromUI()" data-i18n="save">保存</button>
       </div>
     </div>
   </div>
@@ -375,14 +376,14 @@
   <div class="bottom-sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
-      <div class="sheet-title">セッションの引き継ぎ</div>
+      <div class="sheet-title" data-i18n="handover.title">セッションの引き継ぎ</div>
       <button class="sheet-close" onclick="closeModal('handoverOverlay')">✕</button>
     </div>
     <div class="sheet-scroll" id="handoverBody"></div>
     <div class="sheet-footer">
       <div class="btn-footer-row">
-        <button class="btn-secondary" onclick="closeModal('handoverOverlay')">キャンセル</button>
-        <button class="btn-primary" onclick="applyHandover()">適用する</button>
+        <button class="btn-secondary" onclick="closeModal('handoverOverlay')" data-i18n="cancel">キャンセル</button>
+        <button class="btn-primary" onclick="applyHandover()" data-i18n="handover.apply">適用する</button>
       </div>
     </div>
   </div>
@@ -393,12 +394,12 @@
   <div class="bottom-sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
-      <div class="sheet-title">キャラクター情報</div>
+      <div class="sheet-title" data-i18n="char.info">キャラクター情報</div>
       <button class="sheet-close" onclick="closeModal('charInfoOverlay')">✕</button>
     </div>
     <div class="sheet-scroll" id="charInfoBody"></div>
     <div class="sheet-footer">
-      <button class="btn-primary" onclick="closeModal('charInfoOverlay')">閉じる</button>
+      <button class="btn-primary" onclick="closeModal('charInfoOverlay')" data-i18n="close">閉じる</button>
     </div>
   </div>
 </div>
@@ -408,14 +409,14 @@
   <div class="bottom-sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
-      <div class="sheet-title">セッション概要</div>
+      <div class="sheet-title" data-i18n="session.summary">セッション概要</div>
       <button class="sheet-close" onclick="closeModal('summaryOverlay')">✕</button>
     </div>
     <div class="sheet-scroll" id="summaryBody"></div>
     <div class="sheet-footer">
       <div class="btn-footer-row">
-        <button class="btn-secondary" onclick="closeModal('summaryOverlay')">閉じる</button>
-        <button class="btn-primary" onclick="copyToClipboard(document.getElementById('summaryText').textContent);showToast('✓ コピーしました')">📋 コピー</button>
+        <button class="btn-secondary" onclick="closeModal('summaryOverlay')" data-i18n="close">閉じる</button>
+        <button class="btn-primary" onclick="copyToClipboard(document.getElementById('summaryText').textContent);showToast(t('copied', '✓ コピーしました'))" data-i18n="copy">📋 コピー</button>
       </div>
     </div>
   </div>
@@ -425,7 +426,7 @@
 <div class="overlay" id="galleryOverlay">
   <div class="gallery-fullscreen">
     <div class="gallery-fullscreen-header">
-      <div class="gallery-fullscreen-title" id="galleryTitle">ギャラリー</div>
+      <div class="gallery-fullscreen-title" id="galleryTitle" data-i18n="header.gallery">ギャラリー</div>
       <button class="gallery-fullscreen-close" onclick="closeModal('galleryOverlay')">✕</button>
     </div>
     <div id="galleryBody"></div>
@@ -439,25 +440,25 @@
   <div class="bottom-sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
-      <div class="sheet-title">設定</div>
+      <div class="sheet-title" data-i18n="settings.title">設定</div>
       <button class="sheet-close" onclick="closeModal('settingsOverlay')">✕</button>
     </div>
     <div class="sheet-scroll">
 
       <!-- ユーザー設定 -->
       <div>
-        <div class="section-label">ユーザー設定（<span id="settingsUsername"></span>）</div>
+        <div class="section-label"><span data-i18n="settings.user_section">ユーザー設定</span>（<span id="settingsUsername"></span>）</div>
         <div class="field">
-          <div class="field-label">ユーザー名</div>
-          <input class="f-input" id="userName" type="text" placeholder="私、俺、名前など">
+          <div class="field-label" data-i18n="settings.user_name">ユーザー名</div>
+          <input class="f-input" id="userName" type="text" placeholder="私、俺、名前など" data-i18n-placeholder="settings.user_name">
         </div>
         <div class="field">
-          <div class="field-label">外見特徴（日本語）</div>
-          <textarea class="f-input" id="userAppearance" rows="2" placeholder="身長・髪・体型など"></textarea>
+          <div class="field-label" data-i18n="char.appearance_ja">外見特徴（日本語）</div>
+          <textarea class="f-input" id="userAppearance" rows="2" placeholder="身長・髪・体型など" data-i18n-placeholder="settings.user_appearance"></textarea>
         </div>
         <div class="field">
-          <div class="field-label">外見EN <button class="btn-en" onclick="generateUserAppearanceEN()" title="LLMで英訳">✨ EN生成</button></div>
-          <div id="userEnCacheDisplay" style="font-size:11px;color:var(--text-pale);padding:4px 0;">（未生成）</div>
+          <div class="field-label"><span data-i18n="char.appearance_en">外見EN</span> <button class="btn-en" onclick="generateUserAppearanceEN()" title="LLMで英訳" data-i18n-title="char.en_generate" data-i18n="char.en_generate">✨ EN生成</button></div>
+          <div id="userEnCacheDisplay" style="font-size:11px;color:var(--text-pale);padding:4px 0;" data-i18n="misc.not_generated">（未生成）</div>
           <input class="f-input mono" id="userAppearanceEn" type="text" placeholder="appearance tags in English">
         </div>
       </div>
@@ -466,13 +467,13 @@
 
       <!-- 管理者専用設定 -->
       <div id="adminSettingsSection" style="display:none;">
-        <div class="section-label">管理者設定</div>
+        <div class="section-label" data-i18n="settings.admin_section">管理者設定</div>
 
         <!-- セッション設定 -->
-        <div style="font-size:12px;color:var(--text-pale);margin-bottom:8px;">セッション</div>
+        <div style="font-size:12px;color:var(--text-pale);margin-bottom:8px;" data-i18n="settings.session">セッション</div>
         <div class="field-group" style="margin-bottom:12px;">
           <div class="num-row">
-            <div class="num-label">最大ターン数</div>
+            <div class="num-label" data-i18n="settings.session_turns">最大ターン数</div>
             <div class="num-ctrl">
               <div class="num-btn" onclick="changeNum('sessionTurns',-10)">－</div>
               <div class="num-val" id="sessionTurns">50</div>
@@ -481,7 +482,7 @@
           </div>
           <div class="sep"></div>
           <div class="num-row">
-            <div class="num-label">保持セッション数</div>
+            <div class="num-label" data-i18n="settings.session_limit">保持セッション数</div>
             <div class="num-ctrl">
               <div class="num-btn" onclick="changeNum('sessionLimit',-1)">－</div>
               <div class="num-val" id="sessionLimit">5</div>
@@ -490,71 +491,71 @@
           </div>
           <div class="sep"></div>
           <div class="num-row">
-            <div class="num-label">LLM会話履歴ターン数</div>
+            <div class="num-label" data-i18n="settings.llm_history">LLM会話履歴ターン数</div>
             <div class="num-ctrl">
               <div class="num-btn" onclick="changeNum('llmHistoryTurns',-5)">－</div>
               <div class="num-val" id="llmHistoryTurns">10</div>
               <div class="num-btn" onclick="changeNum('llmHistoryTurns',5)">＋</div>
             </div>
           </div>
-          <div style="font-size:11px;color:var(--text-pale);padding:2px 0 0 2px;">0 = セッション全件</div>
+          <div style="font-size:11px;color:var(--text-pale);padding:2px 0 0 2px;" data-i18n="settings.llm_history_note">0 = セッション全件</div>
         </div>
 
         <!-- プロンプトスタイル -->
-        <div style="font-size:12px;color:var(--text-pale);margin-bottom:8px;">プロンプトスタイル</div>
+        <div style="font-size:12px;color:var(--text-pale);margin-bottom:8px;" data-i18n="settings.prompt_style">プロンプトスタイル</div>
         <div class="field-group" style="margin-bottom:12px;">
           <div class="num-row">
-            <div class="num-label" style="font-size:13px;">自然言語モード</div>
+            <div class="num-label" style="font-size:13px;" data-i18n="settings.natural_mode">自然言語モード</div>
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="promptStyleNatural" style="accent-color:var(--accent);width:18px;height:18px;"></label>
           </div>
           <div class="sep"></div>
           <div class="num-row">
-            <div class="num-label" style="font-size:13px;">翻訳の思考をスキップ</div>
+            <div class="num-label" style="font-size:13px;" data-i18n="settings.no_think_translate">翻訳の思考をスキップ</div>
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="noThinkTranslate" style="accent-color:var(--accent);width:18px;height:18px;"></label>
           </div>
           <div class="sep"></div>
           <div class="num-row">
-            <div class="num-label" style="font-size:13px;">デバッグモード</div>
+            <div class="num-label" style="font-size:13px;" data-i18n="settings.debug_mode">デバッグモード</div>
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="debugMode" style="accent-color:var(--accent);width:18px;height:18px;"></label>
           </div>
         </div>
 
         <!-- 親愛度システム -->
-        <div style="font-size:12px;color:var(--text-pale);margin-bottom:8px;">親愛度システム</div>
+        <div style="font-size:12px;color:var(--text-pale);margin-bottom:8px;" data-i18n="settings.affection">親愛度システム</div>
         <div class="field-group" style="margin-bottom:12px;">
           <div class="num-row">
-            <div class="num-label" style="font-size:13px;">親愛度システムを有効にする</div>
+            <div class="num-label" style="font-size:13px;" data-i18n="settings.affection_enable">親愛度システムを有効にする</div>
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="affectionGlobalEnabled" style="accent-color:var(--accent);width:18px;height:18px;"></label>
           </div>
           <div class="sep"></div>
           <div class="num-row">
-            <div class="num-label" style="font-size:13px;">親愛度の変動を有効にする</div>
+            <div class="num-label" style="font-size:13px;" data-i18n="settings.affection_mutable">親愛度の変動を有効にする</div>
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="affectionGlobalMutable" style="accent-color:var(--accent);width:18px;height:18px;"></label>
           </div>
           <div class="sep"></div>
           <div class="num-row">
-            <div class="num-label" style="font-size:13px;">強制変更を有効にする</div>
+            <div class="num-label" style="font-size:13px;" data-i18n="settings.affection_force">強制変更を有効にする</div>
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="affectionForceEdit" style="accent-color:var(--accent);width:18px;height:18px;"></label>
           </div>
           <div class="sep"></div>
           <div class="num-row">
-            <div class="num-label" style="font-size:13px;">ターンごとに自動計算</div>
+            <div class="num-label" style="font-size:13px;" data-i18n="settings.affection_per_turn">ターンごとに自動計算</div>
             <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="affectionPerTurn" style="accent-color:var(--accent);width:18px;height:18px;"></label>
           </div>
         </div>
 
         <!-- ワークフロー管理 -->
-        <div style="font-size:12px;color:var(--text-pale);margin-bottom:8px;">ワークフロー</div>
+        <div style="font-size:12px;color:var(--text-pale);margin-bottom:8px;" data-i18n="char.workflow">ワークフロー</div>
         <button class="btn-secondary" style="width:100%;padding:10px;margin-bottom:12px;" onclick="openWfModal()">
-          ⚡ ワークフローを管理
+          <span data-i18n="settings.workflow_manage">⚡ ワークフローを管理</span>
         </button>
 
         <!-- グローバルWFデフォルト -->
         <div style="font-size:12px;color:var(--text-pale);margin-bottom:8px;">
-          ワークフローデフォルト <span style="font-size:10px;">（キャラクター個別設定より低優先）</span>
+          <span data-i18n="settings.workflow_defaults">ワークフローデフォルト</span> <span style="font-size:10px;" data-i18n="settings.lower_priority">（キャラクター個別設定より低優先）</span>
         </div>
         <div class="field" style="margin-bottom:8px;">
-          <div class="field-label">デフォルトワークフロー</div>
+          <div class="field-label" data-i18n="settings.default_workflow">デフォルトワークフロー</div>
           <select class="f-select" id="globalWfSelect"></select>
         </div>
         <div class="param-grid" style="margin-bottom:8px;">
@@ -564,28 +565,28 @@
           <div class="field"><div class="field-label">Height</div><input class="f-input" id="globalWfHeight" type="number" step="64" placeholder="1024"></div>
         </div>
         <div class="field-row" style="margin-bottom:12px;">
-          <div class="field"><div class="field-label">Sampler</div><select class="f-select" id="globalWfSampler"><option value="">デフォルト</option></select></div>
-          <div class="field"><div class="field-label">Scheduler</div><select class="f-select" id="globalWfScheduler"><option value="">デフォルト</option></select></div>
+          <div class="field"><div class="field-label">Sampler</div><select class="f-select" id="globalWfSampler"><option value="" data-i18n="misc.default">デフォルト</option></select></div>
+          <div class="field"><div class="field-label">Scheduler</div><select class="f-select" id="globalWfScheduler"><option value="" data-i18n="misc.default">デフォルト</option></select></div>
         </div>
 
         <!-- グローバルQuality Tags / Negative -->
         <div style="font-size:12px;color:var(--text-pale);margin-bottom:8px;">
-          プロンプト共通設定 <span style="font-size:10px;">（キャラクター個別設定より低優先）</span>
+          <span data-i18n="settings.prompt_common">プロンプト共通設定</span> <span style="font-size:10px;" data-i18n="settings.lower_priority">（キャラクター個別設定より低優先）</span>
         </div>
         <div class="field" style="margin-bottom:8px;">
-          <div class="field-label">Quality Tags（グローバル）</div>
+          <div class="field-label" data-i18n="settings.quality_tags_global">Quality Tags（グローバル）</div>
           <textarea class="f-textarea" id="globalQualityTags"
             placeholder="masterpiece, best quality, ultra detailed…" rows="2"></textarea>
         </div>
         <div class="field" style="margin-bottom:12px;">
-          <div class="field-label">Negative Prompt（グローバル）</div>
+          <div class="field-label" data-i18n="settings.negative_global">Negative Prompt（グローバル）</div>
           <textarea class="f-textarea" id="globalNegative"
-            placeholder="空欄の場合はWFのデフォルトを使用" rows="2"></textarea>
+            placeholder="空欄の場合はWFのデフォルトを使用" data-i18n-placeholder="settings.global_negative_placeholder" rows="2"></textarea>
         </div>
 
         <!-- グローバルLoRA -->
-        <div style="font-size:12px;color:var(--text-pale);margin-bottom:8px;">グローバルLoRA</div>
-        <button class="btn-secondary" style="width:100%;padding:10px;" onclick="openGlobalLoraModal()">
+        <div style="font-size:12px;color:var(--text-pale);margin-bottom:8px;" data-i18n="settings.global_lora">グローバルLoRA</div>
+        <button class="btn-secondary" style="width:100%;padding:10px;" onclick="openGlobalLoraModal()" data-i18n="settings.manage_global_lora">
           🎨 グローバルLoRAを管理
         </button>
       </div>
@@ -594,16 +595,16 @@
 
       <!-- 言語設定 -->
       <div>
-        <div class="section-label">言語 / Language</div>
+        <div class="section-label" data-i18n="settings.language">言語 / Language</div>
         <div class="field-group">
           <div class="num-row">
-            <div class="num-label" style="font-size:13px;">表示言語</div>
+            <div class="num-label" style="font-size:13px;" data-i18n="settings.display_language">表示言語</div>
             <select class="f-select" id="settingsLanguage" style="max-width:120px;">
               <option value="ja">日本語</option>
               <option value="en">English</option>
             </select>
           </div>
-          <div style="font-size:11px;color:var(--text-pale);padding:2px 0 0 2px;">
+          <div style="font-size:11px;color:var(--text-pale);padding:2px 0 0 2px;" data-i18n="settings.language_note">
             ※ 言語変更はページ再読み込み後に完全に反映されます
           </div>
         </div>
@@ -613,7 +614,7 @@
 
       <!-- テーマカラー -->
       <div>
-        <div class="section-label">テーマカラー</div>
+        <div class="section-label" data-i18n="settings.theme">テーマカラー</div>
         <div class="color-presets">
           <div class="color-dot active" style="background:#8b6348;" onclick="setThemeColor('#8b6348',this)"></div>
           <div class="color-dot"        style="background:#4a7c6f;" onclick="setThemeColor('#4a7c6f',this)"></div>
@@ -629,19 +630,19 @@
 
       <!-- アカウント -->
       <div>
-        <div class="section-label">アカウント</div>
+        <div class="section-label" data-i18n="settings.account">アカウント</div>
         <button class="btn-secondary" style="width:100%;padding:9px;margin-bottom:8px;"
           onclick="closeModal('settingsOverlay'); setTimeout(()=>openModal('pwChangeOverlay'),200)">
-          🔒 パスワードを変更
+          <span data-i18n="settings.change_password">🔒 パスワードを変更</span>
         </button>
-        <button class="btn-logout" onclick="if(confirm('ログアウトしますか？')) logout()">
-          ログアウト（<span id="settingsUsername2"></span>）
+        <button class="btn-logout" onclick="if(confirm(t('settings.logout_confirm', 'ログアウトしますか？'))) logout()">
+          <span data-i18n="settings.logout">ログアウト</span>（<span id="settingsUsername2"></span>）
         </button>
       </div>
 
     </div>
     <div class="sheet-footer">
-      <button class="btn-primary" onclick="saveSettingsFromUI()">保存</button>
+      <button class="btn-primary" onclick="saveSettingsFromUI()" data-i18n="save">保存</button>
     </div>
   </div>
 </div>
@@ -651,12 +652,12 @@
   <div class="bottom-sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
-      <div class="sheet-title">ワークフロー管理</div>
+      <div class="sheet-title" data-i18n="wf.manage">ワークフロー管理</div>
       <button class="sheet-close" onclick="closeModal('wfOverlay')">✕</button>
     </div>
     <div class="sheet-scroll" id="wfList"></div>
     <div class="sheet-footer">
-      <button class="btn-primary" onclick="openWfEdit(null)">＋ ワークフローを追加</button>
+      <button class="btn-primary" onclick="openWfEdit(null)" data-i18n="wf.add">＋ ワークフローを追加</button>
     </div>
   </div>
 </div>
@@ -666,20 +667,20 @@
   <div class="bottom-sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
-      <div class="sheet-title">グローバルLoRA管理</div>
+      <div class="sheet-title" data-i18n="global_lora.manage">グローバルLoRA管理</div>
       <button class="sheet-close" onclick="closeModal('globalLoraOverlay')">✕</button>
     </div>
     <div class="sheet-scroll" style="padding:16px;">
       <div style="font-size:12px;color:var(--text-pale);margin-bottom:12px;">
-        ここで設定したLoRAは全ユーザー・全キャラクターの画像生成に適用されます。
-        キャラクター個別のLoRAより先にチェーンされます。
+        <span data-i18n="global_lora.note">ここで設定したLoRAは全ユーザー・全キャラクターの画像生成に適用されます。
+        キャラクター個別のLoRAより先にチェーンされます。</span>
       </div>
       <div id="globalLoraList" style="display:flex;flex-direction:column;gap:8px;"></div>
     </div>
     <div class="sheet-footer">
       <div class="btn-footer-row">
-        <button class="btn-secondary" onclick="closeModal('globalLoraOverlay')">閉じる</button>
-        <button class="btn-primary" onclick="addGlobalLoraRow()">＋ 追加</button>
+        <button class="btn-secondary" onclick="closeModal('globalLoraOverlay')" data-i18n="close">閉じる</button>
+        <button class="btn-primary" onclick="addGlobalLoraRow()" data-i18n="global_lora.add">＋ 追加</button>
       </div>
     </div>
   </div>
@@ -690,37 +691,37 @@
   <div class="bottom-sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
-      <div class="sheet-title" id="globalLoraEditTitle">グローバルLoRA追加</div>
+      <div class="sheet-title" id="globalLoraEditTitle" data-i18n="global_lora.add_title">グローバルLoRA追加</div>
       <button class="sheet-close" onclick="closeModal('globalLoraEditOverlay')">✕</button>
     </div>
     <div class="sheet-scroll" style="padding:16px;">
       <input type="hidden" id="globalLoraEditId">
       <div class="field">
-        <div class="field-label">LoRAファイル名</div>
+        <div class="field-label" data-i18n="global_lora.file">LoRAファイル名</div>
         <div style="display:flex;gap:6px;align-items:center;">
           <select class="f-select" id="globalLoraSelectAdd" style="flex:1;font-size:12px;padding:7px 10px;">
-            <option value="">— リストから選択 —</option>
+            <option value="" data-i18n="global_lora.select">— リストから選択 —</option>
           </select>
-          <button class="btn-en" onclick="applyGlobalLoraFromSelect()">適用</button>
+          <button class="btn-en" onclick="applyGlobalLoraFromSelect()" data-i18n="global_lora.apply">適用</button>
         </div>
         <input class="f-input" id="globalLoraEditName" type="text" placeholder="loras/model.safetensors" style="margin-top:6px;">
       </div>
       <div class="field-row" style="margin-top:8px;">
         <div class="field">
-          <div class="field-label">モデル強度</div>
+          <div class="field-label" data-i18n="global_lora.model_strength">モデル強度</div>
           <input class="f-input" id="globalLoraEditWeight" type="number" step="0.05" min="0" max="2" value="1">
         </div>
         <div class="field">
-          <div class="field-label">CLIP強度</div>
+          <div class="field-label" data-i18n="global_lora.clip_strength">CLIP強度</div>
           <input class="f-input" id="globalLoraEditClip" type="number" step="0.05" min="0" max="2" value="1">
         </div>
       </div>
       <div class="field" style="margin-top:8px;">
-        <div class="field-label">トリガーワード</div>
+        <div class="field-label" data-i18n="global_lora.trigger">トリガーワード</div>
         <input class="f-input" id="globalLoraEditTrigger" type="text" placeholder="tag1, tag2">
       </div>
       <div class="num-row" style="margin-top:10px;">
-        <div class="num-label" style="font-size:13px;">有効</div>
+        <div class="num-label" style="font-size:13px;" data-i18n="misc.enabled">有効</div>
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
           <input type="checkbox" id="globalLoraEditEnabled" checked style="accent-color:var(--accent);width:18px;height:18px;">
         </label>
@@ -728,10 +729,10 @@
     </div>
     <div class="sheet-footer">
       <div class="btn-footer-row">
-        <button class="btn-secondary" onclick="closeModal('globalLoraEditOverlay')">キャンセル</button>
+        <button class="btn-secondary" onclick="closeModal('globalLoraEditOverlay')" data-i18n="cancel">キャンセル</button>
         <button class="btn-secondary" id="globalLoraDeleteBtn" style="color:var(--accent);border-color:var(--accent);display:none;"
-          onclick="deleteGlobalLora()">削除</button>
-        <button class="btn-primary" onclick="saveGlobalLora()">保存</button>
+          onclick="deleteGlobalLora()" data-i18n="delete">削除</button>
+        <button class="btn-primary" onclick="saveGlobalLora()" data-i18n="save">保存</button>
       </div>
     </div>
   </div>
@@ -742,15 +743,15 @@
   <div class="bottom-sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
-      <div class="sheet-title" id="wfEditTitle">ワークフロー追加</div>
+      <div class="sheet-title" id="wfEditTitle" data-i18n="wf.add_title">ワークフロー追加</div>
       <button class="sheet-close" onclick="closeModal('wfEditOverlay')">✕</button>
     </div>
     <div class="sheet-scroll">
-      <div class="field"><div class="field-label">名前</div><input class="f-input" id="wfEditName" type="text" placeholder="MyWorkflow"></div>
-      <div class="field" style="margin-top:8px;"><div class="field-label">絵文字</div><input class="f-input" id="wfEditEmoji" type="text" placeholder="🎨" style="max-width:80px;"></div>
+      <div class="field"><div class="field-label" data-i18n="wf.name">名前</div><input class="f-input" id="wfEditName" type="text" placeholder="MyWorkflow"></div>
+      <div class="field" style="margin-top:8px;"><div class="field-label" data-i18n="wf.emoji">絵文字</div><input class="f-input" id="wfEditEmoji" type="text" placeholder="🎨" style="max-width:80px;"></div>
       <div class="sep" style="margin:12px 0;"></div>
       <div>
-        <div class="section-label">デフォルトパラメータ</div>
+        <div class="section-label" data-i18n="wf.default_params">デフォルトパラメータ</div>
         <div class="param-grid">
           <div class="field"><div class="field-label">Steps</div><input class="f-input" id="wfEditSteps" type="number" placeholder="20"></div>
           <div class="field"><div class="field-label">CFG</div><input class="f-input" id="wfEditCfg" type="number" step="0.1" placeholder="7"></div>
@@ -761,25 +762,25 @@
           <div class="field"><div class="field-label">Sampler</div><input class="f-input" id="wfEditSampler" type="text" placeholder="euler"></div>
           <div class="field"><div class="field-label">Scheduler</div><input class="f-input" id="wfEditScheduler" type="text" placeholder="simple"></div>
         </div>
-        <div class="field" style="margin-top:8px;"><div class="field-label">Negative（デフォルト）</div><textarea class="f-textarea" id="wfEditNegDefault" placeholder="worst quality, low quality..."></textarea></div>
+        <div class="field" style="margin-top:8px;"><div class="field-label" data-i18n="wf.negative_default">Negative（デフォルト）</div><textarea class="f-textarea" id="wfEditNegDefault" placeholder="worst quality, low quality..."></textarea></div>
       </div>
       <div class="sep" style="margin:12px 0;"></div>
       <div>
-        <div class="section-label">ノードマッピング</div>
+        <div class="section-label" data-i18n="wf.node_mapping">ノードマッピング</div>
         <div id="wfMappingFields" style="display:flex;flex-direction:column;gap:8px;"></div>
       </div>
       <div class="sep" style="margin:12px 0;"></div>
       <div>
-        <div class="section-label">ワークフローJSON</div>
-        <textarea class="f-textarea" id="wfEditJson" style="min-height:120px;font-family:monospace;font-size:11px;" placeholder="ComfyUIからエクスポートしたJSONを貼り付け"></textarea>
-        <div style="font-size:11px;color:var(--text-pale);margin-top:4px;">ComfyUI → Save (API Format) でエクスポートしたJSONを貼り付けてください</div>
+        <div class="section-label" data-i18n="wf.json">ワークフローJSON</div>
+        <textarea class="f-textarea" id="wfEditJson" style="min-height:120px;font-family:monospace;font-size:11px;" placeholder="ComfyUIからエクスポートしたJSONを貼り付け" data-i18n-placeholder="wf.json_placeholder"></textarea>
+        <div style="font-size:11px;color:var(--text-pale);margin-top:4px;" data-i18n="wf.json_note">ComfyUI → Save (API Format) でエクスポートしたJSONを貼り付けてください</div>
       </div>
     </div>
     <div class="sheet-footer">
       <div class="btn-footer-row">
-        <button class="btn-secondary" onclick="closeModal('wfEditOverlay')">キャンセル</button>
-        <button class="btn-secondary" id="wfDeleteBtn" style="color:var(--accent);border-color:var(--accent);display:none;" onclick="deleteCustomWf()">削除</button>
-        <button class="btn-primary" onclick="saveWfFromUI()">保存</button>
+        <button class="btn-secondary" onclick="closeModal('wfEditOverlay')" data-i18n="cancel">キャンセル</button>
+        <button class="btn-secondary" id="wfDeleteBtn" style="color:var(--accent);border-color:var(--accent);display:none;" onclick="deleteCustomWf()" data-i18n="delete">削除</button>
+        <button class="btn-primary" onclick="saveWfFromUI()" data-i18n="save">保存</button>
       </div>
     </div>
   </div>
@@ -795,7 +796,7 @@ async function doLogin() {
   const password = document.getElementById('loginPassword')?.value;
   const errEl    = document.getElementById('loginError');
   const btn      = document.getElementById('loginBtn');
-  if (!username || !password) { if(errEl) errEl.textContent = 'ユーザー名とパスワードを入力してください'; return; }
+  if (!username || !password) { if(errEl) errEl.textContent = t('login.missing', 'ユーザー名とパスワードを入力してください'); return; }
   if (btn) { btn.disabled = true; btn.textContent = '…'; }
   try {
     await login(username, password);
@@ -804,7 +805,7 @@ async function doLogin() {
   } catch(e) {
     if (errEl) errEl.textContent = e.message;
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'ログイン'; }
+    if (btn) { btn.disabled = false; btn.textContent = t('login.submit', 'ログイン'); }
   }
 }
 // ─── PW変更処理 ──────────────────────────────
@@ -812,15 +813,15 @@ async function doPwChange() {
   const cur     = document.getElementById('pwCurrent')?.value;
   const nw      = document.getElementById('pwNew')?.value;
   const confirm = document.getElementById('pwConfirm')?.value;
-  if (!cur || !nw || !confirm) { showToast('全て入力してください'); return; }
-  if (nw !== confirm) { showToast('新しいパスワードが一致しません'); return; }
+  if (!cur || !nw || !confirm) { showToast(t('password.missing', '全て入力してください')); return; }
+  if (nw !== confirm) { showToast(t('password.mismatch', '新しいパスワードが一致しません')); return; }
   try {
     await changePassword(cur, nw);
     closeModal('pwChangeOverlay');
     document.getElementById('pwCurrent').value = '';
     document.getElementById('pwNew').value = '';
     document.getElementById('pwConfirm').value = '';
-    showToast('✓ パスワードを変更しました');
+    showToast(t('password.changed', '✓ パスワードを変更しました'));
   } catch(e) {
     showToast('❌ ' + e.message);
   }
@@ -836,6 +837,7 @@ async function initAfterLogin() {
 }
 </script>
 
+<script src="/js/i18n.js"></script>
 <script src="js/api.js"></script>
 <script src="js/workflows.js"></script>
 <script src="js/llm.js"></script>

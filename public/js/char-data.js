@@ -43,7 +43,7 @@ async function saveChar(char) {
       return updated;
     } catch(e) {
       console.warn('[NR] saveChar POST failed:', e.message);
-      showToast('⚠ サーバー保存に失敗しました');
+      showToast(t('server_save_failed', '⚠ サーバー保存に失敗しました'));
       return char;
     }
   } else {
@@ -53,7 +53,7 @@ async function saveChar(char) {
       await restPut(`characters/${char.id}`, char);
     } catch(e) {
       console.warn('[NR] saveChar PUT failed:', e.message);
-      showToast('⚠ サーバー保存に失敗しました');
+      showToast(t('server_save_failed', '⚠ サーバー保存に失敗しました'));
     }
     return char;
   }
@@ -94,7 +94,7 @@ async function selectChar(char) {
   document.getElementById('headerName').textContent = char.name || 'キャラクター';
   saveSettings({ lastCharId: char.id });
   closeModal('charOverlay');
-  showToast(`${char.name} を選択しました`);
+  showToast(`${char.name} ${t('char.selected_button', 'を選択しました')}`);
   toggleGenMode();
 
   // バックグラウンドでsync実行

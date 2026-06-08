@@ -7,12 +7,12 @@ let _galleryImages      = [];
 let _galleryCarouselIdx = 0;
 
 async function openGallery() {
-  if (!activeChar) { showToast('キャラクターを選択してください'); return; }
-  if (!isRestEnabled()) { showToast('ログインが必要です'); return; }
+  if (!activeChar) { showToast(t('chat.no_char', 'キャラクターを選択してください')); return; }
+  if (!isRestEnabled()) { showToast(t('toast.login_required', 'ログインが必要です')); return; }
 
   openModal('galleryOverlay');
   const titleEl = document.getElementById('galleryTitle');
-  if (titleEl) titleEl.textContent = `${activeChar.name} のギャラリー`;
+  if (titleEl) titleEl.textContent = t('gallery.title', "{name}'s Gallery").replace('{name}', activeChar.name);
   _renderGalleryLoading();
 
   try {
@@ -54,6 +54,14 @@ async function _loadGalleryImages() {
   _renderGallery();
 }
 
+function formatGalleryImageCount(count) {
+  const n = Number(count) || 0;
+  if (isEnglishMode()) {
+    return (n === 1 ? t('gallery.image_count_one', '{count} image') : t('gallery.image_count', '{count} images')).replace('{count}', n);
+  }
+  return `${n}枚`;
+}
+
 function _renderGallery() {
   const body = document.getElementById('galleryBody');
   if (!body) return;
@@ -62,7 +70,7 @@ function _renderGallery() {
     body.innerHTML = `
       <div style="text-align:center;padding:48px 16px;color:var(--text-pale);">
         <div style="font-size:40px;margin-bottom:12px;">📷</div>
-        <div>まだ画像がありません</div>
+        <div>${t('gallery.empty', 'まだ画像がありません')}</div>
       </div>`;
     return;
   }
@@ -87,7 +95,7 @@ function _renderGallery() {
     slide.className = 'gallery-carousel-slide';
     const el = document.createElement('img');
     el.loading = 'lazy';
-    el.alt     = `画像 ${idx + 1}`;
+    el.alt     = t('gallery.image_alt', '画像 {index}').replace('{index}', idx + 1);
     el.addEventListener('click', () => openGalleryLightbox(idx));
     _observeGalleryImg(el, img.thumb_url || '');
     slide.appendChild(el);
@@ -104,7 +112,7 @@ function _renderGallery() {
 
   const gridWrap = document.createElement('div');
   gridWrap.innerHTML = `
-    <div class="gallery-grid-header">すべての画像 <span style="color:var(--text-pale);font-size:11px;">${_galleryImages.length}枚</span></div>
+    <div class="gallery-grid-header">${t('gallery.all_images', 'すべての画像')} <span style="color:var(--text-pale);font-size:11px;">${formatGalleryImageCount(_galleryImages.length)}</span></div>
     <div class="gallery-grid" id="galleryGrid"></div>
   `;
   body.appendChild(gridWrap);
@@ -115,7 +123,7 @@ function _renderGallery() {
     cell.className = 'gallery-thumb';
     cell.style.position = 'relative';
     const imgEl = document.createElement('img');
-    imgEl.alt     = `画像 ${idx + 1}`;
+    imgEl.alt     = t('gallery.image_alt', '画像 {index}').replace('{index}', idx + 1);
     imgEl.loading = 'lazy';
 
     const overlay = document.createElement('div');
@@ -136,7 +144,7 @@ function _bindGalleryThumbLongPress(el, img, idx) {
     const x = e.clientX || e.touches?.[0]?.clientX || 100;
     const y = e.clientY || e.touches?.[0]?.clientY || 100;
     showCtxMenu(x, y, [
-      { icon: '🗑', label: '削除', action: () => _deleteGalleryImage(img, idx) },
+      { icon: '🗑', label: t('delete', '削除'), action: () => _deleteGalleryImage(img, idx) },
     ]);
   };
 
@@ -157,14 +165,14 @@ function _bindGalleryThumbLongPress(el, img, idx) {
 
 async function _deleteGalleryImage(img, idx) {
   if (!activeChar) return;
-  if (!confirm('この画像を削除しますか？')) return;
+  if (!confirm(t('confirm_delete', 'この画像を削除しますか？'))) return;
   try {
     await restDelete(`images/${activeChar.id}/${img.filename}`);
     _galleryImages.splice(idx, 1);
     _renderGallery();
-    showToast('削除しました');
+    showToast(t('toast.deleted', '削除しました'));
   } catch(e) {
-    showToast('❌ 削除失敗: ' + e.message.slice(0, 40));
+    showToast('❌ ' + t('delete_failed', '削除失敗: ') + e.message.slice(0, 40));
   }
 }
 
@@ -243,15 +251,15 @@ function _renderGalleryLoading() {
   const body = document.getElementById('galleryBody');
   if (body) body.innerHTML = `
     <div style="text-align:center;padding:48px 16px;color:var(--text-pale);">
-      <div style="font-size:13px;">読み込み中…</div>
+      <div style="font-size:13px;">${t('gallery.loading', '読み込み中…')}</div>
     </div>`;
 }
 function _renderGallerySyncing(cacheCount, comfyCount) {
   const body = document.getElementById('galleryBody');
   if (body) body.innerHTML = `
     <div style="text-align:center;padding:48px 16px;color:var(--text-pale);">
-      <div style="font-size:13px;margin-bottom:8px;">同期中… (${cacheCount} / ${comfyCount})</div>
-      <div style="font-size:11px;">しばらくお待ちください</div>
+      <div style="font-size:13px;margin-bottom:8px;">${t('gallery.syncing', '同期中… ({cache} / {total})').replace('{cache}', cacheCount).replace('{total}', comfyCount)}</div>
+      <div style="font-size:11px;">${t('gallery.wait', 'しばらくお待ちください')}</div>
     </div>`;
 }
 function _renderGalleryError(msg) {

@@ -4,8 +4,8 @@
    ═════════════════════════════════════════════ */
 
 function showPromptDialog(turn) {
-  const jp = turn.jp_prompt || '（なし）';
-  const en = turn.en_prompt || '（なし）';
+  const jp = turn.jp_prompt || t('misc.none', '（なし）');
+  const en = turn.en_prompt || t('misc.none', '（なし）');
 
   document.getElementById('promptModal')?.remove();
 
@@ -20,7 +20,7 @@ function showPromptDialog(turn) {
   const anchors   = activeSession?.anchors || [];
   const activeIdx = activeSession?.active_anchor_idx ?? -1;
   const anchorInfo = anchors.length
-    ? anchors.map((a, i) => `#${i+1} ターン${a.turn_idx + 1}${i === activeIdx ? '（アクティブ）' : ''}`).join('、')
+    ? anchors.map((a, i) => `#${i+1} Turn ${a.turn_idx + 1}${i === activeIdx ? ' (' + t('misc.active', 'アクティブ') + ')' : ''}`).join(', ')
     : null;
 
   modal.innerHTML = `
@@ -31,17 +31,17 @@ function showPromptDialog(turn) {
     ">
       <div style="width:36px;height:4px;background:var(--border-input);border-radius:2px;margin:10px auto 0;flex-shrink:0;"></div>
       <div style="padding:12px 16px;display:flex;align-items:center;border-bottom:0.5px solid var(--border);flex-shrink:0;">
-        <div style="font-family:var(--font-serif);font-size:16px;font-weight:500;color:var(--text);">プロンプト確認</div>
+        <div style="font-family:var(--font-serif);font-size:16px;font-weight:500;color:var(--text);">${t('prompt.title', 'プロンプト確認')}</div>
         <button id="promptModalClose"
           style="margin-left:auto;width:30px;height:30px;border-radius:50%;background:var(--accent-light);border:none;cursor:pointer;font-size:14px;color:var(--text-mid);">✕</button>
       </div>
       <div style="flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:12px;">
         ${anchorInfo ? `
         <div style="background:var(--accent-light);border-radius:var(--radius-sm);padding:8px 12px;font-size:11px;color:var(--accent);">
-          ⚓ アンカー設定中：${escHtml(anchorInfo)}
+          ${t('misc.anchor_set', '⚓ アンカー設定中：')}${escHtml(anchorInfo)}
         </div>` : ''}
         <div>
-          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-weight:500;">JP プロンプト</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-weight:500;">JP Prompt</div>
           <div id="promptJP" style="
             background:var(--bg-log);border:0.5px solid var(--border-input);
             border-radius:var(--radius-sm);padding:10px 12px;
@@ -50,7 +50,7 @@ function showPromptDialog(turn) {
           "></div>
         </div>
         <div>
-          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-weight:500;">EN プロンプト</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-weight:500;">EN Prompt</div>
           <div id="promptEN" style="
             background:var(--bg-log);border:0.5px solid var(--border-input);
             border-radius:var(--radius-sm);padding:10px 12px;
@@ -62,11 +62,11 @@ function showPromptDialog(turn) {
       <div style="padding:10px 16px 24px;border-top:0.5px solid var(--border);display:flex;gap:8px;flex-shrink:0;">
         <button id="promptCopyEN"
           style="flex:1;padding:10px;background:var(--accent-light);border:0.5px solid var(--border-input);border-radius:var(--radius-md);font-size:13px;color:var(--text-mid);cursor:pointer;font-family:var(--font-sans);">
-          ENをコピー
+          ${t('prompt.copy_en', 'ENをコピー')}
         </button>
         <button id="promptCopyJP"
           style="flex:1;padding:10px;background:var(--accent-light);border:0.5px solid var(--border-input);border-radius:var(--radius-md);font-size:13px;color:var(--text-mid);cursor:pointer;font-family:var(--font-sans);">
-          JPをコピー
+          ${t('prompt.copy_jp', 'JPをコピー')}
         </button>
       </div>
     </div>
@@ -79,9 +79,9 @@ function showPromptDialog(turn) {
   // イベントをJSで直接バインド
   modal.querySelector('#promptModalClose').addEventListener('click', () => modal.remove());
   modal.querySelector('#promptCopyEN').addEventListener('click', () =>
-    navigator.clipboard.writeText(en).then(() => showToast('ENをコピーしました')));
+    navigator.clipboard.writeText(en).then(() => showToast(t('prompt.copied_en', 'ENをコピーしました'))));
   modal.querySelector('#promptCopyJP').addEventListener('click', () =>
-    navigator.clipboard.writeText(jp).then(() => showToast('JPをコピーしました')));
+    navigator.clipboard.writeText(jp).then(() => showToast(t('prompt.copied_jp', 'JPをコピーしました'))));
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
 
   document.body.appendChild(modal);
@@ -109,7 +109,7 @@ async function openPromptEditModal(turnIdx) {
     ">
       <div style="width:36px;height:4px;background:var(--border-input);border-radius:2px;margin:10px auto 0;flex-shrink:0;"></div>
       <div style="padding:12px 16px;display:flex;align-items:center;border-bottom:0.5px solid var(--border);flex-shrink:0;">
-        <div style="font-family:var(--font-serif);font-size:16px;font-weight:500;color:var(--text);">プロンプトを直接修正</div>
+        <div style="font-family:var(--font-serif);font-size:16px;font-weight:500;color:var(--text);">${t('prompt_edit.title', 'プロンプトを直接修正')}</div>
         <button id="peClose"
           style="margin-left:auto;width:30px;height:30px;border-radius:50%;background:var(--accent-light);border:none;cursor:pointer;font-size:14px;color:var(--text-mid);">✕</button>
       </div>
@@ -118,14 +118,14 @@ async function openPromptEditModal(turnIdx) {
 
         <!-- 日本語 -->
         <div>
-          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-weight:500;">日本語（任意）</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-weight:500;">${t('prompt_edit.jp_label', '日本語（任意）')}</div>
           <textarea id="peJP" rows="3" style="
             width:100%;box-sizing:border-box;
             background:var(--bg-log);border:0.5px solid var(--border-input);
             border-radius:var(--radius-sm);padding:10px 12px;
             font-size:13px;color:var(--text);line-height:1.6;
             font-family:var(--font-sans);resize:vertical;
-          " placeholder="日本語でシーンを記述（任意）"></textarea>
+          " placeholder="${t('prompt_edit.jp_placeholder', '日本語でシーンを記述（任意）')}"></textarea>
           <div style="display:flex;gap:6px;margin-top:6px;">
             <select id="peTranslateMode" style="
               padding:8px 6px;font-size:12px;
@@ -135,9 +135,9 @@ async function openPromptEditModal(turnIdx) {
               font-family:var(--font-sans);
               border-right:none;flex-shrink:0;
             ">
-              <option value="diff">差分</option>
-              <option value="full">フル</option>
-              <option value="direct">直訳</option>
+              <option value="diff">${t('prompt_edit.mode_diff', '差分')}</option>
+              <option value="full">${t('prompt_edit.mode_full', 'フル')}</option>
+              <option value="direct">${t('prompt_edit.mode_direct', '直訳')}</option>
             </select>
             <button id="peBtnJpToEn" style="
               padding:8px 10px;font-size:12px;
@@ -145,26 +145,26 @@ async function openPromptEditModal(turnIdx) {
               border-radius:0 var(--radius-sm) var(--radius-sm) 0;
               color:var(--text-mid);cursor:pointer;
               font-family:var(--font-sans);white-space:nowrap;flex-shrink:0;
-            ">↓ JP→EN</button>
+            ">↓ ${t('prompt_edit.translate', 'JP→EN')}</button>
             <button id="peBtnEnToJp" style="
               flex:1;padding:8px;font-size:12px;
               background:var(--accent-light);border:0.5px solid var(--border-input);
               border-radius:var(--radius-sm);color:var(--text-mid);cursor:pointer;
               font-family:var(--font-sans);white-space:nowrap;
-            ">↑ EN→JP</button>
+            ">${t('prompt_edit.back_translate', '↑ EN→JP')}</button>
           </div>
         </div>
 
         <!-- 英語 -->
         <div>
-          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-weight:500;">英語（必須）</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-weight:500;">${t('prompt_edit.en_label', '英語（必須）')}</div>
           <textarea id="peEN" rows="5" style="
             width:100%;box-sizing:border-box;
             background:var(--bg-log);border:0.5px solid var(--border-input);
             border-radius:var(--radius-sm);padding:10px 12px;
             font-size:12px;color:var(--text);line-height:1.6;
             font-family:monospace;resize:vertical;
-          " placeholder="英語プロンプト（必須）"></textarea>
+          " placeholder="${t('prompt_edit.en_placeholder', '英語プロンプト（必須）')}"></textarea>
         </div>
 
         <!-- Seed -->
@@ -176,26 +176,26 @@ async function openPromptEditModal(turnIdx) {
               background:var(--bg-log);border:0.5px solid var(--border-input);
               border-radius:var(--radius-sm);color:var(--text);
               font-family:monospace;
-            " placeholder="Seed値">
+            " placeholder="${t('prompt_edit.seed_placeholder', 'Seed値')}">
             <button id="peBtnRandSeed" style="
               padding:8px 12px;font-size:13px;
               background:var(--accent-light);border:0.5px solid var(--border-input);
               border-radius:var(--radius-sm);color:var(--text-mid);cursor:pointer;
               font-family:var(--font-sans);white-space:nowrap;
-            ">🎲 ランダム</button>
+            ">${t('prompt_edit.random_seed', '🎲 ランダム')}</button>
           </div>
-          <div id="peSeedNote" style="font-size:11px;color:var(--text-pale);margin-top:4px;">Seed取得中…</div>
+          <div id="peSeedNote" style="font-size:11px;color:var(--text-pale);margin-top:4px;">${t('misc.seed_loading', 'Seed取得中…')}</div>
         </div>
 
         <!-- プレビュー -->
         <div id="pePreviewArea" style="display:none;">
-          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-weight:500;">プレビュー</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-weight:500;">${t('prompt_edit.preview_label', 'プレビュー')}</div>
           <div id="pePreviewImg" style="
             width:100%;border-radius:var(--radius-lg);overflow:hidden;
             border:0.5px solid var(--border-input);background:var(--accent-light);
             min-height:80px;display:flex;align-items:center;justify-content:center;
             font-size:12px;color:var(--text-pale);
-          ">生成後に表示されます</div>
+          ">${t('prompt_edit.preview_placeholder', '生成後に表示されます')}</div>
         </div>
 
       </div>
@@ -207,19 +207,19 @@ async function openPromptEditModal(turnIdx) {
           background:var(--accent-light);border:0.5px solid var(--border-input);
           border-radius:var(--radius-md);color:var(--text-mid);cursor:pointer;
           font-family:var(--font-sans);
-        ">キャンセル</button>
+        ">${t('cancel', 'キャンセル')}</button>
         <button id="peBtnPreview" style="
           flex:1;padding:11px;font-size:13px;
           background:var(--accent-light);border:0.5px solid var(--border-input);
           border-radius:var(--radius-md);color:var(--accent);cursor:pointer;
           font-family:var(--font-sans);font-weight:500;
-        ">🖼 プレビュー</button>
+        ">${t('prompt_edit.preview', '🖼 プレビュー')}</button>
         <button id="peBtnApply" style="
           flex:2;padding:11px;font-size:13px;
           background:var(--accent);border:none;
           border-radius:var(--radius-md);color:var(--bg);cursor:pointer;
           font-family:var(--font-sans);font-weight:500;
-        ">差し替え</button>
+        ">${t('prompt_edit.apply', '差し替え')}</button>
       </div>
     </div>
   `;
@@ -238,17 +238,17 @@ async function openPromptEditModal(turnIdx) {
   const seedNote = modal.querySelector('#peSeedNote');
   if (turn.gen_meta?.seed !== undefined) {
     peSeed.value = turn.gen_meta.seed;
-    seedNote.textContent = `（この画像のSeed: ${turn.gen_meta.seed}）`;
+    seedNote.textContent = `(Seed: ${turn.gen_meta.seed})`;
   } else if (turn.image_url) {
-    seedNote.textContent = 'Seed取得中…';
+    seedNote.textContent = t('misc.seed_loading', 'Seed取得中…');
     fetchSeedFromHistory(turn.image_url).then(seed => {
       if (seed !== null) {
         peSeed.value = seed;
-        seedNote.textContent = `（この画像のSeed: ${seed}）`;
+        seedNote.textContent = `(Seed: ${seed})`;
       } else {
         const rnd = Math.floor(Math.random() * 2 ** 32);
         peSeed.value = rnd;
-        seedNote.textContent = '（Seed取得失敗・ランダム値を設定しました）';
+        seedNote.textContent = t('misc.seed_fail', '（Seed取得失敗・ランダム値を設定しました）');
       }
     });
   } else {
@@ -271,7 +271,7 @@ async function openPromptEditModal(turnIdx) {
   // JP→EN翻訳（モード切替対応）
   modal.querySelector('#peBtnJpToEn').addEventListener('click', async () => {
     const jpText = peJP.value.trim();
-    if (!jpText) { showToast('日本語を入力してください'); return; }
+    if (!jpText) { showToast(t('prompt_edit.no_jp', '日本語を入力してください')); return; }
     const mode = modal.querySelector('#peTranslateMode').value;
     const btn  = modal.querySelector('#peBtnJpToEn');
     btn.textContent = '⏳…'; btn.disabled = true;
@@ -316,20 +316,20 @@ async function openPromptEditModal(turnIdx) {
       }
 
       peEN.value = result;
-      showToast('✓ 翻訳しました');
+      showToast(t('toast.translated', '✓ 翻訳しました'));
     } catch(e) {
-      showToast('❌ 翻訳エラー: ' + e.message.slice(0, 40));
+      showToast(t('toast.translate_error', '❌ 翻訳エラー: ') + e.message.slice(0, 40));
     } finally {
-      btn.textContent = '↓ JP→EN'; btn.disabled = false;
+      btn.textContent = '↓ ' + t('prompt_edit.translate', 'JP→EN'); btn.disabled = false;
     }
   });
 
   // EN→JP逆変換
   modal.querySelector('#peBtnEnToJp').addEventListener('click', async () => {
     const enText = peEN.value.trim();
-    if (!enText) { showToast('英語プロンプトを入力してください'); return; }
+    if (!enText) { showToast(t('prompt_edit.no_en', '英語プロンプトを入力してください')); return; }
     const btn = modal.querySelector('#peBtnEnToJp');
-    btn.textContent = '⏳ 変換中…'; btn.disabled = true;
+    btn.textContent = '⏳…'; btn.disabled = true;
     try {
       const result = await getChatCompletion([
         {
@@ -339,11 +339,11 @@ async function openPromptEditModal(turnIdx) {
         { role: 'user', content: enText },
       ], { noThink: true });
       peJP.value = cleanLLMResponse(result);
-      showToast('✓ 逆変換しました');
+      showToast(t('toast.back_translated', '✓ 逆変換しました'));
     } catch(e) {
-      showToast('❌ 変換エラー: ' + e.message.slice(0, 40));
+      showToast(t('toast.translate_error', '❌ 変換エラー: ') + e.message.slice(0, 40));
     } finally {
-      btn.textContent = '↑ EN→JP 逆変換'; btn.disabled = false;
+      btn.textContent = t('prompt_edit.back_translate', '↑ EN→JP'); btn.disabled = false;
     }
   });
 
@@ -375,11 +375,11 @@ async function openPromptEditModal(turnIdx) {
   // プレビュー生成（モーダル内のみ、チャットに影響なし）
   btnPreview.addEventListener('click', async () => {
     const enText = peEN.value.trim();
-    if (!enText) { showToast('英語プロンプトを入力してください'); return; }
-    if (isGenerating) { showToast('生成中です'); return; }
+    if (!enText) { showToast(t('prompt_edit.no_en', '英語プロンプトを入力してください')); return; }
+    if (isGenerating) { showToast(t('chat.generating', '生成中です')); return; }
 
     const seedVal = parseInt(peSeed.value) || null;
-    btnPreview.textContent = '⏳ 生成中…';
+    btnPreview.textContent = '⏳…';
     btnPreview.dataset.selfBusy = '1';
     btnPreview.disabled = true;
     btnApply.disabled   = true;
@@ -387,7 +387,7 @@ async function openPromptEditModal(turnIdx) {
     const previewArea = modal.querySelector('#pePreviewArea');
     const previewImg  = modal.querySelector('#pePreviewImg');
     previewArea.style.display = '';
-    previewImg.textContent = '生成中…';
+    previewImg.textContent = t('chat.generating', '生成中…');
 
     try {
       const { imageUrl } = await generateImage(enText, seedVal);
@@ -398,10 +398,10 @@ async function openPromptEditModal(turnIdx) {
       previewImg.appendChild(img);
       modal._previewUrl = imageUrl;
     } catch(e) {
-      previewImg.textContent = '❌ 生成失敗: ' + e.message.slice(0, 40);
-      showToast('❌ プレビュー失敗: ' + e.message.slice(0, 40));
+      previewImg.textContent = t('toast.gen_fail', '❌ 生成失敗: ') + e.message.slice(0, 40);
+      showToast(t('toast.preview_fail', '❌ プレビュー失敗: ') + e.message.slice(0, 40));
     } finally {
-      btnPreview.textContent = '🖼 プレビュー';
+      btnPreview.textContent = t('prompt_edit.preview', '🖼 プレビュー');
       delete btnPreview.dataset.selfBusy;
       btnPreview.disabled = false;
       btnApply.disabled   = false;
@@ -411,10 +411,10 @@ async function openPromptEditModal(turnIdx) {
   // 差し替え（en_promptとimage_urlのみ更新）
   btnApply.addEventListener('click', async () => {
     const enText = peEN.value.trim();
-    if (!enText) { showToast('英語プロンプトを入力してください'); return; }
-    if (isGenerating) { showToast('生成中です'); return; }
+    if (!enText) { showToast(t('prompt_edit.no_en', '英語プロンプトを入力してください')); return; }
+    if (isGenerating) { showToast(t('chat.generating', '生成中です')); return; }
 
-    btnApply.textContent = '⏳ 差し替え中…';
+    btnApply.textContent = '⏳…';
     btnApply.dataset.selfBusy = '1';
     btnApply.disabled   = true;
     btnPreview.disabled = true;
@@ -450,11 +450,11 @@ async function openPromptEditModal(turnIdx) {
       // サーバー保存
       await saveTurnToSession(null);
 
-      showToast('✓ プロンプトと画像を差し替えました');
+      showToast(t('toast.prompt_replaced', '✓ プロンプトと画像を差し替えました'));
       _patchedClose();
     } catch(e) {
       showToast('❌ ' + e.message.slice(0, 50));
-      btnApply.textContent = '差し替え';
+      btnApply.textContent = t('prompt_edit.apply', '差し替え');
       delete btnApply.dataset.selfBusy;
       btnApply.disabled   = false;
       btnPreview.disabled = false;

@@ -4,8 +4,8 @@
    ═════════════════════════════════════════════ */
 
 async function _chatSubmitTurnOrig() {
-  if (isGenerating) { showToast('生成中です'); return; }
-  if (!activeChar)  { showToast('キャラクターを選択してください'); openCharModal(); return; }
+  if (isGenerating) { showToast(t('chat.generating', '生成中です')); return; }
+  if (!activeChar)  { showToast(t('chat.no_char', 'キャラクターを選択してください')); openCharModal(); return; }
 
   const jpText     = document.getElementById('jpInput')?.value?.trim();
   const genMode    = document.getElementById('genToggle')?.checked;
@@ -13,7 +13,7 @@ async function _chatSubmitTurnOrig() {
 
   // 画像生成モードでは空欄送信不可
   if (genMode && isContinue) {
-    showToast('プロンプトを入力してください');
+    showToast(t('chat.no_prompt', 'プロンプトを入力してください'));
     return;
   }
 
@@ -38,12 +38,12 @@ async function _chatSubmitTurnOrig() {
     if (genMode) {
       if (genMode_ === 'char') {
         // ── キャラ主導モード ──
-        updateStatusBadge('キャラクターが考え中…');
+        updateStatusBadge(t('status.char_thinking', 'キャラクターが考え中…'));
         let charMsg;
         try {
           charMsg = await getCharResponseText(jpText, narrative);
         } catch(e) {
-          throw new Error('キャラクターの応答に失敗しました: ' + e.message);
+          throw new Error(t('chat.char_response_failed', 'キャラクターの応答に失敗しました: ') + e.message);
         }
         turn.char_message = charMsg;
 
@@ -51,13 +51,13 @@ async function _chatSubmitTurnOrig() {
         narrative ? appendNarrativeMessage(jpText, tIdx) : appendUserMessage(jpText, tIdx);
         appendCharMessage(charMsg, tIdx);
 
-        updateStatusBadge('翻訳中…');
+        updateStatusBadge(t('status.translating', '翻訳中…'));
         let enPrompt;
         try {
           const prevEN = getLastEN();
           enPrompt = await translatePromptCharMode(jpText, charMsg, prevEN, narrative);
         } catch(e) {
-          throw new Error('翻訳に失敗しました: ' + e.message);
+          throw new Error(t('chat.translate_failed', '翻訳に失敗しました: ') + e.message);
         }
         turn.en_prompt = enPrompt;
 
@@ -67,19 +67,19 @@ async function _chatSubmitTurnOrig() {
           imageUrl = genResult.imageUrl;
           turn.gen_meta = { ...genResult.meta, anchor_turn_idx: activeSession.active_anchor_idx ?? null };
         } catch(e) {
-          throw new Error('画像生成に失敗しました: ' + e.message);
+          throw new Error(t('chat.gen_image_failed', '画像生成に失敗しました: ') + e.message);
         }
         turn.image_url = imageUrl;
         appendImageToLog(imageUrl, tIdx);
 
       } else {
         // ── 通常モード ──
-        updateStatusBadge('翻訳中…');
+        updateStatusBadge(t('status.translating', '翻訳中…'));
         let enPrompt;
         try {
           enPrompt = await translatePrompt(jpText, getLastEN(), narrative);
         } catch(e) {
-          throw new Error('翻訳に失敗しました: ' + e.message);
+          throw new Error(t('chat.translate_failed', '翻訳に失敗しました: ') + e.message);
         }
         turn.en_prompt = enPrompt;
 
@@ -89,7 +89,7 @@ async function _chatSubmitTurnOrig() {
           imageUrl = genResult.imageUrl;
           turn.gen_meta = { ...genResult.meta, anchor_turn_idx: activeSession.active_anchor_idx ?? null };
         } catch(e) {
-          throw new Error('画像生成に失敗しました: ' + e.message);
+          throw new Error(t('chat.gen_image_failed', '画像生成に失敗しました: ') + e.message);
         }
         turn.image_url = imageUrl;
 
@@ -97,7 +97,7 @@ async function _chatSubmitTurnOrig() {
         narrative ? appendNarrativeMessage(jpText, tIdx) : appendUserMessage(jpText, tIdx);
         appendImageToLog(imageUrl, tIdx);
 
-        updateStatusBadge('キャラクターが認識中…');
+        updateStatusBadge(t('status.char_thinking', 'キャラクターが認識中…'));
         let charMsg;
         try {
           charMsg = await getCharResponse(imageUrl, jpText, narrative);
@@ -108,10 +108,10 @@ async function _chatSubmitTurnOrig() {
             await saveTurnToSession(turn);
             const inp = document.getElementById('jpInput');
             if (inp) { inp.value = jpText; inp.disabled = false; }
-            showToast('⚠ 応答が異常でした。長押しして再生成してください');
+            showToast(t('chat.abnormal_response', '⚠ 応答が異常でした。長押しして再生成してください'));
             return;
           }
-          throw new Error('キャラクターの応答に失敗しました: ' + e.message);
+          throw new Error(t('chat.char_response_failed', 'キャラクターの応答に失敗しました: ') + e.message);
         }
         turn.char_message = charMsg;
         appendCharMessage(charMsg, tIdx);
@@ -123,7 +123,7 @@ async function _chatSubmitTurnOrig() {
       if (!isContinue) {
         narrative ? appendNarrativeMessage(jpText, tIdx) : appendUserMessage(jpText, tIdx);
       }
-      updateStatusBadge(isContinue ? '続きを生成中…' : '考え中…');
+      updateStatusBadge(isContinue ? t('status.generating_continue', '続きを生成中…') : t('chat.thinking', '考え中…'));
       let charMsg;
       try {
         charMsg = isContinue
@@ -136,10 +136,10 @@ async function _chatSubmitTurnOrig() {
           await saveTurnToSession(turn);
           const inp = document.getElementById('jpInput');
           if (inp) { inp.value = jpText; inp.disabled = false; }
-          showToast('⚠ 応答が異常でした。長押しして再生成してください');
+          showToast(t('chat.abnormal_response', '⚠ 応答が異常でした。長押しして再生成してください'));
           return;
         }
-        throw new Error('キャラクターの応答に失敗しました: ' + e.message);
+        throw new Error(t('chat.char_response_failed', 'キャラクターの応答に失敗しました: ') + e.message);
       }
       turn.char_message = charMsg;
       appendCharMessage(charMsg, tIdx);
@@ -165,7 +165,7 @@ async function _chatSubmitTurnOrig() {
     }
 
   } catch(e) {
-    showToast('❌ ' + (e.message || 'エラーが発生しました').slice(0, 60));
+    showToast('❌ ' + (e.message || t('chat.error', 'エラーが発生しました')).slice(0, 60));
     console.error('[Nook] submitTurn error:', e);
   } finally {
     isGenerating = false;
@@ -389,18 +389,18 @@ function showImageCtxMenu(x, y, turnIdx) {
 
   const items = [
     {
-      icon: '📋', label: 'プロンプトを確認',
+      icon: '📋', label: t('chat.view_prompt', 'プロンプトを確認'),
       action: () => showPromptDialog(turn),
     },
     {
-      icon: '✏️', label: 'プロンプトを直接修正',
+      icon: '✏️', label: t('chat.edit_prompt', 'プロンプトを直接修正'),
       action: () => openPromptEditModal(turnIdx),
     },
   ];
 
   if (!inPhoto) {
     items.push({
-      icon: '⚓', label: 'アンカーを設定する',
+      icon: '⚓', label: t('chat.set_anchor', 'アンカーを設定する'),
       action: () => startAnchorSelect(),
     });
   }
@@ -410,21 +410,21 @@ function showImageCtxMenu(x, y, turnIdx) {
   if (!inPhoto) {
     items.push(
       {
-        icon: '💬', label: '反応のみ再生成',
+        icon: '💬', label: t('chat.reroll_char_only', '反応のみ再生成'),
         action: () => rerollCharOnly(turnIdx),
       },
     );
   }
 
   items.push({
-    icon: '🔄', label: '再推論して再生成',
+    icon: '🔄', label: t('chat.reroll_retranslate', '再推論して再生成'),
     action: () => rerollTurnWithRetranslate(turnIdx, false),
   });
 
   if (!inPhoto) {
     items.push(
       {
-        icon: '🔄💬', label: '再推論＋キャラ再反応',
+        icon: '🔄💬', label: t('chat.reroll_retranslate_char', '再推論＋キャラ再反応'),
         action: () => rerollTurnWithRetranslate(turnIdx, true),
       },
     );
@@ -433,7 +433,7 @@ function showImageCtxMenu(x, y, turnIdx) {
   items.push('sep');
 
   items.push({
-    icon: '🎲', label: '新Seedで再生成',
+    icon: '🎲', label: t('chat.reroll_new_seed', '新Seedで再生成'),
     action: () => rerollTurnNewSeed(turnIdx),
   });
 
@@ -483,60 +483,60 @@ function showMessageCtxMenu(x, y, turnIdx, role) {
 
   if (role === 'char') {
     items.push({
-      icon: '✏', label: 'キャラの返答を編集',
+      icon: '✏', label: t('chat.edit_character_reply', 'キャラの返答を編集'),
       action: () => editCharMessage(turnIdx),
     });
     if (turn?.char_message) {
       items.push({
-        icon: '📋', label: '会話をコピー',
+        icon: '📋', label: t('chat.copy_conversation', '会話をコピー'),
         action: () => { copyToClipboard(turn.char_message); },
       });
     }
     items.push({
-      icon: '🔄', label: 'キャラ反応を再生成',
+      icon: '🔄', label: t('chat.reroll_character', 'キャラ反応を再生成'),
       action: () => rerollCharOnly(turnIdx),
     });
     // 画像なしターンに画像を生成
     if (!turn?.image_url && turn?.char_message) {
       items.push({
-        icon: '🎨', label: '画像を生成',
+        icon: '🎨', label: t('chat.generate_image', '画像を生成'),
         action: () => rerollImageFromTurn(turnIdx),
       });
     }
   } else {
     items.push({
-      icon: '✏', label: 'このターンを編集',
+      icon: '✏', label: t('chat.edit_turn', 'このターンを編集'),
       action: () => editTurn(turnIdx),
     });
     if (turn?.user_message) {
       items.push({
-        icon: '📋', label: '会話をコピー',
+        icon: '📋', label: t('chat.copy_conversation', '会話をコピー'),
         action: () => { copyToClipboard(turn.user_message); },
       });
     }
   }
 
   items.push({
-    icon: '🌿', label: 'ここから分岐',
+    icon: '🌿', label: t('chat.branch_here', 'ここから分岐'),
     action: () => branchFromTurn(turnIdx),
   });
 
   items.push({
-    icon: '🗑', label: 'このターンを削除', danger: true,
+    icon: '🗑', label: t('chat.delete_turn', 'このターンを削除'), danger: true,
     action: () => deleteTurn(turnIdx),
   });
 
   showCtxMenu(x, y, items);
 }
 async function rerollCharOnly(turnIdx) {
-  if (isGenerating) { showToast('生成中です'); return; }
+  if (isGenerating) { showToast(t('chat.generating', '生成中です')); return; }
   const turn = activeSession?.turns?.[turnIdx];
   if (!turn) return;
 
   isGenerating = true;
   setBtnState(true);
   try {
-    updateStatusBadge('キャラクターが認識中…');
+    updateStatusBadge(t('status.char_thinking', 'キャラクターが認識中…'));
     let charMsg;
     if (turn.image_url) {
       // 画像ありの場合はVision
@@ -548,7 +548,7 @@ async function rerollCharOnly(turnIdx) {
     turn.char_message = charMsg;
     updateTurnCharMessage(turnIdx, charMsg);
     await saveTurnToSession(null);
-    showToast('✓ 反応を再生成しました');
+    showToast(t('chat.response_regenerated', '✓ 反応を再生成しました'));
   } catch(e) {
     showToast('❌ ' + e.message.slice(0, 50));
   } finally {
@@ -559,14 +559,14 @@ async function rerollCharOnly(turnIdx) {
 }
 // 画像なしターンに後から画像を生成
 async function rerollImageFromTurn(turnIdx) {
-  if (isGenerating) { showToast('生成中です'); return; }
+  if (isGenerating) { showToast(t('chat.generating', '生成中です')); return; }
   const turn = activeSession?.turns?.[turnIdx];
   if (!turn) return;
 
   isGenerating = true;
   setBtnState(true);
   try {
-    updateStatusBadge('翻訳中…');
+    updateStatusBadge(t('status.translating', '翻訳中…'));
     const prevEN = getAnchorEN() || (turnIdx === 0 ? '' : (activeSession.turns[turnIdx - 1]?.en_prompt || ''));
     let enPrompt;
     if (turn.gen_mode === 'char' && turn.char_message) {
@@ -576,13 +576,13 @@ async function rerollImageFromTurn(turnIdx) {
     }
     turn.en_prompt = enPrompt;
 
-    updateStatusBadge('生成中…');
+    updateStatusBadge(t('status.generating', '生成中…'));
     const { imageUrl, meta } = await generateImage(enPrompt);
     turn.image_url = imageUrl;
     turn.gen_meta  = meta;
     appendImageToLogWithIndex(imageUrl, turnIdx);
     await saveTurnToSession(null);
-    showToast('✓ 画像を生成しました');
+    showToast(t('chat.image_generated', '✓ 画像を生成しました'));
   } catch(e) {
     showToast('❌ ' + e.message.slice(0, 50));
   } finally {
@@ -593,15 +593,15 @@ async function rerollImageFromTurn(turnIdx) {
 }
 
 async function rerollTurnWithRetranslate(turnIdx, withCharReaction) {
-  if (isGenerating) { showToast('生成中です'); return; }
+  if (isGenerating) { showToast(t('chat.generating', '生成中です')); return; }
   const turn = activeSession?.turns?.[turnIdx];
-  if (!turn?.jp_prompt) { showToast('プロンプトがありません'); return; }
+  if (!turn?.jp_prompt) { showToast(t('chat.no_prompt', 'プロンプトがありません')); return; }
 
   isGenerating = true;
   setBtnState(true);
   try {
     // 再推論（gen_modeに応じて翻訳方法を切り替え）
-    updateStatusBadge('再推論中…');
+    updateStatusBadge(t('session.retranslating', '再推論中…'));
     const anchor = getAnchorEN();
     const prevEN = anchor || (turnIdx === 0 ? '' : (activeSession.turns[turnIdx - 1]?.en_prompt || ''));
     let newEN;
@@ -613,7 +613,7 @@ async function rerollTurnWithRetranslate(turnIdx, withCharReaction) {
     turn.en_prompt = newEN;
 
     // 再生成
-    updateStatusBadge('再生成中…');
+    updateStatusBadge(t('session.regenerating', '再生成中…'));
     const { imageUrl: newUrl, meta: newMeta } = await generateImage(newEN);
     turn.image_url = newUrl;
     turn.gen_meta  = { ...newMeta, anchor_turn_idx: activeSession.active_anchor_idx ?? null };
@@ -627,7 +627,7 @@ async function rerollTurnWithRetranslate(turnIdx, withCharReaction) {
 
     // キャラ再反応
     if (withCharReaction) {
-      updateStatusBadge('キャラクターが認識中…');
+      updateStatusBadge(t('status.char_thinking', 'キャラクターが認識中…'));
       const charMsg = await getCharResponse(newUrl, turn.user_message, turn.is_narrative);
       turn.char_message = charMsg;
       updateTurnCharMessage(turnIdx, charMsg);
@@ -635,7 +635,7 @@ async function rerollTurnWithRetranslate(turnIdx, withCharReaction) {
 
     // サーバー保存
     await saveTurnToSession(null);
-    showToast('✓ 再生成しました');
+    showToast(t('chat.regenerated', '✓ 再生成しました'));
   } catch(e) {
     showToast('❌ ' + e.message.slice(0, 50));
   } finally {
@@ -645,14 +645,14 @@ async function rerollTurnWithRetranslate(turnIdx, withCharReaction) {
   }
 }
 async function rerollTurnNewSeed(turnIdx) {
-  if (isGenerating) { showToast('生成中です'); return; }
+  if (isGenerating) { showToast(t('chat.generating', '生成中です')); return; }
   const turn = activeSession?.turns?.[turnIdx];
-  if (!turn?.en_prompt) { showToast('プロンプトがありません'); return; }
+  if (!turn?.en_prompt) { showToast(t('chat.no_prompt', 'プロンプトがありません')); return; }
 
   isGenerating = true;
   setBtnState(true);
   try {
-    updateStatusBadge('再生成中…');
+    updateStatusBadge(t('session.regenerating', '再生成中…'));
     const { imageUrl: newUrl, meta: newMeta } = await generateImage(turn.en_prompt);
     turn.image_url = newUrl;
     turn.gen_meta  = { ...newMeta, anchor_turn_idx: null };
@@ -663,7 +663,7 @@ async function rerollTurnNewSeed(turnIdx) {
       addPhotoCarouselSlide(newUrl, turnIdx);
     }
     await saveTurnToSession(null);
-    showToast('✓ 再生成しました');
+    showToast(t('chat.regenerated', '✓ 再生成しました'));
   } catch(e) {
     showToast('❌ ' + e.message.slice(0, 50));
   } finally {
@@ -700,11 +700,11 @@ function editCharMessage(turnIdx) {
   btnRow.style.cssText = 'display:flex;gap:6px;margin-top:6px;justify-content:flex-end;';
 
   const cancelBtn = document.createElement('button');
-  cancelBtn.textContent = 'キャンセル';
+  cancelBtn.textContent = t('cancel', 'キャンセル');
   cancelBtn.style.cssText = 'font-size:12px;padding:5px 10px;border-radius:6px;border:0.5px solid var(--border-input);background:var(--bg-white);color:var(--text-mid);cursor:pointer;';
 
   const saveBtn = document.createElement('button');
-  saveBtn.textContent = '保存';
+  saveBtn.textContent = t('save', '保存');
   saveBtn.style.cssText = 'font-size:12px;padding:5px 10px;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer;';
 
   const restore = () => {
@@ -716,13 +716,13 @@ function editCharMessage(turnIdx) {
   cancelBtn.addEventListener('click', restore);
   saveBtn.addEventListener('click', () => {
     const newMsg = textarea.value.trim();
-    if (!newMsg) { showToast('内容を入力してください'); return; }
+    if (!newMsg) { showToast(t('input_required', '内容を入力してください')); return; }
     turn.char_message = newMsg;
     bubble.style.display = '';
     renderCharBubble(bubble, newMsg);
     wrapper.remove();
     saveTurnToSession(null).catch(e => console.warn(e));
-    showToast('編集しました');
+    showToast(t('edited', '編集しました'));
   });
 
   btnRow.appendChild(cancelBtn);
@@ -774,11 +774,11 @@ function editTurn(turnIdx) {
   btnRow.style.cssText = 'display:flex;gap:6px;margin-top:6px;justify-content:flex-end;';
 
   const btnOk = document.createElement('button');
-  btnOk.textContent = '✓ 保存';
+  btnOk.textContent = t('chat.save_edit', '✓ 保存');
   btnOk.style.cssText = 'padding:6px 12px;font-size:12px;background:rgba(255,255,255,0.2);border:0.5px solid rgba(255,255,255,0.4);border-radius:var(--radius-sm);color:#fff;cursor:pointer;font-family:var(--font-sans);';
 
   const btnCancel = document.createElement('button');
-  btnCancel.textContent = 'キャンセル';
+  btnCancel.textContent = t('cancel', 'キャンセル');
   btnCancel.style.cssText = 'padding:6px 12px;font-size:12px;background:transparent;border:0.5px solid rgba(255,255,255,0.3);border-radius:var(--radius-sm);color:rgba(255,255,255,0.8);cursor:pointer;font-family:var(--font-sans);';
 
   btnRow.appendChild(btnCancel);
@@ -799,7 +799,7 @@ function editTurn(turnIdx) {
     wrapper.replaceWith(bubble);
     updateTurnUserMessage(turnIdx, newMsg);
     saveTurnToSession(null).catch(e => console.warn(e));
-    showToast('編集しました');
+    showToast(t('edited', '編集しました'));
   };
   const cancel = () => { wrapper.replaceWith(bubble); };
 
@@ -811,7 +811,7 @@ function editTurn(turnIdx) {
   });
 }
 async function deleteTurn(turnIdx) {
-  if (!confirm('このターンを削除しますか？')) return;
+  if (!confirm(t('chat.delete_turn_confirm', 'このターンを削除しますか？'))) return;
   activeSession.turns.splice(turnIdx, 1);
   // チャットログ再描画
   clearChatLog();
@@ -819,7 +819,7 @@ async function deleteTurn(turnIdx) {
   activeSession.turns.forEach((t, i) => renderTurn(t, i));
   updateHeaderSession();
   await saveTurnToSession(null);
-  showToast('削除しました');
+  showToast(t('toast.deleted', '削除しました'));
 }
 function updateTurnCharMessage(turnIdx, text) {
   const divs = document.querySelectorAll('.char-msg[data-turn-idx]');
@@ -880,7 +880,9 @@ function updateTurnImage(turnIdx, newUrl) {
 function updateHeaderSession() {
   const el = document.getElementById('headerSession');
   if (!el || !activeSession) return;
-  el.textContent = `${activeSession.title} · ${activeSession.turns.length}ターン`;
+  const title = typeof displaySessionTitle === 'function' ? displaySessionTitle(activeSession.title) : activeSession.title;
+  const turns = typeof formatTurnCount === 'function' ? formatTurnCount(activeSession.turns.length) : `${activeSession.turns.length}ターン`;
+  el.textContent = `${title} · ${turns}`;
 }
 function renderCharBubble(container, text) {
   if (!text) { container.textContent = ''; return; }
