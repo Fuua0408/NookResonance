@@ -8,13 +8,13 @@
 // ─────────────────────────────────────────────
 async function openHandover() {
   if (!activeChar || !activeSession) {
-    showToast('セッションを選択してください'); return;
+    showToast(t('session.selected_required', 'セッションを選択してください')); return;
   }
   if (!activeSession.turns?.length) {
-    showToast('ターンがありません'); return;
+    showToast(t('turn.none', 'ターンがありません')); return;
   }
   if (!isCharAffectionEnabled(activeChar)) {
-    showToast('このキャラクターの親愛度が無効です'); return;
+    showToast(t('handover.affection_disabled', 'このキャラクターの親愛度が無効です')); return;
   }
 
   // 確認モーダルを開いてローディング表示
@@ -31,7 +31,7 @@ async function openHandover() {
 
 // 任意のセッションを対象に引き継ぎを開く
 async function openHandoverFor(charId, sessionId) {
-  if (!activeChar) { showToast('キャラクターを選択してください'); return; }
+  if (!activeChar) { showToast(t('chat.no_char', 'キャラクターを選択してください')); return; }
 
   // 現在のセッションならそのまま
   if (activeSession?.id === sessionId) {
@@ -39,11 +39,11 @@ async function openHandoverFor(charId, sessionId) {
   }
 
   // 別セッションならREST取得して一時的にactiveSessionに設定
-  if (!isRestEnabled()) { showToast('REST接続が必要です'); return; }
+  if (!isRestEnabled()) { showToast(t('rest.required', 'REST接続が必要です')); return; }
   try {
     updateStatusBadge('読み込み中…');
     const session = await restGet(`sessions/${charId}/${sessionId}`);
-    if (!session.turns?.length) { showToast('ターンがありません'); return; }
+    if (!session.turns?.length) { showToast(t('turn.none', 'ターンがありません')); return; }
 
     const prevSession = activeSession;
     activeSession = session;
@@ -59,7 +59,7 @@ async function openHandoverFor(charId, sessionId) {
       activeSession = prevSession;
     }
   } catch(e) {
-    showToast('❌ セッション取得失敗: ' + e.message.slice(0, 40));
+    showToast(t('session.fetch_failed', '❌ セッション取得失敗: ') + e.message.slice(0, 40));
   } finally {
     updateStatusBadge('SYNC');
   }
@@ -101,7 +101,7 @@ Current location: ${lastState.location   || '(not set)'}`
 現在の場所: ${lastState.location   || '（未設定）'}`;
 
   // ── Step 1: このセッションで何があったか ──
-  _renderHandoverProgress('セッションの内容を読んでいます… (1/5)');
+  _renderHandoverProgress(t('status.handover_1', 'セッションの内容を読んでいます… (1/5)'));
   const step1System = isEnglishMode()
     ? `You are an assistant analyzing a conversation session with a character.\n${charContext}\nRead the session content and summarize what happened in 3-5 sentences.`
     : `あなたはキャラクターとの会話セッションを分析するアシスタントです。\n${charContext}\n\n以下のセッション内容を読んで、このセッションでどんな出来事があったかを3〜5文で要約してください。`;
@@ -111,12 +111,12 @@ Current location: ${lastState.location   || '(not set)'}`
   ]);
   let summary = cleanLLMResponse(step1);
   if (typeof isAbnormalOutput === 'function' && isAbnormalOutput(summary)) {
-    _renderHandoverProgress('リカバリー試行中… (1/5)');
+    _renderHandoverProgress(t('status.handover_retry', 'リカバリー試行中… ') + '(1/5)');
     summary = cleanLLMResponse(await extractJapaneseResponse(step1)) || summary;
   }
 
   // ── Step 2: 関係性への影響の説明 ──
-  _renderHandoverProgress('関係性への影響を分析しています… (2/5)');
+  _renderHandoverProgress(t('status.handover_2', '関係性への影響を分析しています… (2/5)'));
   const step2System = isEnglishMode()
     ? `You are an assistant analyzing the relationship with a character.\n${charContext}`
     : `あなたはキャラクターとの関係性を分析するアシスタントです。\n${charContext}`;
@@ -129,12 +129,12 @@ Current location: ${lastState.location   || '(not set)'}`
   ]);
   let affection_reason = cleanLLMResponse(step2);
   if (typeof isAbnormalOutput === 'function' && isAbnormalOutput(affection_reason)) {
-    _renderHandoverProgress('リカバリー試行中… (2/5)');
+    _renderHandoverProgress(t('status.handover_retry', 'リカバリー試行中… ') + '(2/5)');
     affection_reason = cleanLLMResponse(await extractJapaneseResponse(step2)) || affection_reason;
   }
 
   // ── Step 3a: 親愛度の増減値 ──
-  _renderHandoverProgress('親愛度の増減値を計算しています… (3/5)');
+  _renderHandoverProgress(t('status.handover_3', '親愛度の増減値を計算しています… (3/5)'));
   const isPerTurn = typeof isAffectionPerTurn === 'function' && isAffectionPerTurn();
   const affRange  = isPerTurn ? 10 : 20;
   const step3aSystem = isEnglishMode()
@@ -147,7 +147,7 @@ Current location: ${lastState.location   || '(not set)'}`
   const affection_delta = Math.max(-affRange, Math.min(affRange, parseInt(cleanLLMResponse(step3a).replace(/[^-\d]/g, '')) || 0));
 
   // ── Step 3b: キャラクターの現在の状態 ──
-  _renderHandoverProgress('キャラクターの状態を確認しています… (4/5)');
+  _renderHandoverProgress(t('status.handover_4', 'キャラクターの状態を確認しています… (4/5)'));
   const step3bSystem = isEnglishMode()
     ? `You are a character state management assistant.\n${charContext}`
     : `あなたはキャラクターの状態管理アシスタントです。\n${charContext}`;
@@ -160,7 +160,7 @@ Current location: ${lastState.location   || '(not set)'}`
   ]);
   let step3bText = cleanLLMResponse(step3b);
   if (typeof isAbnormalOutput === 'function' && isAbnormalOutput(step3bText)) {
-    _renderHandoverProgress('リカバリー試行中… (4/5)');
+    _renderHandoverProgress(t('status.handover_retry', 'リカバリー試行中… ') + '(4/5)');
     step3bText = cleanLLMResponse(await extractJapaneseResponse(step3b)) || step3bText;
   }
 
@@ -188,7 +188,7 @@ Current location: ${lastState.location   || '(not set)'}`
     notesRaw.split(/[、,\n]/).map(n => n.replace(/^[-・\d.]\s*/, '').trim()).filter(Boolean);
 
   // ── Step 4: 次回オープニングメッセージ提案 ──
-  _renderHandoverProgress('次回の挨拶を考えています… (5/5)');
+  _renderHandoverProgress(t('status.handover_5', '次回の挨拶を考えています… (5/5)'));
   const step4System = isEnglishMode()
     ? `You are the character "${char.name}".
 ${char.personality || ''}
@@ -205,7 +205,7 @@ Return only the dialogue, no narration or explanation.`
   ]);
   let opening_message = cleanLLMResponse(step4);
   if (typeof isAbnormalOutput === 'function' && isAbnormalOutput(opening_message)) {
-    _renderHandoverProgress('リカバリー試行中… (5/5)');
+    _renderHandoverProgress(t('status.handover_retry', 'リカバリー試行中… ') + '(5/5)');
     opening_message = cleanLLMResponse(await extractJapaneseResponse(step4)) || opening_message;
   }
 
@@ -247,7 +247,7 @@ function _renderHandoverUI(result) {
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
           <input type="checkbox" id="handoverSummaryCheck" checked
             style="accent-color:var(--accent);width:16px;height:16px;flex-shrink:0;">
-          <div class="section-label" style="margin:0;">セッション概要を次回に持ち越す</div>
+          <div class="section-label" style="margin:0;">${t('handover.carry_summary', 'セッション概要を次回に持ち越す')}</div>
         </div>
         <textarea id="handoverSummary" rows="3" style="
           width:100%;box-sizing:border-box;
@@ -260,7 +260,7 @@ function _renderHandoverUI(result) {
 
       <!-- 追加メモ -->
       <div>
-        <div class="section-label">追加される記憶メモ</div>
+        <div class="section-label">${t('handover.added_notes', '追加される記憶メモ')}</div>
         <div id="handoverNotes" style="display:flex;flex-direction:column;gap:6px;margin-top:6px;">
           ${result.new_notes.length
             ? result.new_notes.map((n, i) => `
@@ -271,23 +271,23 @@ function _renderHandoverUI(result) {
                   style="font-size:13px;color:var(--text);line-height:1.5;cursor:pointer;"
                   contenteditable="true">${escHtml(n)}</label>
               </div>`).join('')
-            : `<div style="font-size:12px;color:var(--text-pale);">特に記憶すべき新しい情報はありませんでした</div>`
+            : `<div style="font-size:12px;color:var(--text-pale);">${t('handover.no_new_notes', '特に記憶すべき新しい情報はありませんでした')}</div>`
           }
         </div>
       </div>
 
       <!-- 親愛度 -->
       <div>
-        <div class="section-label">親愛度の変化</div>
+        <div class="section-label">${t('handover.affection', '親愛度の変化')}</div>
         <div style="margin-top:6px;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
             <input type="checkbox" id="handoverAffectionCheck" ${result.affection_delta !== 0 ? 'checked' : ''}
               style="accent-color:var(--accent);width:16px;height:16px;flex-shrink:0;">
             <span style="font-size:13px;color:var(--text);">
               ${stageInit}（${initAff}） → ${stageNew}（${newAff}）
-              ${totalDelta > 0 ? `<span style="color:#5a8040;">（セッション計+${totalDelta}）</span>` :
-                totalDelta < 0 ? `<span style="color:var(--accent);">（セッション計${totalDelta}）</span>` :
-                `<span style="color:var(--text-pale);">（変化なし）</span>`}
+              ${totalDelta > 0 ? `<span style="color:#5a8040;">(${t('handover.session_total', 'セッション計')} +${totalDelta})</span>` :
+                totalDelta < 0 ? `<span style="color:var(--accent);">(${t('handover.session_total', 'セッション計')} ${totalDelta})</span>` :
+                `<span style="color:var(--text-pale);">(${t('handover.no_change', '変化なし')})</span>`}
             </span>
           </div>
           ${result.affection_reason ? `
@@ -303,7 +303,7 @@ function _renderHandoverUI(result) {
           <input type="checkbox" id="handoverAppearanceCheck"
             ${result.appearance && result.appearance !== (char.last_state?.appearance || '') ? 'checked' : ''}
             style="accent-color:var(--accent);width:16px;height:16px;flex-shrink:0;">
-          <div class="section-label" style="margin:0;">外見の引き継ぎ</div>
+          <div class="section-label" style="margin:0;">${t('handover.appearance', '外見の引き継ぎ')}</div>
         </div>
         <textarea id="handoverAppearance" rows="2" style="
           width:100%;box-sizing:border-box;
@@ -320,11 +320,11 @@ function _renderHandoverUI(result) {
           <input type="checkbox" id="handoverLocationCheck"
             ${result.location && result.location !== (char.last_state?.location || '') ? 'checked' : ''}
             style="accent-color:var(--accent);width:16px;height:16px;flex-shrink:0;">
-          <div class="section-label" style="margin:0;">場所の引き継ぎ</div>
+          <div class="section-label" style="margin:0;">${t('handover.location', '場所の引き継ぎ')}</div>
         </div>
         <input id="handoverLocation" type="text" class="f-input"
           value="${escHtml(result.location)}"
-          placeholder="カフェのテラス席など">
+          placeholder="${t('handover.location_placeholder', 'カフェのテラス席など')}">
       </div>
 
       <!-- 初対面フラグ -->
@@ -332,7 +332,7 @@ function _renderHandoverUI(result) {
         <input type="checkbox" id="handoverFirstMeeting"
           style="accent-color:var(--accent);width:16px;height:16px;flex-shrink:0;">
         <label for="handoverFirstMeeting" style="font-size:13px;color:var(--text);cursor:pointer;">
-          次回も初対面として扱う
+          ${t('handover.first_meeting', '次回も初対面として扱う')}
         </label>
       </div>
 
@@ -341,7 +341,7 @@ function _renderHandoverUI(result) {
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
           <input type="checkbox" id="handoverOpeningCheck" checked
             style="accent-color:var(--accent);width:16px;height:16px;flex-shrink:0;">
-          <div class="section-label" style="margin:0;">次回のオープニングメッセージ</div>
+          <div class="section-label" style="margin:0;">${t('handover.opening', '次回のオープニングメッセージ')}</div>
         </div>
         <textarea id="handoverOpeningMessage" rows="3" style="
           width:100%;box-sizing:border-box;
@@ -414,7 +414,7 @@ async function applyHandover() {
   try {
     await saveChar(char);
   } catch(e) {
-    showToast('⚠ 保存に失敗しました: ' + e.message.slice(0, 40));
+    showToast(t('handover.saved_fail', '⚠ 保存に失敗しました: ') + e.message.slice(0, 40));
     return;
   }
 
@@ -434,7 +434,7 @@ async function applyHandover() {
     if (activeChar?.appearance_clothing_en) activeSession.current_clothing = activeChar.appearance_clothing_en.trim();
   }
 
-  showToast('✓ 引き継ぎを適用しました');
+  showToast(t('handover.applied', '✓ 引き継ぎを適用しました'));
 
   // オープニングメッセージ表示
   const openingMsg = activeChar?.opening_message?.trim();
@@ -464,8 +464,8 @@ function _renderHandoverLoading() {
   const body = document.getElementById('handoverBody');
   if (body) body.innerHTML = `
     <div style="text-align:center;padding:48px 16px;color:var(--text-pale);">
-      <div style="font-size:13px;" id="handoverProgressMsg">セッションを解析中…</div>
-      <div style="font-size:11px;margin-top:8px;">しばらくお待ちください</div>
+      <div style="font-size:13px;" id="handoverProgressMsg">${t('handover.loading', 'セッションを解析中…')}</div>
+      <div style="font-size:11px;margin-top:8px;">${t('handover.wait', 'しばらくお待ちください')}</div>
     </div>`;
 }
 function _renderHandoverProgress(msg) {

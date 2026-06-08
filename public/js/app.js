@@ -138,7 +138,7 @@ function setBtnState(on) {
   const inp = document.getElementById('jpInput');
   if (btn) {
     btn.disabled    = on;
-    btn.textContent = on ? '⏳' : '送信 ▶';
+    btn.textContent = on ? '⏳' : t('chat.send', '送信 ▶');
   }
   if (inp) {
     if (on) {
@@ -165,7 +165,13 @@ function toggleGenMode() {
   const modeToggle      = document.getElementById('genModeToggle');
   const charLeadToggle  = document.getElementById('charLeadToggleWrap');
   const userFocusToggle = document.getElementById('userFocusToggleWrap');
-  if (inp) inp.placeholder = on ? 'プロンプトを入力…' : `${activeChar?.name || 'キャラ'}に話しかける…`;
+  if (inp) {
+    inp.placeholder = on
+      ? t('chat.placeholder', 'プロンプトを入力…')
+      : (isEnglishMode()
+        ? `Talk to ${activeChar?.name || 'character'}...`
+        : `${activeChar?.name || 'キャラ'}に話しかける…`);
+  }
   if (modeToggle)      modeToggle.style.display      = on ? '' : 'none';
   if (charLeadToggle)  charLeadToggle.style.display  = '';
   if (userFocusToggle) userFocusToggle.style.display = '';
@@ -176,8 +182,8 @@ function copyToClipboard(text) {
   // HTTPS環境ではClipboard APIを使用
   if (navigator.clipboard && location.protocol === 'https:') {
     return navigator.clipboard.writeText(text)
-      .then(() => showToast('✓ コピーしました'))
-      .catch(() => showToast('❌ コピーに失敗しました'));
+      .then(() => showToast(t('copied', '✓ コピーしました')))
+      .catch(() => showToast(t('copy_failed', '❌ コピーに失敗しました')));
   }
   // HTTP環境: textarea + execCommand
   const ta = document.createElement('textarea');
@@ -188,9 +194,9 @@ function copyToClipboard(text) {
   ta.select();
   try {
     document.execCommand('copy');
-    showToast('✓ コピーしました');
+    showToast(t('copied', '✓ コピーしました'));
   } catch(e) {
-    showToast('❌ コピーに失敗しました');
+    showToast(t('copy_failed', '❌ コピーに失敗しました'));
   }
   document.body.removeChild(ta);
 }
@@ -237,17 +243,19 @@ let _initStarted = false;
 async function init() {
   if (_initStarted) return;
   _initStarted = true;
+  applyI18n();
   initSettingsUI();
   renderWfSelect();
 
   if (isRestEnabled()) {
-    updateStatusBadge('読み込み中…');
+    updateStatusBadge(t('loading', '読み込み中…'));
     // 設定を復元（LLMエンドポイント等をサーバーから取得）
     try {
       const s = await restGet('settings');
       const { restUrl, restApiKey, ...rest } = s;
       saveSettings(rest);
       initSettingsUI(); // 復元した設定をUIに反映
+      applyI18n();
     } catch(e) {
       console.warn('[Alcove] settings restore failed:', e.message);
     }

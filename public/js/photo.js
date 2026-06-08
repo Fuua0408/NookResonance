@@ -11,6 +11,28 @@ let _photoCarouselIdx    = 0;
 // 翻訳モード: 'translate' | 'diff' | 'direct'
 let _photoTranslateMode  = 'translate';
 
+function photoTranslateModeLabel(mode) {
+  return {
+    direct:    t('photo.direct', '⚡ 直接'),
+    diff:      t('photo.diff', '🔄 差分'),
+    translate: t('photo.translate', '🌐 翻訳'),
+  }[mode] || t('photo.translate', '🌐 翻訳');
+}
+
+function refreshPhotoTranslateLabels() {
+  const labels = {
+    photoModeTranslate: ['photo.translate', '🌐 翻訳', 'photo.translate_title'],
+    photoModeDiff:      ['photo.diff',      '🔄 差分', 'photo.diff_title'],
+    photoModeDirect:    ['photo.direct',    '⚡ 直接', 'photo.direct_title'],
+  };
+  Object.entries(labels).forEach(([id, [labelKey, fallback, titleKey]]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = t(labelKey, fallback);
+    el.title = t(titleKey, el.title || '');
+  });
+}
+
 // ─────────────────────────────────────────────
 // モード判定ユーティリティ
 // ─────────────────────────────────────────────
@@ -23,6 +45,7 @@ function isPhotoMode() {
 // ─────────────────────────────────────────────
 function setPhotoTranslateMode(mode) {
   _photoTranslateMode = mode;
+  refreshPhotoTranslateLabels();
   ['translate', 'diff', 'direct'].forEach(m => {
     const el = document.getElementById('photoMode' + m.charAt(0).toUpperCase() + m.slice(1));
     if (el) el.classList.toggle('active', m === mode);
@@ -30,8 +53,8 @@ function setPhotoTranslateMode(mode) {
   const inp = document.getElementById('jpInput');
   if (inp) {
     inp.placeholder = mode === 'direct'
-      ? 'ENプロンプトを直接入力（LLM翻訳なし）'
-      : '日本語でシーンを入力…';
+      ? t('chat.placeholder_direct', 'ENプロンプトを直接入力（LLM翻訳なし）')
+      : t('chat.placeholder_photo', '日本語でシーンを入力…');
   }
 }
 
@@ -40,7 +63,7 @@ function setPhotoTranslateMode(mode) {
 // ─────────────────────────────────────────────
 function startPhotoSession() {
   if (!activeChar) {
-    showToast('キャラクターを選択してください');
+    showToast(t('chat.no_char', 'キャラクターを選択してください'));
     openCharModal();
     return;
   }
@@ -48,7 +71,7 @@ function startPhotoSession() {
   activeSession = {
     id:         'session_' + Date.now(),
     char_id:    activeChar.id,
-    title:      'フォトセッション',
+    title:      t('session.photo', 'フォトセッション'),
     mode:       'continuous',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -64,7 +87,7 @@ function startPhotoSession() {
 
   updatePhotoUI();
   updateHeaderSession();
-  showToast('📷 フォトモードを開始しました');
+  showToast(t('session.photo_start', '📷 フォトモードを開始しました'));
 }
 
 // ─────────────────────────────────────────────
@@ -81,6 +104,7 @@ function updatePhotoUI() {
   // 入力エリアのフォトモードコントロール
   const photoControls = document.getElementById('photoControls');
   if (photoControls) photoControls.style.display = inPhoto ? 'flex' : 'none';
+  if (inPhoto) refreshPhotoTranslateLabels();
 
   // チャットモードコントロール（genToggle行）
   const chatControls = document.getElementById('chatInputControls');
@@ -91,17 +115,17 @@ function updatePhotoUI() {
   if (inp) {
     if (inPhoto) {
       inp.placeholder = _photoTranslateMode === 'direct'
-        ? 'ENプロンプトを直接入力（LLM翻訳なし）'
-        : '日本語でシーンを入力…';
+        ? t('chat.placeholder_direct', 'ENプロンプトを直接入力（LLM翻訳なし）')
+        : t('chat.placeholder_photo', '日本語でシーンを入力…');
     } else {
-      inp.placeholder = 'プロンプトを入力…';
+      inp.placeholder = t('chat.placeholder', 'プロンプトを入力…');
     }
   }
 
   // 送信ボタンラベル変更
   const btn = document.getElementById('btnSend');
   if (btn && !isGenerating) {
-    btn.textContent = inPhoto ? '📷 生成' : '送信 ▶';
+    btn.textContent = inPhoto ? t('chat.send_photo', '📷 生成') : t('chat.send', '送信 ▶');
   }
 
   // カルーセルを再描画
@@ -112,11 +136,11 @@ function updatePhotoUI() {
 // フォトモード送信（メインエントリ）
 // ─────────────────────────────────────────────
 async function submitPhotoTurn() {
-  if (isGenerating) { showToast('生成中です'); return; }
-  if (!activeChar)  { showToast('キャラクターを選択してください'); return; }
+  if (isGenerating) { showToast(t('chat.generating', '生成中です')); return; }
+  if (!activeChar)  { showToast(t('chat.no_char', 'キャラクターを選択してください')); return; }
 
   const inputText = document.getElementById('jpInput')?.value?.trim();
-  if (!inputText) { showToast('プロンプトを入力してください'); return; }
+  if (!inputText) { showToast(t('chat.no_prompt', 'プロンプトを入力してください')); return; }
 
   isGenerating = true;
   setPhotoBtnState(true);
@@ -142,10 +166,10 @@ async function submitPhotoTurn() {
       // ── 直接送信：入力テキストをそのままENとして使用 ──
       enPrompt = inputText;
       turn.en_prompt = enPrompt;
-      updateStatusBadge('直接送信中…');
+      updateStatusBadge(t('photo.direct', '直接送信中…'));
     } else {
       // ── LLM翻訳（通常 or 差分）──
-      updateStatusBadge('翻訳中…');
+      updateStatusBadge(t('status.translating', '翻訳中…'));
       const prevEN = _photoTranslateMode === 'diff' ? getPhotoLastEN() : '';
       enPrompt = await translatePrompt(inputText, prevEN, false);
       turn.en_prompt = enPrompt;
@@ -196,7 +220,7 @@ function setPhotoBtnState(on) {
   const inp = document.getElementById('jpInput');
   if (btn) {
     btn.disabled    = on;
-    btn.textContent = on ? '⏳' : '📷 生成';
+    btn.textContent = on ? '⏳' : t('chat.send_photo', '📷 生成');
   }
   if (inp) {
     inp.disabled = on;
@@ -390,11 +414,7 @@ function appendPhotoTurnToLog(turn, turnIdx) {
     const msgDiv = document.createElement('div');
     msgDiv.className = 'photo-prompt-entry';
     msgDiv.dataset.turnIdx = turnIdx;
-    const modeLabel = {
-      direct:    '⚡ 直接',
-      diff:      '🔄 差分',
-      translate: '🌐 翻訳',
-    }[turn.translate_mode] || '🌐 翻訳';
+    const modeLabel = photoTranslateModeLabel(turn.translate_mode);
     msgDiv.innerHTML = `
       <div class="photo-prompt-label">${modeLabel}</div>
       <div class="photo-prompt-jp">${escHtml(turn.user_message)}</div>
@@ -430,13 +450,13 @@ function restorePhotoCarousel(session) {
 // チャット→フォトモード変換
 // ─────────────────────────────────────────────
 async function convertToPhotoMode(charId, sessionId) {
-  if (isGenerating) { showToast('生成中です'); return; }
-  if (!confirm('このセッションをフォトモードに変換しますか？\n（元のセッションはそのまま残ります）')) return;
+  if (isGenerating) { showToast(t('chat.generating', '生成中です')); return; }
+  if (!confirm(t('photo.convert_confirm', 'このセッションをフォトモードに変換しますか？\n（元のセッションはそのまま残ります）'))) return;
 
   try {
     // 変換元セッションをフルロード
     const src = await restGet(`sessions/${charId}/${sessionId}`);
-    if (!src) { showToast('セッションの読み込みに失敗しました'); return; }
+    if (!src) { showToast(t('session.load_fail', 'セッションの読み込みに失敗しました')); return; }
 
     // ターンを変換（char_messageを削ぎ、gen_mode:'photo'に変更）
     const photoTurns = src.turns
@@ -460,7 +480,7 @@ async function convertToPhotoMode(charId, sessionId) {
     const photoSession = {
       id:             'session_' + Date.now(),
       char_id:        charId,
-      title:          (src.title || 'セッション') + ' [フォト]',
+      title:          `${displaySessionTitle(src.title || t('session.no_title', 'セッション'))} [${t('session.photo_badge', 'フォト')}]`,
       mode:           'continuous',
       created_at:     new Date().toISOString(),
       updated_at:     new Date().toISOString(),
@@ -489,10 +509,10 @@ async function convertToPhotoMode(charId, sessionId) {
 
     updateHeaderSession();
     closeModal('charOverlay');
-    showToast(`📷 フォトモードに変換しました（${photoTurns.length}ターン）`);
+    showToast(t('photo.converted', '📷 フォトモードに変換しました（{count}ターン）').replace('{count}', formatTurnCount(photoTurns.length)));
 
   } catch(e) {
-    showToast('変換失敗: ' + e.message.slice(0, 40));
+    showToast(t('photo.convert_failed', '変換失敗: ') + e.message.slice(0, 40));
     console.error('[Alcove] convertToPhotoMode error:', e);
   }
 }

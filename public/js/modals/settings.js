@@ -22,12 +22,12 @@ function handleCharFooter() {
   if (isList) {
     openCharEdit(null);
   } else {
-    if (!activeChar) { showToast('キャラクターを選択してください'); return; }
+    if (!activeChar) { showToast(t('chat.no_char', 'キャラクターを選択してください')); return; }
     initSession();
     clearChatLog();
     appendDateSep(new Date().toLocaleDateString('ja-JP', { year:'numeric', month:'long', day:'numeric' }));
     closeModal('charOverlay');
-    showToast('新しいセッションを開始しました');
+    showToast(t('settings.new_session_started', '新しいセッションを開始しました'));
   }
 }
 

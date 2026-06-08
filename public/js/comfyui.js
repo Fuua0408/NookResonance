@@ -20,7 +20,7 @@ async function generateImage(enPrompt, fixedSeed = null) {
   const params = activeChar?.workflow_params || {};
   const turnId = (activeSession?.turns?.length || 0) + 1;
 
-  if (typeof updateStatusBadge === 'function') updateStatusBadge('生成中…');
+  if (typeof updateStatusBadge === 'function') updateStatusBadge(t('status.generating', '生成中…'));
 
   const data = await restPost('comfy/generate', {
     workflow_id:     activeChar.workflow_id,
@@ -56,7 +56,7 @@ async function fetchSamplerList() {
       const sel = document.getElementById(selId);
       if (!sel || !items.length) return;
       const cur = sel.value;
-      sel.innerHTML = '<option value="">デフォルト</option>';
+      sel.innerHTML = `<option value="">${t('misc.default', 'デフォルト')}</option>`;
       items.forEach(s => {
         const opt = document.createElement('option');
         opt.value = s; opt.textContent = s;
@@ -89,7 +89,7 @@ async function loadGlobalLoras() {
     _globalLoraList = await restGet('comfy/global-loras');
     renderGlobalLoraList();
   } catch(e) {
-    showToast('グローバルLoRA読み込み失敗: ' + e.message.slice(0, 40));
+    showToast(t('global_lora.load_failed', 'グローバルLoRA読み込み失敗: ') + e.message.slice(0, 40));
   }
 }
 
@@ -97,7 +97,7 @@ function renderGlobalLoraList() {
   const container = document.getElementById('globalLoraList');
   if (!container) return;
   if (!_globalLoraList.length) {
-    container.innerHTML = '<div style="font-size:12px;color:var(--text-pale);padding:4px 2px;">グローバルLoRAなし</div>';
+    container.innerHTML = `<div style="font-size:12px;color:var(--text-pale);padding:4px 2px;">${t('global_lora.none', 'グローバルLoRAなし')}</div>`;
     return;
   }
   container.innerHTML = '';
@@ -108,7 +108,7 @@ function renderGlobalLoraList() {
       <div class="lora-card-header" onclick="editGlobalLora(${lora.id})">
         <div class="lora-card-name" style="opacity:${lora.enabled ? 1 : 0.4}">${escHtml(lora.name.split('/').pop())}</div>
         <div class="lora-card-weight">${lora.weight}</div>
-        <div style="font-size:10px;color:var(--text-pale);margin-left:4px;">${lora.enabled ? '' : '無効'}</div>
+        <div style="font-size:10px;color:var(--text-pale);margin-left:4px;">${lora.enabled ? '' : t('global_lora.disabled', '無効')}</div>
       </div>`;
     container.appendChild(card);
   });
@@ -121,7 +121,7 @@ function addGlobalLoraRow() {
   const delBtn    = document.getElementById('globalLoraDeleteBtn');
   if (nameInput) nameInput.value = '';
   if (idInput)   idInput.value   = '';
-  if (titleEl)   titleEl.textContent = 'グローバルLoRA追加';
+  if (titleEl)   titleEl.textContent = t('global_lora.add_title', 'グローバルLoRA追加');
   if (delBtn)    delBtn.style.display = 'none';
   const weightEl  = document.getElementById('globalLoraEditWeight');
   const clipEl    = document.getElementById('globalLoraEditClip');
@@ -148,7 +148,7 @@ function editGlobalLora(id) {
   document.getElementById('globalLoraEditClip').value    = lora.clip_weight;
   document.getElementById('globalLoraEditTrigger').value = lora.trigger_words || '';
   document.getElementById('globalLoraEditEnabled').checked = lora.enabled !== 0;
-  document.getElementById('globalLoraEditTitle').textContent = 'グローバルLoRA編集';
+  document.getElementById('globalLoraEditTitle').textContent = t('global_lora.edit_title', 'グローバルLoRA編集');
   document.getElementById('globalLoraDeleteBtn').style.display = '';
   openModal('globalLoraEditOverlay');
 }
@@ -162,7 +162,7 @@ function applyGlobalLoraFromSelect() {
 async function saveGlobalLora() {
   const id      = document.getElementById('globalLoraEditId')?.value;
   const name    = document.getElementById('globalLoraEditName')?.value?.trim();
-  if (!name) { showToast('LoRAファイル名を入力してください'); return; }
+  if (!name) { showToast(t('global_lora.name_required', 'LoRAファイル名を入力してください')); return; }
   const payload = {
     name,
     weight:        parseFloat(document.getElementById('globalLoraEditWeight')?.value || '1'),
@@ -176,41 +176,41 @@ async function saveGlobalLora() {
     } else {
       await restPost('comfy/global-loras', payload);
     }
-    showToast('保存しました');
+    showToast(t('toast.saved', '保存しました'));
     closeModal('globalLoraEditOverlay');
     await loadGlobalLoras();
   } catch(e) {
-    showToast('保存失敗: ' + e.message.slice(0, 40));
+    showToast(t('global_lora.save_failed', '保存失敗: ') + e.message.slice(0, 40));
   }
 }
 
 async function deleteGlobalLora() {
   const id = document.getElementById('globalLoraEditId')?.value;
   if (!id) return;
-  if (!confirm('このグローバルLoRAを削除しますか？')) return;
+  if (!confirm(t('global_lora.delete_confirm', 'このグローバルLoRAを削除しますか？'))) return;
   try {
     await restDelete(`comfy/global-loras/${id}`);
-    showToast('削除しました');
+    showToast(t('toast.deleted', '削除しました'));
     closeModal('globalLoraEditOverlay');
     await loadGlobalLoras();
   } catch(e) {
-    showToast('削除失敗: ' + e.message.slice(0, 40));
+    showToast(t('global_lora.delete_failed', '削除失敗: ') + e.message.slice(0, 40));
   }
 }
 
 async function fetchLoraList() {
   const statusEl = document.getElementById('loraFetchStatus');
   const selEl    = document.getElementById('loraSelectAdd');
-  if (statusEl) statusEl.textContent = '取得中…';
+  if (statusEl) statusEl.textContent = t('global_lora.fetching', '取得中…');
   try {
     const data  = await restGet('comfy/loras');
     const loras = data.loras || [];
-    if (!loras.length) throw new Error('LoRAが見つかりません');
+    if (!loras.length) throw new Error(t('global_lora.not_found', 'LoRAが見つかりません'));
     _loraNames = loras;
 
     const populateSel = (el) => {
       if (!el) return;
-      el.innerHTML = '<option value="">— LoRAを選択 —</option>';
+      el.innerHTML = `<option value="">${t('char.lora_select', '— LoRAを選択 —')}</option>`;
       loras.forEach(name => {
         const opt = document.createElement('option');
         opt.value = name;
@@ -221,9 +221,9 @@ async function fetchLoraList() {
     populateSel(selEl);
     populateSel(document.getElementById('globalLoraSelectAdd'));
 
-    if (statusEl) statusEl.textContent = `${loras.length}件`;
+    if (statusEl) statusEl.textContent = t('global_lora.count', '{count}件').replace('{count}', loras.length);
   } catch(e) {
-    if (statusEl) statusEl.textContent = '取得失敗';
-    showToast('LoRAリスト取得失敗: ' + e.message.slice(0, 40));
+    if (statusEl) statusEl.textContent = t('global_lora.fetch_failed_short', '取得失敗');
+    showToast(t('global_lora.list_failed', 'LoRAリスト取得失敗: ') + e.message.slice(0, 40));
   }
 }

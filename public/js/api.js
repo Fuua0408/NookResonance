@@ -117,7 +117,7 @@ function initSettingsUI() {
   setFieldValue('userAppearance',   s.userAppearance   || '');
   setFieldValue('userAppearanceEn', s.userAppearanceEn || '');
   const uEnCache = document.getElementById('userEnCacheDisplay');
-  if (uEnCache) uEnCache.textContent = s.userAppearanceEn || '（未生成）';
+  if (uEnCache) uEnCache.textContent = s.userAppearanceEn || t('misc.not_generated', '（未生成）');
 
   if (s.accentColor) applyThemeColor(s.accentColor);
   const inp = document.getElementById('customColorInput');
@@ -202,7 +202,7 @@ async function saveSettingsFromUI() {
   if (!isAdmin) {
     // 非管理者はlocalStorageのみ更新（サーバーPUTは403なので不要）
     closeModal('settingsOverlay');
-    showToast('設定を保存しました');
+    showToast(t('settings.save_ok', '設定を保存しました'));
     return;
   }
 
@@ -249,9 +249,9 @@ async function saveSettingsFromUI() {
 
   try {
     await restPut('settings', adminPayload);
-    showToast('設定を保存しました（サーバー同期済）');
+    showToast(t('settings.save_ok', '設定を保存しました（サーバー同期済）'));
   } catch(e) {
-    showToast('設定を保存しました（サーバー同期失敗）');
+    showToast(t('settings.save_ok', '設定を保存しました（サーバー同期失敗）'));
     console.warn('[NR] settings PUT failed:', e.message);
   }
 
@@ -272,12 +272,12 @@ async function restGet(path) {
     const resp = await fetch(`/api/${path}`, {
       headers: { 'Authorization': `Bearer ${getAuthToken()}` },
     });
-    if (resp.status === 401) { showLoginOverlay(); throw new Error('ログインが必要です'); }
+    if (resp.status === 401) { showLoginOverlay(); throw new Error(t('toast.login_required', 'ログインが必要です')); }
     if (resp.status === 404) throw new Error(`${path} が見つかりません`);
     if (!resp.ok) throw new Error(`サーバーエラー (${resp.status})`);
     return resp.json();
   } catch(e) {
-    if (e.name === 'TypeError') throw new Error('サーバーに接続できません');
+    if (e.name === 'TypeError') throw new Error(t('toast.cannot_connect', 'サーバーに接続できません'));
     throw e;
   }
 }
@@ -288,14 +288,14 @@ async function restPost(path, data) {
       headers: restHeaders(),
       body:    JSON.stringify(data),
     });
-    if (resp.status === 401) { showLoginOverlay(); throw new Error('ログインが必要です'); }
+    if (resp.status === 401) { showLoginOverlay(); throw new Error(t('toast.login_required', 'ログインが必要です')); }
     if (!resp.ok) {
       const body = await resp.json().catch(() => null);
       throw new Error(body?.error || `サーバーエラー (${resp.status})`);
     }
     return resp.json();
   } catch(e) {
-    if (e.name === 'TypeError') throw new Error('サーバーに接続できません');
+    if (e.name === 'TypeError') throw new Error(t('toast.cannot_connect', 'サーバーに接続できません'));
     throw e;
   }
 }
@@ -306,14 +306,14 @@ async function restPut(path, data) {
       headers: restHeaders(),
       body:    JSON.stringify(data),
     });
-    if (resp.status === 401) { showLoginOverlay(); throw new Error('ログインが必要です'); }
+    if (resp.status === 401) { showLoginOverlay(); throw new Error(t('toast.login_required', 'ログインが必要です')); }
     if (!resp.ok) {
       const body = await resp.json().catch(() => null);
       throw new Error(body?.error || `サーバーエラー (${resp.status})`);
     }
     return resp.json();
   } catch(e) {
-    if (e.name === 'TypeError') throw new Error('サーバーに接続できません');
+    if (e.name === 'TypeError') throw new Error(t('toast.cannot_connect', 'サーバーに接続できません'));
     throw e;
   }
 }
@@ -323,14 +323,14 @@ async function restDelete(path) {
       method:  'DELETE',
       headers: { 'Authorization': `Bearer ${getAuthToken()}` },
     });
-    if (resp.status === 401) { showLoginOverlay(); throw new Error('ログインが必要です'); }
+    if (resp.status === 401) { showLoginOverlay(); throw new Error(t('toast.login_required', 'ログインが必要です')); }
     if (!resp.ok) {
       const body = await resp.json().catch(() => null);
       throw new Error(body?.error || `サーバーエラー (${resp.status})`);
     }
     return resp.json();
   } catch(e) {
-    if (e.name === 'TypeError') throw new Error('サーバーに接続できません');
+    if (e.name === 'TypeError') throw new Error(t('toast.cannot_connect', 'サーバーに接続できません'));
     throw e;
   }
 }

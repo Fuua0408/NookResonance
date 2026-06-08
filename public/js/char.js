@@ -28,7 +28,7 @@ async function handleCharImport(input) {
     const text = await file.text();
     json = JSON.parse(text);
   } catch(e) {
-    showToast('❌ JSONの読み込みに失敗しました');
+    showToast(t('char.import_json_failed', '❌ JSONの読み込みに失敗しました'));
     return;
   }
 
@@ -39,7 +39,7 @@ async function handleCharImport(input) {
   const firstMes = card.first_mes   || '';
   const mesEx    = card.mes_example || '';
 
-  if (!name) { showToast('❌ name フィールドがありません'); return; }
+  if (!name) { showToast(t('char.import_missing_name', '❌ name フィールドがありません')); return; }
 
   // ── Alcove / Nook 高速パス（LLM不要）──
   const ext    = card.extensions || json.extensions || {};
@@ -65,7 +65,7 @@ async function handleCharImport(input) {
     setFieldValue('editAppearance',  appearance);
     setFieldValue('editPersonality', personality);
     const cacheEl = document.getElementById('enCacheDisplay');
-    if (cacheEl) cacheEl.textContent = src.appearance_en || '（未生成）';
+    if (cacheEl) cacheEl.textContent = src.appearance_en || t('misc.not_generated', '（未生成）');
 
     const wfSel = document.getElementById('editWfSelect');
     if (wfSel && src.workflow_id) wfSel.value = src.workflow_id;
@@ -101,7 +101,7 @@ async function handleCharImport(input) {
 
   // ── SillyTavern形式：LLM解析フロー ──
 
-  showToast('⏳ LLMで解析中…');
+  showToast(t('char.llm_analyzing', '⏳ LLMで解析中…'));
   const btn = document.querySelector('#charEditOverlay .btn-secondary[onclick*="charImportFile"]')
            || document.querySelector('#charImportFile')?.previousElementSibling;
 
@@ -141,7 +141,7 @@ ${desc}
     console.warn('[Nook] import LLM parse failed:', e.message);
     appearance  = '';
     personality = desc;
-    showToast('⚠ LLM解析失敗。descriptionをそのまま設定に入れました');
+    showToast(t('char.llm_analysis_failed', '⚠ LLM解析失敗。descriptionをそのまま設定に入れました'));
   }
 
   // フォームに展開
@@ -283,7 +283,7 @@ async function generateAppearanceEN() {
 
 async function generateAppearanceBodyEN() {
   const jpText = document.getElementById('editAppearanceBody')?.value?.trim();
-  if (!jpText) { showToast('身体の特徴を入力してください'); return; }
+  if (!jpText) { showToast(t('char.body_required', '身体の特徴を入力してください')); return; }
   try {
     const noThink = getSetting('noThinkTranslate', false) === true;
     const result = await getChatCompletion([
@@ -293,15 +293,15 @@ async function generateAppearanceBodyEN() {
     const en = cleanLLMResponse(result);
     const el = document.getElementById('enCacheBodyDisplay');
     if (el) el.textContent = en;
-    showToast('身体特徴EN変換完了');
+    showToast(t('toast.en_gen_ok', '身体特徴EN変換完了'));
   } catch(e) {
-    showToast('EN変換エラー: ' + e.message.slice(0, 40));
+    showToast(t('toast.en_gen_fail', 'EN変換エラー: ') + e.message.slice(0, 40));
   }
 }
 
 async function generateAppearanceClothingEN() {
   const jpText = document.getElementById('editAppearanceClothing')?.value?.trim();
-  if (!jpText) { showToast('服装を入力してください'); return; }
+  if (!jpText) { showToast(t('char.clothing_required', '服装を入力してください')); return; }
   try {
     const noThink = getSetting('noThinkTranslate', false) === true;
     const result = await getChatCompletion([
@@ -311,21 +311,21 @@ async function generateAppearanceClothingEN() {
     const en = cleanLLMResponse(result);
     const el = document.getElementById('enCacheClothingDisplay');
     if (el) el.textContent = en;
-    showToast('服装EN変換完了');
+    showToast(t('toast.en_gen_ok', '服装EN変換完了'));
   } catch(e) {
-    showToast('EN変換エラー: ' + e.message.slice(0, 40));
+    showToast(t('toast.en_gen_fail', 'EN変換エラー: ') + e.message.slice(0, 40));
   }
 }
 
 async function generateAppearanceAllEN() {
   await generateAppearanceBodyEN();
   await generateAppearanceClothingEN();
-  showToast('✓ 両方のEN変換完了');
+  showToast(t('toast.en_gen_ok', '✓ 両方のEN変換完了'));
 }
 // キャラオーバーライドのユーザー外見EN生成
 async function generateUserProfileAppearanceEN() {
   const jpText = document.getElementById('editUserProfileAppearance')?.value?.trim();
-  if (!jpText) { showToast('外見特徴を入力してください'); return; }
+  if (!jpText) { showToast(t('char.appearance_required', '外見特徴を入力してください')); return; }
   try {
     const noThink = getSetting('noThinkTranslate', false) === true;
     const result = await getChatCompletion([
@@ -338,16 +338,16 @@ async function generateUserProfileAppearanceEN() {
     const en = cleanLLMResponse(result);
     const el = document.getElementById('editUserProfileAppearanceEn');
     if (el) el.value = en;
-    showToast('EN変換完了');
+    showToast(t('toast.en_gen_ok', 'EN変換完了'));
   } catch(e) {
-    showToast('EN変換エラー: ' + e.message.slice(0, 40));
+    showToast(t('toast.en_gen_fail', 'EN変換エラー: ') + e.message.slice(0, 40));
   }
 }
 
 // グローバルユーザーの外見EN生成
 async function generateUserAppearanceEN() {
   const jpText = document.getElementById('userAppearance')?.value?.trim();
-  if (!jpText) { showToast('外見特徴を入力してください'); return; }
+  if (!jpText) { showToast(t('char.appearance_required', '外見特徴を入力してください')); return; }
   try {
     const noThink = getSetting('noThinkTranslate', false) === true;
     const result = await getChatCompletion([
@@ -362,9 +362,9 @@ async function generateUserAppearanceEN() {
     if (el) el.value = en;
     const cache = document.getElementById('userEnCacheDisplay');
     if (cache) cache.textContent = en;
-    showToast('EN変換完了');
+    showToast(t('toast.en_gen_ok', 'EN変換完了'));
   } catch(e) {
-    showToast('EN変換エラー: ' + e.message.slice(0, 40));
+    showToast(t('toast.en_gen_fail', 'EN変換エラー: ') + e.message.slice(0, 40));
   }
 }
 function openCharEdit(char) {
@@ -378,11 +378,11 @@ function openCharEdit(char) {
     setFieldValue('editPersonality', char.personality || '');
     setFieldValue('editOpeningMessage', char.opening_message || '');
     const cacheBodyEl = document.getElementById('enCacheBodyDisplay');
-    if (cacheBodyEl) cacheBodyEl.textContent = char.appearance_body_en || '（未生成）';
+    if (cacheBodyEl) cacheBodyEl.textContent = char.appearance_body_en || t('misc.not_generated', '（未生成）');
     const cacheClothingEl = document.getElementById('enCacheClothingDisplay');
-    if (cacheClothingEl) cacheClothingEl.textContent = char.appearance_clothing_en || '（未生成）';
+    if (cacheClothingEl) cacheClothingEl.textContent = char.appearance_clothing_en || t('misc.not_generated', '（未生成）');
     const cacheEl = document.getElementById('enCacheDisplay');
-    if (cacheEl) cacheEl.textContent = char.appearance_en || '（未生成）';
+    if (cacheEl) cacheEl.textContent = char.appearance_en || t('misc.not_generated', '（未生成）');
     const wfSel = document.getElementById('editWfSelect');
     if (wfSel) wfSel.value = char.workflow_id || 'anima';
     const p = char.workflow_params || {};
@@ -413,11 +413,11 @@ function openCharEdit(char) {
      'editOpeningMessage',
     ].forEach(id => setFieldValue(id, ''));
     const cacheBodyEl = document.getElementById('enCacheBodyDisplay');
-    if (cacheBodyEl) cacheBodyEl.textContent = '（未生成）';
+    if (cacheBodyEl) cacheBodyEl.textContent = t('misc.not_generated', '（未生成）');
     const cacheClothingEl = document.getElementById('enCacheClothingDisplay');
-    if (cacheClothingEl) cacheClothingEl.textContent = '（未生成）';
+    if (cacheClothingEl) cacheClothingEl.textContent = t('misc.not_generated', '（未生成）');
     const cacheEl = document.getElementById('enCacheDisplay');
-    if (cacheEl) cacheEl.textContent = '（未生成）';
+    if (cacheEl) cacheEl.textContent = t('misc.not_generated', '（未生成）');
     if (document.getElementById('editSampler'))  document.getElementById('editSampler')._restoreVal  = '';
     if (document.getElementById('editScheduler')) document.getElementById('editScheduler')._restoreVal = '';
     initLoraList([]);
@@ -457,20 +457,25 @@ async function handleDeleteChar() {
 
   const char = loadChars().find(c => c.id === charId);
   const name = char?.name || 'このキャラクター';
-  if (!confirm(`「${name}」を削除しますか？\nセッション履歴は残ります。`)) return;
+  if (!confirm(t('char.delete_confirm', `「${name}」を削除しますか？\nセッション履歴は残ります。`))) return;
 
   await deleteChar(charId);
   if (activeChar?.id === charId) {
     activeChar = null;
     document.getElementById('headerAvatar').textContent = '💬';
     document.getElementById('headerName').textContent   = 'ComfyDeck Nook';
-    document.getElementById('headerSession').textContent = 'キャラクターを選択してください';
+    document.getElementById('headerSession').textContent = t('header.no_char', 'キャラクターを選択してください');
     clearChatLog();
   }
-  showToast(`「${name}」を削除しました`);
+  showToast(`「${name}」${t('char.delete_ok', 'を削除しました')}`);
   closeModal('charEditOverlay');
   renderCharList();
 }
+
+function isNotGeneratedText(value) {
+  return !value || value === '（未生成）' || value === t('misc.not_generated', '（未生成）');
+}
+
 async function saveCharFromUI() {
   const overlay  = document.getElementById('charEditOverlay');
   const charId   = overlay?.dataset.charId || '';
@@ -493,9 +498,9 @@ async function saveCharFromUI() {
     appearance:    getFieldValue('editAppearanceBody') || getFieldValue('editAppearance'),
     appearance_body:     getFieldValue('editAppearanceBody')     || '',
     appearance_clothing: getFieldValue('editAppearanceClothing') || '',
-    appearance_body_en:    (document.getElementById('enCacheBodyDisplay')?.textContent?.trim()    === '（未生成）' ? '' : document.getElementById('enCacheBodyDisplay')?.textContent?.trim())    || existing.appearance_body_en    || '',
-    appearance_clothing_en: (document.getElementById('enCacheClothingDisplay')?.textContent?.trim() === '（未生成）' ? '' : document.getElementById('enCacheClothingDisplay')?.textContent?.trim()) || existing.appearance_clothing_en || '',
-    appearance_en: (document.getElementById('enCacheBodyDisplay')?.textContent?.trim() === '（未生成）' ? '' : document.getElementById('enCacheBodyDisplay')?.textContent?.trim()) || existing.appearance_en || '',
+    appearance_body_en:    (isNotGeneratedText(document.getElementById('enCacheBodyDisplay')?.textContent?.trim())    ? '' : document.getElementById('enCacheBodyDisplay')?.textContent?.trim())    || existing.appearance_body_en    || '',
+    appearance_clothing_en: (isNotGeneratedText(document.getElementById('enCacheClothingDisplay')?.textContent?.trim()) ? '' : document.getElementById('enCacheClothingDisplay')?.textContent?.trim()) || existing.appearance_clothing_en || '',
+    appearance_en: (isNotGeneratedText(document.getElementById('enCacheBodyDisplay')?.textContent?.trim()) ? '' : document.getElementById('enCacheBodyDisplay')?.textContent?.trim()) || existing.appearance_en || '',
     personality:   getFieldValue('editPersonality'),
     workflow_id: getCurrentUser()?.is_admin
       ? (document.getElementById('editWfSelect')?.value || 'anima')
@@ -538,7 +543,7 @@ async function saveCharFromUI() {
 
   const saved = await saveChar(char);
   if (activeChar?.id === char.id || activeChar?.id === saved.id) activeChar = saved;
-  showToast('保存しました');
+  showToast(t('char.save_ok', '保存しました'));
   closeModal('charEditOverlay');
   renderCharList();
 }
@@ -549,9 +554,9 @@ async function saveCharFromUI() {
 function addLoraFromSelect() {
   const selEl = document.getElementById('loraSelectAdd');
   const name  = selEl?.value;
-  if (!name) { showToast('LoRAを選択してください'); return; }
+  if (!name) { showToast(t('char.lora_select', 'LoRAを選択してください')); return; }
   if (_loraList.find(l => l.name === name)) {
-    showToast('同じLoRAが既に追加されています'); return;
+    showToast(t('char.lora_duplicate', '同じLoRAが既に追加されています')); return;
   }
   _loraList.push({
     name,
@@ -563,7 +568,7 @@ function addLoraFromSelect() {
   renderLoraList();
   // 追加したカードを展開
   setTimeout(() => toggleLoraCard(_loraList.length - 1), 50);
-  showToast(`LoRA追加: ${name.split('/').pop()}`);
+  showToast(t('char.lora_added', 'LoRA追加: ') + name.split('/').pop());
 }
 function renderLoraList() {
   const container = document.getElementById('loraList');
@@ -571,7 +576,7 @@ function renderLoraList() {
   container.innerHTML = '';
 
   if (!_loraList.length) {
-    container.innerHTML = '<div style="font-size:12px;color:var(--text-pale);padding:4px 2px;">LoRAなし</div>';
+    container.innerHTML = `<div style="font-size:12px;color:var(--text-pale);padding:4px 2px;">${t('misc.none', 'LoRAなし')}</div>`;
     return;
   }
 
@@ -582,34 +587,34 @@ function renderLoraList() {
       <div class="lora-card-header" onclick="toggleLoraCard(${idx})">
         <input type="checkbox" class="lora-enabled" ${lora.enabled !== false ? 'checked' : ''}
           onclick="event.stopPropagation(); toggleLoraEnabled(${idx}, this.checked)">
-        <div class="lora-card-name">${escHtml(lora.name || '（未設定）')}</div>
+        <div class="lora-card-name">${escHtml(lora.name || t('misc.none', '（未設定）'))}</div>
         <div class="lora-card-weight">${lora.strengthModel ?? 1}</div>
         <div class="btn-icon-sm" style="flex-shrink:0;"
           onclick="event.stopPropagation(); removeLoraRow(${idx})">✕</div>
       </div>
       <div class="lora-card-body" id="loraBody_${idx}" style="display:none;">
         <div class="field">
-          <div class="field-label">LoRAファイル名</div>
+          <div class="field-label">${t('global_lora.file', 'LoRAファイル名')}</div>
           <input class="f-input" type="text" placeholder="xxx.safetensors"
             value="${escHtml(lora.name || '')}"
             onchange="updateLora(${idx}, 'name', this.value)">
         </div>
         <div class="field-row">
           <div class="field">
-            <div class="field-label">Model強度</div>
+            <div class="field-label">${t('global_lora.model_strength', 'Model強度')}</div>
             <input class="f-input" type="number" step="0.05" min="0" max="2"
               value="${lora.strengthModel ?? 1}"
               onchange="updateLora(${idx}, 'strengthModel', parseFloat(this.value))">
           </div>
           <div class="field">
-            <div class="field-label">CLIP強度</div>
+            <div class="field-label">${t('global_lora.clip_strength', 'CLIP強度')}</div>
             <input class="f-input" type="number" step="0.05" min="0" max="2"
               value="${lora.strengthClip ?? 1}"
               onchange="updateLora(${idx}, 'strengthClip', parseFloat(this.value))">
           </div>
         </div>
         <div class="field">
-          <div class="field-label">トリガーワード（生成時に先頭に追加）</div>
+          <div class="field-label">${t('char.lora_trigger', 'トリガーワード（生成時に先頭に追加）')}</div>
           <input class="f-input" type="text" placeholder="trigger1, trigger2"
             value="${escHtml(lora.triggerWords || '')}"
             onchange="updateLora(${idx}, 'triggerWords', this.value)">
@@ -760,14 +765,14 @@ function renderCharList() {
       <div class="char-info">
         <div class="char-name">${escHtml(char.name)}</div>
         <div class="char-meta">${escHtml(affLabel)}</div>
-        <div class="char-wf">${wf ? wf.emoji + ' ' + wf.name : ''} <span style="color:var(--text-pale);font-size:10px;">ダブルタップで選択</span></div>
+        <div class="char-wf">${wf ? wf.emoji + ' ' + wf.name : ''} <span style="color:var(--text-pale);font-size:10px;">${t('char.double_tap_select', 'ダブルタップで選択')}</span></div>
       </div>
       <div class="char-actions">
         <div class="btn-icon-sm" onclick='openCharEdit(${charJson})'>✏</div>
         <div class="btn-icon-sm" onclick='exportCharJSON(${charJson})' title="キャラカードをエクスポート">📤</div>
         <button class="btn-select ${isActive ? 'current' : ''}"
           onclick='selectChar(${charJson})'>
-          ${isActive ? '選択中' : '選択'}
+          ${isActive ? t('char.selected_button', '選択中') : t('char.select_button', '選択')}
         </button>
       </div>
     `;
@@ -782,7 +787,7 @@ function renderWfSelect(targetId = 'editWfSelect') {
   // グローバルWFセレクトには「指定なし」を先頭に追加
   if (targetId !== 'editWfSelect') {
     const none = document.createElement('option');
-    none.value = ''; none.textContent = '— 指定なし —';
+    none.value = ''; none.textContent = t('misc.none', '— 指定なし —');
     sel.appendChild(none);
   }
   getAllWorkflows().forEach(wf => {
@@ -798,7 +803,7 @@ function renderWfSelect(targetId = 'editWfSelect') {
 // キャラクター情報モーダル（[i]ボタン）
 // ─────────────────────────────────────────────
 function openCharInfo() {
-  if (!activeChar) { showToast('キャラクターを選択してください'); return; }
+  if (!activeChar) { showToast(t('chat.no_char', 'キャラクターを選択してください')); return; }
 
   const char      = activeChar;
   const affValue  = char.affection ?? 130;
@@ -821,49 +826,49 @@ function openCharInfo() {
 
       <!-- キャラ名・アイコン -->
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-        <div id="charInfoAvatar" style="width:48px;height:48px;border-radius:50%;overflow:hidden;background:var(--bg-card);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;cursor:pointer;" onclick="closeModal('charInfoOverlay');openCharEdit(activeChar);" title="タップして編集">
+        <div id="charInfoAvatar" style="width:48px;height:48px;border-radius:50%;overflow:hidden;background:var(--bg-card);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;cursor:pointer;" onclick="closeModal('charInfoOverlay');openCharEdit(activeChar);" title="${t('char.tap_edit', 'タップして編集')}">
           ${char.icon_data
             ? `<img src="${char.icon_data}" style="width:100%;height:100%;object-fit:cover;">`
             : escHtml(char.icon_emoji || '💬')}
         </div>
         <div>
           <div style="font-size:16px;font-weight:bold;color:var(--text);">${escHtml(char.name)}</div>
-          <div style="font-size:11px;color:var(--text-pale);">タップして編集</div>
-          ${char.user_name ? `<div style="font-size:12px;color:var(--text-dim);">呼び方: ${escHtml(char.user_name)}</div>` : ''}
+          <div style="font-size:11px;color:var(--text-pale);">${t('char.tap_edit', 'タップして編集')}</div>
+          ${char.user_name ? `<div style="font-size:12px;color:var(--text-dim);">${t('char.call_as', '呼び方: ')}${escHtml(char.user_name)}</div>` : ''}
         </div>
       </div>
 
       <!-- 親愛度 -->
       ${(typeof isCharAffectionEnabled === 'function' && isCharAffectionEnabled(char)) ? `
       <div style="margin-bottom:12px;">
-        <div class="section-label" style="margin-bottom:4px;">親愛度</div>
+        <div class="section-label" style="margin-bottom:4px;">${t('aff.title', '親愛度')}</div>
         <div style="font-size:13px;color:var(--text);">${escHtml(stageLabel)}（${affValue} / 255）</div>
       </div>
 
       <!-- 初対面 -->
       <div style="margin-bottom:12px;">
-        <div class="section-label" style="margin-bottom:4px;">関係</div>
-        <div style="font-size:13px;color:var(--text);">${isFirst ? '初対面' : '既知の間柄'}</div>
+        <div class="section-label" style="margin-bottom:4px;">${t('char.relationship', '関係')}</div>
+        <div style="font-size:13px;color:var(--text);">${isFirst ? t('char.first_meeting_status', '初対面') : t('char.known_status', '既知の間柄')}</div>
       </div>` : ''}
 
-      ${row('現在の外見', ctx.appearance)}
-      ${row('現在の場所', ctx.location)}
+      ${row(t('char.current_appearance', '現在の外見'), ctx.appearance)}
+      ${row(t('char.current_location', '現在の場所'), ctx.location)}
 
       <!-- 前回セッション概要 -->
       ${ctx.summary ? `
       <div style="margin-bottom:12px;">
-        <div class="section-label" style="margin-bottom:4px;">前回のセッション概要</div>
+        <div class="section-label" style="margin-bottom:4px;">${t('char.previous_summary', '前回のセッション概要')}</div>
         <div style="font-size:12px;color:var(--text-dim);line-height:1.6;">${escHtml(ctx.summary)}</div>
       </div>` : ''}
 
       <!-- 記憶メモ -->
       ${notes.length ? `
       <div style="margin-bottom:12px;">
-        <div class="section-label" style="margin-bottom:4px;">記憶メモ</div>
+        <div class="section-label" style="margin-bottom:4px;">${t('char.memory_notes', '記憶メモ')}</div>
         ${notes.map((n, i) => `
         <div style="display:flex;align-items:flex-start;gap:6px;line-height:1.8;">
           <div style="font-size:13px;color:var(--text);flex:1;">・${escHtml(n)}</div>
-          <button onclick="deleteMemoryNote(${i})" style="flex-shrink:0;background:none;border:none;color:var(--text-pale);font-size:14px;cursor:pointer;padding:0 2px;line-height:1.8;" title="削除">×</button>
+          <button onclick="deleteMemoryNote(${i})" style="flex-shrink:0;background:none;border:none;color:var(--text-pale);font-size:14px;cursor:pointer;padding:0 2px;line-height:1.8;" title="${t('delete', '削除')}">×</button>
         </div>`).join('')}
       </div>` : ''}
 
@@ -877,7 +882,7 @@ function openCharInfo() {
 
 async function deleteMemoryNote(idx) {
   if (!activeChar) return;
-  if (!confirm('このメモを削除しますか？')) return;
+  if (!confirm(t('char.delete_note_confirm', 'このメモを削除しますか？'))) return;
   activeChar.memory_notes = (activeChar.memory_notes || []).filter((_, i) => i !== idx);
   await saveChar(activeChar);
   openCharInfo(); // モーダルを再描画
