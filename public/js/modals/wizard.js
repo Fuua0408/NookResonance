@@ -19,6 +19,7 @@ let _wiz = {
   name: '',
   savedCharId: null,
   generatedImageUrl: null,
+  greeting: null,
 };
 
 function wizardReset() {
@@ -28,6 +29,7 @@ function wizardReset() {
     appearanceBodyEN: '', appearanceClothingEN: '',
     location: '', name: '', savedCharId: null,
     generatedImageUrl: null,
+    greeting: null,
   };
 }
 
@@ -129,6 +131,8 @@ function openCharWizard() {
   wizardReset();
   const log = document.getElementById('wizardChatLog');
   if (log) log.innerHTML = '';
+  const choiceDiv = document.getElementById('wizardTutorialChoiceDiv');
+  if (choiceDiv) choiceDiv.remove();
   wizardSetInputMode('none');
   openModal('wizardOverlay');
   setTimeout(_wizardStart, 300);
@@ -502,7 +506,7 @@ async function _wizardFinalizeName(nameInput) {
 }
 
 // ─────────────────────────────────────────────
-// ステップ 9: キャラ自己紹介 → 完了
+// ステップ 9: キャラ自己紹介 → チュートリアル誘導
 // ─────────────────────────────────────────────
 async function _wizardStep9() {
   let greeting = '';
@@ -530,16 +534,98 @@ ${wizardLangInstruction()}`,
   }
 
   wizardAddBubble(wizardBubbleChar(greeting));
+  _wiz.greeting = greeting;
   wizardSetBusy(false);
 
-  await new Promise(r => setTimeout(r, 1800));
+  await new Promise(r => setTimeout(r, 1000));
 
-  // キャラIDを保持してからリセット
-  const charId = _wiz.savedCharId;
+  // 使い方説明の提案
+  wizardAddBubble(wizardBubbleChar(
+    t('wizard.offer_tutorial', '使い方を説明しようか？')
+  ));
+  wizardShowTutorialChoice();
+}
+
+// ─────────────────────────────────────────────
+// チュートリアル誘導 UI
+// ─────────────────────────────────────────────
+function wizardShowTutorialChoice() {
+  wizardSetInputMode('none');
+  const inputArea = document.getElementById('wizardInputArea');
+  if (!inputArea) return;
+  const existing = document.getElementById('wizardTutorialChoiceDiv');
+  if (existing) existing.remove();
+
+  const div = document.createElement('div');
+  div.id = 'wizardTutorialChoiceDiv';
+  div.style.cssText = 'display:flex; gap:8px; flex-wrap:wrap;';
+
+  const yesBtn = document.createElement('button');
+  yesBtn.className = 'btn-primary';
+  yesBtn.textContent = t('wizard.tutorial_yes', 'うん！');
+  yesBtn.onclick = wizardTutorialYes;
+
+  const noBtn = document.createElement('button');
+  noBtn.className = 'btn-secondary';
+  noBtn.textContent = t('wizard.tutorial_no', '大丈夫！');
+  noBtn.onclick = wizardTutorialNo;
+
+  div.appendChild(yesBtn);
+  div.appendChild(noBtn);
+  inputArea.appendChild(div);
+}
+
+// YES → チュートリアルへ（会話開始はチュートリアル完了後）
+async function wizardTutorialYes() {
+  const charId  = _wiz.savedCharId;
+  const greeting = _wiz.greeting;
+
   closeModal('wizardOverlay');
   wizardReset();
 
-  // 新キャラをロードしてセッション開始
+  await fetchCharsFromServer();
+  const newChar = loadChars().find(c => c.id === charId);
+
+  if (newChar) {
+    activeChar = newChar;
+    if (typeof updateHeaderChar === 'function') updateHeaderChar();
+    if (typeof updatePhotoUI === 'function') updatePhotoUI();
+    if (typeof autoShowCharInfoIfNeeded === 'function') autoShowCharInfoIfNeeded();
+    showToast(t('wizard.complete', '✓ キャラクターを作成しました！'));
+  }
+
+  // チュートリアル終了後にセッション開始・グリーティング投入
+  openTutorial(() => {
+    if (!activeChar) { openCharModal(); return; }
+    initSession();
+    clearChatLog();
+    appendDateSep(new Date().toLocaleDateString(
+      getCurrentLanguage() === 'ja' ? 'ja-JP' : 'en-US',
+      { year: 'numeric', month: 'long', day: 'numeric' }
+    ));
+    setTimeout(async () => {
+      const tIdx = activeSession?.turns?.length ?? 0;
+      appendCharMessage(greeting, tIdx);
+      const turn = {
+        turn_id:      tIdx + 1,
+        jp_prompt:    null, en_prompt: null, image_url: null,
+        user_message: null, char_message: greeting,
+        is_narrative: false, gen_mode: null,
+      };
+      if (activeSession?.turns) activeSession.turns.push(turn);
+      await saveTurnToSession(null).catch(() => {});
+    }, 300);
+  });
+}
+
+// NO → 通常のチャット開始
+async function wizardTutorialNo() {
+  const charId  = _wiz.savedCharId;
+  const greeting = _wiz.greeting;
+
+  closeModal('wizardOverlay');
+  wizardReset();
+
   await fetchCharsFromServer();
   const newChar = loadChars().find(c => c.id === charId);
 
@@ -553,8 +639,6 @@ ${wizardLangInstruction()}`,
       getCurrentLanguage() === 'ja' ? 'ja-JP' : 'en-US',
       { year: 'numeric', month: 'long', day: 'numeric' }
     ));
-
-    // グリーティングを最初のチャットメッセージとして投入
     setTimeout(async () => {
       const tIdx = activeSession?.turns?.length ?? 0;
       appendCharMessage(greeting, tIdx);
@@ -567,11 +651,9 @@ ${wizardLangInstruction()}`,
       if (activeSession?.turns) activeSession.turns.push(turn);
       await saveTurnToSession(null).catch(() => {});
     }, 300);
-
     if (typeof autoShowCharInfoIfNeeded === 'function') autoShowCharInfoIfNeeded();
     showToast(t('wizard.complete', '✓ キャラクターを作成しました！'));
   } else {
-    // フォールバック: キャラ一覧を開く
     renderCharList();
     openModal('charOverlay');
     showToast(t('wizard.complete', '✓ キャラクターを作成しました！'));
