@@ -479,6 +479,15 @@ const I18N = {
     'aff.change':          'Affection: ',
     'aff.apply_confirm':   'Apply this change?',
 
+    // ── Tutorial ──
+    'tutorial.skip':          'Skip',
+    'tutorial.understood':    'Got it!',
+    'tutorial.start':         "Let's go!",
+    'wizard.offer_tutorial':  'Want me to show you how to use the app?',
+    'wizard.tutorial_yes':    'Yes please!',
+    'wizard.tutorial_no':     "I'm good!",
+    'settings.tutorial':      'View tutorial again',
+
     // ── Wizard ──
     'wizard.title':        'Character Creation Wizard',
     'wizard.male':         'Male',

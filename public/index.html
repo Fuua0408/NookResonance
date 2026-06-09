@@ -45,6 +45,12 @@
   font-size: 12px; color: #e05555;
   text-align: center; min-height: 18px;
 }
+/* ─── チュートリアル ハイライト ─── */
+.tutorial-highlight {
+  outline: 2px solid var(--accent);
+  border-radius: 6px;
+  transition: outline 0.2s;
+}
 /* ─── PW変更ボタン（設定内） ─── */
 .btn-logout {
   width: 100%; padding: 9px;
@@ -667,6 +673,15 @@
 
       <div class="sep"></div>
 
+      <!-- チュートリアル -->
+      <div>
+        <button class="btn-secondary" style="width:100%;padding:9px;"
+          onclick="closeModal('settingsOverlay'); setTimeout(()=>openTutorial(),200)"
+          data-i18n="settings.tutorial">チュートリアルをもう一度見る</button>
+      </div>
+
+      <div class="sep"></div>
+
       <!-- テーマカラー -->
       <div>
         <div class="section-label" data-i18n="settings.theme">テーマカラー</div>
@@ -841,6 +856,71 @@
   </div>
 </div>
 
+<!-- ─────────────────────────────────────────────
+     チュートリアルオーバーレイ
+     ───────────────────────────────────────────── -->
+<div class="overlay" id="tutorialOverlay">
+  <div class="bottom-sheet" style="height:100vh; display:flex; flex-direction:column; border-radius:0;">
+
+    <!-- ヘッダー（実際のヘッダーと同じ見た目、ボタン操作不可） -->
+    <div id="tutorialHeader" style="position:relative; flex-shrink:0;">
+      <div style="pointer-events:none; opacity:0.9; display:flex; align-items:center; padding:10px 56px 10px 12px; background:var(--bg); border-bottom:0.5px solid var(--border);">
+        <div class="header-avatar" id="tutorialHeaderAvatar">💬</div>
+        <div style="flex:1; margin-left:8px;">
+          <div class="header-name" id="tutorialHeaderName">…</div>
+          <div style="font-size:11px; color:var(--text-dim); margin-top:1px;">Tutorial</div>
+        </div>
+        <button class="header-btn" style="opacity:0.35;">ℹ</button>
+        <button class="header-btn" style="opacity:0.35;">🖼</button>
+        <button class="header-btn" style="opacity:0.35;">⚙</button>
+      </div>
+      <!-- スキップボタン -->
+      <button onclick="skipTutorial()"
+        style="position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:12px;
+               padding:4px 10px; border-radius:20px;
+               background:var(--bg-card); border:0.5px solid var(--border-input);
+               color:var(--text-dim); cursor:pointer;"
+        data-i18n="tutorial.skip">スキップ</button>
+    </div>
+
+    <!-- チャットログ -->
+    <div class="chat-log" id="tutorialChatLog" style="flex:1; overflow-y:auto; padding:12px 16px; display:flex; flex-direction:column; gap:10px;">
+    </div>
+
+    <!-- 入力エリア（擬似表示 + 実際の入力） -->
+    <div class="input-area" id="tutorialInputArea">
+      <div class="input-controls" id="tutorialInputControls" style="pointer-events:none;">
+        <label class="gen-toggle">
+          <input type="checkbox" id="tutorialGenToggle" checked>
+          <span data-i18n="chat.generate_toggle">生成する</span>
+        </label>
+        <div class="gen-mode-toggle" id="tutorialGenModeToggle">
+          <div class="gen-mode-btn active" id="tutorialModeBtnNormal" data-i18n="chat.mode_normal">📷 通常</div>
+          <div class="gen-mode-btn" id="tutorialModeBtnChar" data-i18n="chat.mode_char">💬 キャラ主導</div>
+        </div>
+        <label class="gen-toggle" id="tutorialCharLeadToggleWrap" style="display:none;">
+          <input type="checkbox" id="tutorialCharLeadToggle">
+          <span data-i18n="chat.char_lead">キャラ主導</span>
+        </label>
+        <label class="gen-toggle" id="tutorialUserFocusToggleWrap" style="display:none;">
+          <input type="checkbox" id="tutorialUserFocusToggle">
+          <span data-i18n="chat.user_focus">USERフォーカス</span>
+        </label>
+      </div>
+      <div class="input-box">
+        <textarea id="tutorialInput" class="f-input" rows="2"
+          style="resize:none;" placeholder="…"
+          onkeydown="tutorialHandleKeydown(event)"></textarea>
+      </div>
+      <div class="btn-row">
+        <button class="btn-send" id="tutorialBtnSend"
+          onclick="tutorialSubmit()" data-i18n="chat.send">送信 ▶</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <!-- トースト -->
 <div class="toast" id="toast"></div>
 
@@ -908,6 +988,7 @@ async function initAfterLogin() {
 <script src="js/modals/handover.js"></script>
 <script src="js/char-data.js"></script>
 <script src="js/modals/wizard.js"></script>
+<script src="js/modals/tutorial.js"></script>
 <script src="js/chat.js"></script>
 <script src="js/photo.js"></script>
 <script src="js/modals/gallery.js"></script>
