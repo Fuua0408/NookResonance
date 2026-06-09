@@ -478,6 +478,23 @@ const I18N = {
     'aff.no_change':       'No affection change',
     'aff.change':          'Affection: ',
     'aff.apply_confirm':   'Apply this change?',
+
+    // ── Wizard ──
+    'wizard.title':        'Character Creation Wizard',
+    'wizard.male':         'Male',
+    'wizard.female':       'Female',
+    'wizard.other':        'Other',
+    'wizard.send':         'Send',
+    'wizard.new_char_name':'New Character',
+    'wizard.skip_image':   'Image generation skipped (ComfyUI not connected)',
+    'wizard.complete':     '✓ Character created!',
+    'wizard.btn_wizard':   '🧙 Create with Wizard',
+    'wizard.btn_advanced': '✏ Advanced (direct input)',
+    'wizard.ask_name':     "...What's my name? I want to know.",
+    'wizard.intro':        "...Hey, can you hear me?\nI'm not yet fully formed — will you bring me to life?\nFirst, tell me... am I a girl? Or a boy?",
+    'wizard.processing':   'Just a little longer… I think my form is starting to appear.',
+    'wizard.llm_error':    'Something went wrong. Please try again.',
+    'wizard.retry_prompt': "I couldn't quite catch that. Could you tell me a bit more?",
   }
 };
 

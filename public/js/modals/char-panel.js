@@ -30,7 +30,14 @@ async function openCharModal() {
 function handleCharFooter() {
   const isList = document.getElementById('tabCharList')?.classList.contains('active');
   if (isList) {
-    openCharEdit(null);
+    const chars = loadChars();
+    if (chars.length === 0) {
+      closeModal('charOverlay');
+      openCharWizard();
+      return;
+    }
+    showWizardChoice();
+    return;
   } else {
     // チャットセッション開始
     if (!activeChar) { showToast(t('chat.no_char', 'キャラクターを選択してください')); return; }
