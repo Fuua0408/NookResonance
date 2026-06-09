@@ -204,12 +204,12 @@
 <!-- ─────────────────────────────────────────────
      キャラクター選択モーダル
      ───────────────────────────────────────────── -->
-<div class="overlay" id="charOverlay" onclick="overlayClick(event,'charOverlay')">
+<div class="overlay" id="charOverlay" onclick="if(event.target===this){hideWizardChoice();closeModal('charOverlay');}">
   <div class="bottom-sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
       <div class="sheet-title" data-i18n="char.select">キャラクター</div>
-      <button class="sheet-close" onclick="closeModal('charOverlay')">✕</button>
+      <button class="sheet-close" onclick="hideWizardChoice(); closeModal('charOverlay')">✕</button>
     </div>
     <div class="sheet-tabs">
       <div class="sheet-tab active" id="tabCharList"    onclick="switchCharTab('list')" data-i18n="char.list">キャラ一覧</div>
@@ -221,10 +221,59 @@
       <button class="btn-primary" id="charFooterBtn" onclick="handleCharFooter()" data-i18n="char.create">
         ＋ 新しいキャラクターを作成
       </button>
+      <!-- ウィザード／直接入力の2択（handleCharFooter がキャラあり時に表示） -->
+      <div id="wizardChoiceArea" style="display:none; flex-direction:column; gap:8px;">
+        <button class="btn-primary" onclick="hideWizardChoice(); closeModal('charOverlay'); openCharWizard();" data-i18n="wizard.btn_wizard">
+          🧙 ウィザードで作成
+        </button>
+        <button class="btn-secondary" onclick="hideWizardChoice(); openCharEdit(null);" data-i18n="wizard.btn_advanced">
+          ✏ 直接入力（上級者）
+        </button>
+      </div>
       <button class="btn-secondary" id="charFooterBtn2" onclick="handlePhotoFooter()"
         style="display:none; margin-top:8px;" data-i18n="session.photo">
         📷 フォトセッション
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────
+     キャラクター作成ウィザード
+     ───────────────────────────────────────────── -->
+<div class="overlay" id="wizardOverlay" onclick="if(event.target===this){closeCharWizard();}">
+  <div class="bottom-sheet" style="height:90vh; display:flex; flex-direction:column;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title" data-i18n="wizard.title">キャラクター作成ウィザード</div>
+      <button class="sheet-close" onclick="closeCharWizard()">✕</button>
+    </div>
+
+    <!-- チャットログ表示エリア -->
+    <div class="sheet-scroll" id="wizardChatLog"
+      style="flex:1; padding:12px 16px; display:flex; flex-direction:column; gap:10px;">
+    </div>
+
+    <!-- 入力エリア（固定フッター） -->
+    <div id="wizardInputArea"
+      style="padding:10px 16px; border-top:1px solid var(--border); background:var(--bg);">
+
+      <!-- Step1のみ: 性別ボタン -->
+      <div id="wizardGenderButtons" style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn-secondary" onclick="wizardSelectGender('男性')" data-i18n="wizard.male">男性</button>
+        <button class="btn-secondary" onclick="wizardSelectGender('女性')" data-i18n="wizard.female">女性</button>
+        <button class="btn-secondary" onclick="wizardSelectGender('その他')" data-i18n="wizard.other">その他</button>
+      </div>
+
+      <!-- Step2以降: テキスト入力 -->
+      <div id="wizardTextInput" style="display:none; gap:8px;">
+        <textarea id="wizardInput" class="f-input" rows="2"
+          style="flex:1; resize:none;"
+          placeholder="…"
+          onkeydown="wizardHandleKeydown(event)"></textarea>
+        <button class="btn-send" onclick="wizardSubmit()" data-i18n="wizard.send">送信</button>
+      </div>
+
     </div>
   </div>
 </div>
@@ -858,6 +907,7 @@ async function initAfterLogin() {
 <script src="js/modals/prompt-edit.js"></script>
 <script src="js/modals/handover.js"></script>
 <script src="js/char-data.js"></script>
+<script src="js/modals/wizard.js"></script>
 <script src="js/chat.js"></script>
 <script src="js/photo.js"></script>
 <script src="js/modals/gallery.js"></script>

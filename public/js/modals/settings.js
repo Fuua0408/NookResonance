@@ -19,20 +19,6 @@ function openSettingsModal() {
   openModal('settingsOverlay');
 }
 
-function handleCharFooter() {
-  const isList = document.getElementById('tabCharList')?.classList.contains('active');
-  if (isList) {
-    openCharEdit(null);
-  } else {
-    if (!activeChar) { showToast(t('chat.no_char', 'キャラクターを選択してください')); return; }
-    initSession();
-    clearChatLog();
-    appendDateSep(new Date().toLocaleDateString('ja-JP', { year:'numeric', month:'long', day:'numeric' }));
-    closeModal('charOverlay');
-    showToast(t('settings.new_session_started', '新しいセッションを開始しました'));
-  }
-}
-
 function applyThemeColor(hex) {
   if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return;
   document.documentElement.style.setProperty('--accent', hex);
