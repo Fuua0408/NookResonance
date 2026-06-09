@@ -1,5 +1,5 @@
 /* ═════════════════════════════════════════════
-   Alcove — photo.js
+   NookResonance — photo.js
    フォトモード（連続生成・カルーセル・差分・直接送信）
    ═════════════════════════════════════════════ */
 
@@ -196,7 +196,7 @@ async function submitPhotoTurn() {
 
   } catch(e) {
     showToast('❌ ' + (e.message || 'エラーが発生しました').slice(0, 60));
-    console.error('[Alcove] submitPhotoTurn error:', e);
+    console.error('[NookResonance] submitPhotoTurn error:', e);
   } finally {
     isGenerating = false;
     setPhotoBtnState(false);
@@ -513,7 +513,7 @@ async function convertToPhotoMode(charId, sessionId) {
 
   } catch(e) {
     showToast(t('photo.convert_failed', '変換失敗: ') + e.message.slice(0, 40));
-    console.error('[Alcove] convertToPhotoMode error:', e);
+    console.error('[NookResonance] convertToPhotoMode error:', e);
   }
 }
 

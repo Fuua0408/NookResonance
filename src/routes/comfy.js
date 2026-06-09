@@ -13,7 +13,7 @@ function getComfyUrl() {
   return (process.env.COMFY_URL || 'http://127.0.0.1:8188').replace(/\/$/, '');
 }
 
-// ─── LoRA injection (ported from Alcove workflows.js) ───────────────────────
+// ─── LoRA injection ─────────────────────────────────────────────────────────
 function injectLoRAs(json, map, loras) {
   const modelSourceId = map.node_model || null;
 
@@ -126,14 +126,14 @@ function buildWorkflowJson(wfRow, params, enPrompt, userId, charId, turnId, fixe
 
   if (loras.length) injectLoRAs(json, map, loras);
 
-  // alcove/{user_id}/{char_id}/{YYYYMMDD_HHmmss_turn_id}
+  // nookresonance/{user_id}/{char_id}/{YYYYMMDD_HHmmss_turn_id}
   const now    = new Date();
   const ds     = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
   const ts     = `${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}${String(now.getSeconds()).padStart(2,'0')}`;
   const tidStr = String(turnId || 0).padStart(4, '0');
   const saveNode = Object.keys(json).find(k => json[k]?.class_type === 'SaveImage');
   if (saveNode) {
-    json[saveNode].inputs.filename_prefix = `alcove/${userId}/${charId}/${ds}_${ts}_${tidStr}`;
+    json[saveNode].inputs.filename_prefix = `nookresonance/${userId}/${charId}/${ds}_${ts}_${tidStr}`;
   }
 
   const meta = {

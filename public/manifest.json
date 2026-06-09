@@ -1,6 +1,6 @@
 {
-  "name": "Alcove",
-  "short_name": "Alcove",
+  "name": "NookResonance",
+  "short_name": "NookResonance",
   "description": "キャラクターと過ごす場所",
   "start_url": "./",
   "display": "standalone",

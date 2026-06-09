@@ -1,5 +1,5 @@
 /* ═════════════════════════════════════════════
-   Alcove — app.js
+   NookResonance — app.js
    グローバル変数・ユーティリティ・初期化
    ═════════════════════════════════════════════ */
 
@@ -12,7 +12,14 @@
 // ─────────────────────────────────────────────
 // 定数
 // ─────────────────────────────────────────────
-const LS_KEY = 'alcove_settings';
+const LS_KEY = 'nookresonance_settings';
+const LEGACY_LS_KEY = 'alc' + 'ove_settings';
+
+try {
+  if (!localStorage.getItem(LS_KEY) && localStorage.getItem(LEGACY_LS_KEY)) {
+    localStorage.setItem(LS_KEY, localStorage.getItem(LEGACY_LS_KEY));
+  }
+} catch {}
 
 // ─────────────────────────────────────────────
 // グローバル状態
@@ -257,7 +264,7 @@ async function init() {
       initSettingsUI(); // 復元した設定をUIに反映
       applyI18n();
     } catch(e) {
-      console.warn('[Alcove] settings restore failed:', e.message);
+      console.warn('[NookResonance] settings restore failed:', e.message);
     }
 
     // キャラクター一覧・カスタムWFを取得

@@ -301,10 +301,10 @@ async function batchReroll() {
         // サーバー保存
         if (isRestEnabled()) {
           restPut(`sessions/${activeChar.id}/${activeSession.id}`, activeSession)
-            .catch(e => console.warn('[Alcove] photo batch update failed:', e.message));
+            .catch(e => console.warn('[NookResonance] photo batch update failed:', e.message));
         }
       } catch(e) {
-        console.warn(`[Alcove] photo reroll turn ${i} failed:`, e.message);
+        console.warn(`[NookResonance] photo reroll turn ${i} failed:`, e.message);
         showToast(t('session.regen_turn_failed', '⚠ ターン{turn}の再生成に失敗: ').replace('{turn}', i + 1) + e.message.slice(0,30));
       }
     }
@@ -331,7 +331,7 @@ async function batchReroll() {
       }
       await archiveSession(activeChar.id, activeSession.id);
     } catch(e) {
-      console.warn('[Alcove] archive failed:', e.message);
+      console.warn('[NookResonance] archive failed:', e.message);
       showToast(t('session.save_continue', '⚠ セッションの保存に失敗しました（続行します）'));
     }
   }
@@ -377,14 +377,14 @@ async function batchReroll() {
           try {
             const res = await restPost(`sessions/${activeChar.id}`, newSession);
             newSession.id = res.id;
-          } catch(e) { console.warn('[Alcove] batch save failed:', e.message); }
+          } catch(e) { console.warn('[NookResonance] batch save failed:', e.message); }
         } else {
           restPut(`sessions/${activeChar.id}/${newSession.id}`, newSession)
-            .catch(e => console.warn('[Alcove] batch update failed:', e.message));
+            .catch(e => console.warn('[NookResonance] batch update failed:', e.message));
         }
       }
     } catch(e) {
-      console.warn(`[Alcove] reroll turn ${i} failed:`, e.message);
+      console.warn(`[NookResonance] reroll turn ${i} failed:`, e.message);
       showToast(t('session.regen_turn_failed', '⚠ ターン{turn}の再生成に失敗: ').replace('{turn}', i + 1) + e.message.slice(0,30));
     }
   }

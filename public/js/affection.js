@@ -1,5 +1,5 @@
 /* ═════════════════════════════════════════════
-   Alcove — affection.js
+   NookResonance — affection.js
    親愛度システム（数値管理・ラベル変換・UI）
    ═════════════════════════════════════════════ */
 
@@ -247,7 +247,7 @@ async function changeSessionAffection(delta) {
     try {
       await restPut(`characters/${activeChar.id}`, activeChar);
     } catch(e) {
-      console.warn('[Alcove] affection save failed:', e.message);
+      console.warn('[NookResonance] affection save failed:', e.message);
     }
   }
 }
@@ -321,7 +321,7 @@ async function quickAffectionUpdate() {
       char.affection = newVal;
       if (isRestEnabled()) {
         restPut(`characters/${char.id}`, char)
-          .catch(e => console.warn('[Alcove] quickAffection save failed:', e.message));
+          .catch(e => console.warn('[NookResonance] quickAffection save failed:', e.message));
       }
       showToast(`✓ ${msg}`);
     } else {
@@ -330,7 +330,7 @@ async function quickAffectionUpdate() {
 
   } catch(e) {
     showToast('❌ ' + e.message.slice(0, 50));
-    console.error('[Alcove] quickAffectionUpdate error:', e);
+    console.error('[NookResonance] quickAffectionUpdate error:', e);
   } finally {
     updateStatusBadge('SYNC');
   }
@@ -392,10 +392,10 @@ async function perTurnAffectionUpdate(turn) {
     // サーバー保存（silent）
     if (isRestEnabled()) {
       restPut(`characters/${char.id}`, char)
-        .catch(e => console.warn('[Alcove] perTurnAffection save failed:', e.message));
+        .catch(e => console.warn('[NookResonance] perTurnAffection save failed:', e.message));
     }
   } catch(e) {
-    console.warn('[Alcove] perTurnAffectionUpdate error:', e.message);
+    console.warn('[NookResonance] perTurnAffectionUpdate error:', e.message);
   }
 }
 

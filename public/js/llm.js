@@ -560,10 +560,10 @@ async function getCharResponse(imageUrl, userText, narrative = false) {
     },
   ];
   const result = await getChatCompletion(messages);
-  if (isAbnormalRaw(result)) { if (getSetting('debugMode', false)) console.warn('[Alcove] ABNORMAL_RAW\nPrompt:', messages, '\nResponse:', result); throw new Error('ABNORMAL_OUTPUT'); }
+  if (isAbnormalRaw(result)) { if (getSetting('debugMode', false)) console.warn('[NookResonance] ABNORMAL_RAW\nPrompt:', messages, '\nResponse:', result); throw new Error('ABNORMAL_OUTPUT'); }
   const cleaned = cleanLLMResponse(result);
   if (isAbnormalOutput(cleaned)) {
-    if (getSetting('debugMode', false)) console.warn('[Alcove] ABNORMAL_RAW\nPrompt:', messages, '\nResponse:', result);
+    if (getSetting('debugMode', false)) console.warn('[NookResonance] ABNORMAL_RAW\nPrompt:', messages, '\nResponse:', result);
     if (!isEnglishMode()) {
       if (typeof updateStatusBadge === 'function') updateStatusBadge('リカバリー試行中…');
       const extracted = await extractJapaneseResponse(result);
@@ -591,10 +591,10 @@ async function getCharResponseContinue() {
   }
 
   const result = await getChatCompletion(messages);
-  if (isAbnormalRaw(result)) { if (getSetting('debugMode', false)) console.warn('[Alcove] ABNORMAL_RAW\nPrompt:', messages, '\nResponse:', result); throw new Error('ABNORMAL_OUTPUT'); }
+  if (isAbnormalRaw(result)) { if (getSetting('debugMode', false)) console.warn('[NookResonance] ABNORMAL_RAW\nPrompt:', messages, '\nResponse:', result); throw new Error('ABNORMAL_OUTPUT'); }
   const cleaned = cleanLLMResponse(result);
   if (isAbnormalOutput(cleaned)) {
-    if (getSetting('debugMode', false)) console.warn('[Alcove] ABNORMAL_RAW\nPrompt:', messages, '\nResponse:', result);
+    if (getSetting('debugMode', false)) console.warn('[NookResonance] ABNORMAL_RAW\nPrompt:', messages, '\nResponse:', result);
     if (!isEnglishMode()) {
       if (typeof updateStatusBadge === 'function') updateStatusBadge('リカバリー試行中…');
       const extracted = await extractJapaneseResponse(result);
@@ -614,10 +614,10 @@ async function getCharResponseText(userText, narrative = false, excludeTurnIdx =
     { role: 'user', content },
   ];
   const result = await getChatCompletion(messages);
-  if (isAbnormalRaw(result)) { if (getSetting('debugMode', false)) console.warn('[Alcove] ABNORMAL_RAW\nPrompt:', messages, '\nResponse:', result); throw new Error('ABNORMAL_OUTPUT'); }
+  if (isAbnormalRaw(result)) { if (getSetting('debugMode', false)) console.warn('[NookResonance] ABNORMAL_RAW\nPrompt:', messages, '\nResponse:', result); throw new Error('ABNORMAL_OUTPUT'); }
   const cleaned = cleanLLMResponse(result);
   if (isAbnormalOutput(cleaned)) {
-    if (getSetting('debugMode', false)) console.warn('[Alcove] ABNORMAL_RAW\nPrompt:', messages, '\nResponse:', result);
+    if (getSetting('debugMode', false)) console.warn('[NookResonance] ABNORMAL_RAW\nPrompt:', messages, '\nResponse:', result);
     if (!isEnglishMode()) {
       if (typeof updateStatusBadge === 'function') updateStatusBadge('リカバリー試行中…');
       const extracted = await extractJapaneseResponse(result);

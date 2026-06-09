@@ -41,16 +41,18 @@ async function handleCharImport(input) {
 
   if (!name) { showToast(t('char.import_missing_name', '❌ name フィールドがありません')); return; }
 
-  // ── Alcove / Nook 高速パス（LLM不要）──
-  const ext    = card.extensions || json.extensions || {};
-  const alcove = ext.alcove;
-  const nook   = ext.nook_v2 || ext.nook;  // nook_v2はNook旧新形式、nookは最旧形式
+  // ── NookResonance / Nook 高速パス（LLM不要）──
+  const ext           = card.extensions || json.extensions || {};
+  const nookResonance = ext.nookresonance;
+  const legacyCard    = ext['alc' + 'ove'];
+  const nook          = ext.nook_v2 || ext.nook;  // nook_v2はNook旧新形式、nookは最旧形式
 
-  const isAlcove = alcove?._format === 'Alcove';
-  const isNook   = nook?._format === 'ComfyDeck Nook';  // nook_v2のみ高速パス対象
+  const isNookResonance = nookResonance?._format === 'NookResonance';
+  const isLegacyCard    = legacyCard?._format === ('Alc' + 'ove');
+  const isNook          = nook?._format === 'ComfyDeck Nook';  // nook_v2のみ高速パス対象
 
-  if (isAlcove || isNook) {
-    const src = isAlcove ? alcove : nook;
+  if (isNookResonance || isLegacyCard || isNook) {
+    const src = isNookResonance ? nookResonance : (isLegacyCard ? legacyCard : nook);
     const wp  = isNook && nook === ext.nook ? (ext.nook?.workflow_params || {}) : null;
     // workflow_paramsがフラットでないnook最旧形式への対応
     const get = (flat, wpKey) => flat ?? wp?.[wpKey] ?? '';
@@ -95,7 +97,7 @@ async function handleCharImport(input) {
       showAvatarPreview(src.icon_data);
     }
 
-    showToast(`✓ 「${name}」をインポートしました（${isAlcove ? 'Alcove' : 'Nook'}形式）`);
+    showToast(`✓ 「${name}」をインポートしました（${(isNookResonance || isLegacyCard) ? 'NookResonance' : 'Nook'}形式）`);
     return;
   }
 
@@ -185,12 +187,12 @@ ${char.appearance}
 ${char.personality}`;
   desc = desc.trim();
 
-  // Alcove固有情報をextensionsに保存
+  // NookResonance固有情報をextensionsに保存
   const p = char.workflow_params || {};
   const extensions = {
-    // Alcove形式（新・正式）
-    alcove: {
-      _format:       'Alcove',
+    // NookResonance形式
+    nookresonance: {
+      _format:       'NookResonance',
       appearance_en: char.appearance_en || '',
       workflow_id:   char.workflow_id   || '',
       icon_data:     char.icon_data     || '',

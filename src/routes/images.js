@@ -11,6 +11,7 @@ const router = express.Router();
 router.use(authMiddleware);
 
 const THUMB_SIZE = 200;
+const COMFY_APP_SUBFOLDER = 'nookresonance';
 
 function getComfySettings() {
   return { comfyUrl: (process.env.COMFY_URL || '').replace(/\/$/, '') };
@@ -36,7 +37,7 @@ function writeMeta(metaPath, meta) {
 function listSourceImages(userId, charId) {
   const outputDir = (process.env.COMFY_OUTPUT_DIR || '').replace(/[/\\]+$/, '');
   if (!outputDir) return [];
-  const charDir = path.join(outputDir, 'alcove', String(userId), String(charId));
+  const charDir = path.join(outputDir, COMFY_APP_SUBFOLDER, String(userId), String(charId));
   if (!fs.existsSync(charDir)) return [];
   return fs.readdirSync(charDir)
     .filter(f => f.toLowerCase().endsWith('.png'))
@@ -44,7 +45,7 @@ function listSourceImages(userId, charId) {
 }
 
 function buildComfyViewUrl(comfyUrl, userId, charId, basename) {
-  const subfolder = `alcove/${userId}/${charId}`;
+  const subfolder = `${COMFY_APP_SUBFOLDER}/${userId}/${charId}`;
   return `${comfyUrl}/view?filename=${encodeURIComponent(basename)}&subfolder=${encodeURIComponent(subfolder)}&type=output`;
 }
 
