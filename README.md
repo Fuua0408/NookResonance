@@ -36,7 +36,7 @@ NookResonance は、キャラクターとの会話・画像生成・関係性の
 - SQLite永続化: `better-sqlite3` を使い、ユーザー、キャラクター、セッション、ワークフロー、設定、グローバルLoRAをDB管理します。
 - ログイン認証: bcryptによるパスワードハッシュとJWTによる30日トークン認証に対応します。
 - マルチユーザー: キャラクター、セッション、画像キャッシュはユーザーID単位で分離されます。
-- 管理者/上級者権限: 管理者は設定、ワークフロー、グローバルLoRA、ユーザー管理を扱えます。上級者はキャラクターごとのワークフロー/LoRA項目を編集できます。
+- 管理者/上級者権限: 管理者は設定、ワークフロー、グローバルLoRA、ユーザー管理を扱えます。ユーザー管理では設定画面から一般ユーザーの追加・削除が可能です（削除時はキャラクター、セッション、生成画像も一括削除）。上級者はキャラクターごとのワークフロー/LoRA項目を編集できます。
 - 初心者向けキャラクター作成ウィザード: LLMと会話しながら性別、性格、外見、服装、場所、名前を決め、可能なら画像も生成します。
 - インタラクティブチュートリアル: 実際のUI操作に近い流れで、画像生成、キャラ主導、会話、USERフォーカスを案内します。
 - 日本語/英語UI: `DEFAULT_LANGUAGE` と設定画面から表示言語を切り替えられます。
@@ -134,7 +134,7 @@ nookresonance/1/12/20260609_223416_0001
 ### API / 権限の概要
 
 - `/api/auth`: ログイン、パスワード変更
-- `/api/users`: ユーザー一覧、上級者権限付与/剥奪（管理者のみ）
+- `/api/users`: ユーザー一覧、追加、削除、上級者権限付与/剥奪（管理者のみ）
 - `/api/characters`: ユーザー別キャラクターCRUD
 - `/api/sessions`: ユーザー別セッション管理
 - `/api/workflows`: ワークフロー管理（変更は管理者のみ）
@@ -177,7 +177,7 @@ It combines chat roleplay, photo mode, gallery browsing, affection tracking, and
 - SQLite persistence: Users, characters, sessions, workflows, settings, and global LoRAs are stored in SQLite through `better-sqlite3`.
 - Authentication: Passwords are hashed with bcrypt, and login uses 30-day JWT tokens.
 - Multi-user isolation: Characters, sessions, and gallery caches are separated by user ID.
-- Admin / advanced roles: Admins can manage settings, workflows, global LoRAs, and users. Advanced users can edit character workflow and LoRA fields.
+- Admin / advanced roles: Admins can manage settings, workflows, global LoRAs, and users. The user management panel in settings allows adding new users and deleting existing ones — deletion removes the user's characters, sessions, thumbnail cache, and generated images. Advanced users can edit character workflow and LoRA fields.
 - Character creation wizard: Guides beginners through character creation with LLM-assisted questions and optional image generation.
 - Interactive tutorial: Walks users through generation, character-led mode, conversation mode, and USER focus mode.
 - Japanese/English UI: Display language can be controlled through `DEFAULT_LANGUAGE` and the settings screen.
@@ -275,7 +275,7 @@ The gallery reads images from `COMFY_OUTPUT_DIR` and stores thumbnails under `da
 ### API / Permission Summary
 
 - `/api/auth`: login and password change
-- `/api/users`: user list and advanced-role updates, admin only
+- `/api/users`: user list, add, delete, and advanced-role updates, admin only
 - `/api/characters`: user-scoped character CRUD
 - `/api/sessions`: user-scoped session management
 - `/api/workflows`: workflow management, write access admin only

@@ -647,6 +647,16 @@
 
         <!-- ユーザー管理 -->
         <div style="font-size:12px;color:var(--text-pale);margin-bottom:8px;" data-i18n="settings.users">ユーザー管理</div>
+        <div class="field-group" style="margin-bottom:8px;">
+          <div class="num-row" style="gap:8px;">
+            <input class="f-input" id="newUsername" type="text"
+              placeholder="ユーザー名" data-i18n-placeholder="settings.users_username_placeholder" style="flex:1;">
+            <input class="f-input" id="newPassword" type="password"
+              placeholder="パスワード" data-i18n-placeholder="settings.users_password_placeholder" style="flex:1;">
+            <button class="btn-secondary" style="white-space:nowrap;padding:6px 12px;"
+              onclick="addUser()" data-i18n="settings.users_add_button">追加</button>
+          </div>
+        </div>
         <div class="field-group" id="userListContainer" style="margin-bottom:12px;">
           <div style="font-size:12px;color:var(--text-pale);padding:8px 0;" data-i18n="settings.users_loading">読み込み中…</div>
         </div>
