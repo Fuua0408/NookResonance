@@ -108,7 +108,7 @@ router.get('/:char_id', async (req, res) => {
     }
 
     const thumbUrl = fs.existsSync(thumbPath)
-      ? `data/cache/${req.user.id}/${char_id}/thumbs/${stem}.jpg`
+      ? `/api/images/cache/${char_id}/thumbs/${stem}.jpg`
       : buildComfyViewUrl(comfyUrl, req.user.id, char_id, img.basename);
 
     list.push({
@@ -199,6 +199,23 @@ router.delete('/:char_id/:filename', (req, res) => {
   writeMeta(metaPath, meta);
 
   res.json({ ok: true });
+});
+
+// GET /api/images/cache/:char_id/thumbs/:filename
+router.get('/cache/:char_id/thumbs/:filename', (req, res) => {
+  const { char_id, filename } = req.params;
+  const db = getDb();
+  if (!ownsChar(db, char_id, req.user.id)) return res.status(404).json({ error: 'Not found' });
+
+  const safeName = path.basename(filename);
+  const thumbPath = path.resolve(
+    path.join('data', 'cache', String(req.user.id), char_id, 'thumbs', safeName)
+  );
+  const allowedDir = path.resolve(path.join('data', 'cache', String(req.user.id), char_id, 'thumbs'));
+  if (!thumbPath.startsWith(allowedDir)) return res.status(400).end();
+
+  if (!fs.existsSync(thumbPath)) return res.status(404).end();
+  res.sendFile(thumbPath);
 });
 
 module.exports = router;

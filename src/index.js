@@ -26,8 +26,6 @@ app.use(express.json({ limit: '50mb' }));
 
 // Static files
 app.use(express.static(path.join(__dirname, '..', 'public')));
-// Serve thumbnail cache
-app.use('/data/cache', express.static(path.join(__dirname, '..', 'data', 'cache')));
 
 // API routes
 app.use('/api/auth', authRoutes);
