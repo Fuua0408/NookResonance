@@ -297,8 +297,16 @@ const I18N = {
     'settings.users_loading':     'Loading…',
     'settings.users_empty':       'No users',
     'settings.users_admin_badge': 'Admin',
-    'settings.users_promote':     'Promote',
-    'settings.users_demote':      'Advanced ✓',
+    'settings.users_promote':             'Promote',
+    'settings.users_demote':             'Advanced ✓',
+    'settings.users_delete':             'Delete',
+    'settings.users_delete_confirm':     'Delete "{name}"?\nAll characters, sessions, and generated images will also be deleted.',
+    'settings.users_delete_ok':          'User deleted',
+    'settings.users_add_required':       'Enter username and password',
+    'settings.users_add_ok':             '"{name}" added',
+    'settings.users_username_placeholder':'Username',
+    'settings.users_password_placeholder':'Password',
+    'settings.users_add_button':         'Add',
 
     // ── 引き継ぎ（Handover）──
     'handover.title':      'Session Handover',

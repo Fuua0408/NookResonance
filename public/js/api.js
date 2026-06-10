@@ -380,6 +380,10 @@ function renderUserList(users) {
         onclick="toggleUserAdvanced(${u.id}, ${isAdv})">
         ${isAdv ? t('settings.users_demote', '上級者 ✓') : t('settings.users_promote', '昇格')}
       </button>
+      <button class="btn-secondary" style="font-size:11px;padding:3px 10px;color:var(--danger,#c0392b);"
+        onclick="deleteUser(${u.id}, '${escHtml(u.username)}')">
+        ${t('settings.users_delete', '削除')}
+      </button>
     </div>`;
   }).join('<div class="sep"></div>');
 }
@@ -387,6 +391,33 @@ function renderUserList(users) {
 async function toggleUserAdvanced(userId, currentState) {
   try {
     await restPut(`users/${userId}`, { is_advanced: !currentState });
+    await loadUserList();
+  } catch(e) {
+    showToast(t('error', 'エラー') + ': ' + e.message);
+  }
+}
+
+async function deleteUser(userId, username) {
+  const msg = t('settings.users_delete_confirm', `「${username}」を削除しますか？\nキャラクター・セッション・生成画像もすべて削除されます。`).replace('{name}', username);
+  if (!confirm(msg)) return;
+  try {
+    await restDelete(`users/${userId}`);
+    showToast(t('settings.users_delete_ok', 'ユーザーを削除しました'));
+    await loadUserList();
+  } catch(e) {
+    showToast(t('error', 'エラー') + ': ' + e.message);
+  }
+}
+
+async function addUser() {
+  const username = document.getElementById('newUsername')?.value?.trim();
+  const password = document.getElementById('newPassword')?.value;
+  if (!username || !password) { showToast(t('settings.users_add_required', 'ユーザー名とパスワードを入力してください')); return; }
+  try {
+    await restPost('users', { username, password });
+    showToast(t('settings.users_add_ok', `「${username}」を追加しました`).replace('{name}', username));
+    document.getElementById('newUsername').value = '';
+    document.getElementById('newPassword').value = '';
     await loadUserList();
   } catch(e) {
     showToast(t('error', 'エラー') + ': ' + e.message);
