@@ -26,6 +26,12 @@ async function _chatSubmitTurnOrig() {
   if (isGenerating) { showToast(t('chat.generating', '生成中です')); return; }
   if (!activeChar)  { showToast(t('chat.no_char', 'キャラクターを選択してください')); openCharModal(); return; }
 
+  // 画像添付があれば専用フローに移譲（既存モードは無視）
+  if (typeof _attachedImageDataUrl !== 'undefined' && _attachedImageDataUrl) {
+    await submitTurnWithImage();
+    return;
+  }
+
   const jpText     = document.getElementById('jpInput')?.value?.trim();
   const genMode    = document.getElementById('genToggle')?.checked;
   const isContinue = !jpText;
@@ -860,7 +866,11 @@ function updateTurnUserMessage(turnIdx, text) {
   });
 }
 function renderTurn(turn, idx) {
-  if (turn.is_narrative) {
+  if (turn.gen_mode === 'image_react' || turn.gen_mode === 'image_generate') {
+    if (typeof appendUserMessageWithImage === 'function') {
+      appendUserMessageWithImage(turn.user_message || '', turn.attached_image_url || null, idx);
+    }
+  } else if (turn.is_narrative) {
     appendNarrativeMessage('*' + (turn.user_message || '') + '*', idx);
   } else if (turn.user_message) {
     appendUserMessage(turn.user_message, idx);

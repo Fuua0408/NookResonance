@@ -226,6 +226,11 @@ const I18N = {
     'chat.char_response_failed': 'Character response failed: ',
     'chat.translate_failed': 'Translation failed: ',
     'chat.gen_image_failed': 'Image generation failed: ',
+    'chat.attach_image':      'Attach image',
+    'chat.attach_image_btn':  '🖼 Attach',
+    'chat.remove_attachment': 'Remove attachment',
+    'chat.upload_failed':     'Image upload failed',
+    'chat.sync_clothing':     'Apply outfit to session',
     'chat.error':          'An error occurred',
     'photo.empty':         'Generated images appear here',
     'photo.clear_title':   'Clear carousel display',
@@ -399,6 +404,7 @@ const I18N = {
     'status.handover_retry': 'Retrying… ',
     'status.generating_continue': 'Generating continuation…',
     'status.summarizing':  'Generating summary…',
+    'status.analyzing_image': 'Analyzing image…',
 
     // ── 親愛度ラベル ──
     'aff.label_0':         'Deep Hatred',
