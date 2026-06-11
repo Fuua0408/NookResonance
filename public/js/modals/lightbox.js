@@ -57,12 +57,34 @@ let _lbImages    = [];   // { url } の配列
 let _lbIdx       = 0;
 let _lbOnNavigate = null;
 
+async function _lbLoadImg(imgEl, dlEl, idx) {
+  const entry = _lbImages[idx];
+  if (!entry) return;
+  if (!entry.blobUrl) {
+    try {
+      const r = await fetch(entry.url, { headers: { 'Authorization': `Bearer ${getAuthToken()}` } });
+      if (r.ok) entry.blobUrl = URL.createObjectURL(await r.blob());
+    } catch {}
+  }
+  if (!entry.blobUrl) return;
+  imgEl.src = entry.blobUrl;
+  if (dlEl) {
+    dlEl.href = entry.blobUrl;
+    try {
+      const fname = new URL(entry.url, location.origin).searchParams.get('filename');
+      if (fname) dlEl.download = fname;
+    } catch {}
+  }
+}
+
 function _lbPreload(idx) {
   [-1, 1].forEach(d => {
     const i = idx + d;
-    if (i >= 0 && i < _lbImages.length) {
-      const pre = new Image();
-      pre.src = _lbImages[i].url;
+    if (i >= 0 && i < _lbImages.length && !_lbImages[i].blobUrl) {
+      fetch(_lbImages[i].url, { headers: { 'Authorization': `Bearer ${getAuthToken()}` } })
+        .then(r => r.ok ? r.blob() : null)
+        .then(blob => { if (blob) _lbImages[i].blobUrl = URL.createObjectURL(blob); })
+        .catch(() => {});
     }
   });
 }
@@ -82,13 +104,12 @@ function _lbNavigate(delta) {
   img.style.transition = 'transform 0.18s ease';
   img.style.transform  = `translateX(${outX})`;
 
-  setTimeout(() => {
+  setTimeout(async () => {
     _lbIdx = next;
     _lbReset();
     img.style.transition = 'none';
     img.style.transform  = `translateX(${inX})`;
-    img.src = _lbImages[_lbIdx].url;
-    document.getElementById('lightboxDl').href = img.src;
+    await _lbLoadImg(img, document.getElementById('lightboxDl'), _lbIdx);
     _lbUpdateNav();
     if (_lbOnNavigate) _lbOnNavigate(_lbIdx);
     requestAnimationFrame(() => {
@@ -174,11 +195,10 @@ function openLightbox(url, opts = {}) {
   const img = document.getElementById('lightboxImg');
   img.style.transition = 'none';
   img.style.transform  = 'translateX(0)';
-  img.src = _lbImages[_lbIdx].url;
-  document.getElementById('lightboxDl').href = img.src;
-  _lbUpdateNav();
   lb.style.display = 'flex';
   document.body.style.overflow = 'hidden';
+  _lbUpdateNav();
+  _lbLoadImg(img, document.getElementById('lightboxDl'), _lbIdx);
 
   // 前後プリロード
   _lbPreload(_lbIdx);
@@ -188,6 +208,7 @@ function closeLightbox() {
   const lb = document.getElementById('lightbox');
   if (lb) lb.style.display = 'none';
   _lbReset();
+  _lbImages.forEach(e => { if (e.blobUrl) URL.revokeObjectURL(e.blobUrl); });
   _lbImages = [];
   _lbOnNavigate = null;
   document.body.style.overflow = '';
