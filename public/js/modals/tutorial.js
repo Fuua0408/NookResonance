@@ -628,12 +628,12 @@ async function _tutStep7() {
   let msg;
   try {
     msg = await tutorialAskChar(
-      "Give a warm, enthusiastic farewell — the tutorial is complete. Tell the user you're really looking forward to spending lots of time together!"
+      "Give a warm, enthusiastic farewell — the tutorial is complete. Tell the user you're really looking forward to spending lots of time together! Also mention that if they ever get confused or want to learn more, they can check the manual."
     );
   } catch(e) {
     msg = getCurrentLanguage() === 'ja'
-      ? 'これで説明は全部！　いっぱい話そうね！'
-      : "That's everything! I'm really looking forward to chatting with you lots!";
+      ? 'これで説明は全部！　困ったときはマニュアルを見てね。いっぱい話そうね！'
+      : "That's everything! If you ever get confused, check the manual. I'm really looking forward to chatting with you lots!";
   }
   tutorialAppendChar(msg);
   _tutShowBtn(

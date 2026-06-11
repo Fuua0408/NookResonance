@@ -494,6 +494,7 @@ const I18N = {
     'wizard.offer_tutorial':  'Want me to show you how to use the app?',
     'wizard.tutorial_yes':    'Yes please!',
     'wizard.tutorial_no':     "I'm good!",
+    'settings.manual':        'View manual',
     'settings.tutorial':      'View tutorial again',
 
     // ── Wizard ──

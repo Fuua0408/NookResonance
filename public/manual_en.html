@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NookResonance — User Guide</title>
+<style>
+  :root {
+    --bg: #faf9f7;
+    --surface: #ffffff;
+    --border: #e5e3dc;
+    --text: #1c1b18;
+    --muted: #6b6960;
+    --accent: #534AB7;
+    --accent-bg: #EEEDFE;
+    --accent-text: #3C3489;
+    --tip-bg: #E1F5EE;
+    --tip-text: #0F6E56;
+    --tip-border: #5DCAA5;
+    --warn-bg: #FAEEDA;
+    --warn-text: #854F0B;
+    --warn-border: #EF9F27;
+    --tag-bg: #EEEDFE;
+    --tag-text: #3C3489;
+    --font: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 15px;
+    line-height: 1.75;
+    padding: 0 0 80px;
+  }
+
+  /* ─── Header ─── */
+  .site-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 28px 40px 24px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .site-header h1 {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: var(--accent);
+  }
+  .site-header p {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* ─── Layout ─── */
+  .layout {
+    display: flex;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 40px 24px 0;
+    gap: 40px;
+    align-items: flex-start;
+  }
+
+  /* ─── TOC ─── */
+  .toc {
+    width: 200px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 88px;
+    font-size: 13px;
+  }
+  .toc-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .toc ol {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .toc a {
+    display: block;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 5px 8px;
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .toc a:hover { background: var(--accent-bg); color: var(--accent-text); }
+
+  /* ─── Content ─── */
+  .content { flex: 1; min-width: 0; }
+
+  section { margin-bottom: 56px; scroll-margin-top: 100px; }
+
+  .section-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  section > h2 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.4px;
+    color: var(--text);
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 24px 0 10px;
+  }
+  p { margin-bottom: 12px; color: var(--text); }
+  p:last-child { margin-bottom: 0; }
+
+  /* ─── Image placeholder ─── */
+  .img-placeholder {
+    background: var(--surface);
+    border: 1.5px dashed var(--border);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 32px 20px;
+    margin: 16px 0;
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+  }
+  .img-placeholder .icon { font-size: 28px; }
+  .img-placeholder .label { font-weight: 500; font-size: 13px; color: var(--muted); }
+  .img-placeholder img {
+    width: 100%;
+    border-radius: 8px;
+    display: block;
+  }
+
+  /* ─── Step list ─── */
+  .steps { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
+  .step {
+    display: flex;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .step:last-child { border-bottom: none; }
+  .step-num {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--accent-bg);
+    color: var(--accent-text);
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .step-body { flex: 1; }
+  .step-body strong { font-weight: 600; display: block; margin-bottom: 2px; }
+
+  /* ─── Tips / Warnings ─── */
+  .tip, .warn {
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 14px;
+    margin: 16px 0;
+    border-left: 3px solid;
+  }
+  .tip { background: var(--tip-bg); color: var(--tip-text); border-color: var(--tip-border); }
+  .warn { background: var(--warn-bg); color: var(--warn-text); border-color: var(--warn-border); }
+
+  /* ─── Tag / Key ─── */
+  .key {
+    display: inline-block;
+    background: var(--tag-bg);
+    color: var(--tag-text);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 5px;
+    vertical-align: middle;
+  }
+  .btn-demo {
+    display: inline-block;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px 10px;
+    font-size: 13px;
+    color: var(--text);
+    font-family: var(--font);
+    font-weight: 500;
+    vertical-align: middle;
+  }
+
+  /* ─── Feature card row ─── */
+  .feature-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .feature-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .feature-card .fc-icon { font-size: 22px; margin-bottom: 6px; }
+  .feature-card .fc-title { font-weight: 600; font-size: 14px; }
+  .feature-card .fc-desc { font-size: 13px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+
+  /* ─── Code-like ─── */
+  code {
+    background: #f0ede6;
+    color: #3C3489;
+    font-family: 'SF Mono', 'Consolas', monospace;
+    font-size: 13px;
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+
+  /* ─── Responsive ─── */
+  @media (max-width: 700px) {
+    .layout { flex-direction: column; padding: 24px 16px 0; }
+    .toc { display: none; }
+    .site-header { padding: 18px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <h1>NookResonance User Guide</h1>
+  <p>Your first steps to spending time with characters</p>
+</header>
+
+<div class="layout">
+
+  <nav class="toc" aria-label="Table of contents">
+    <div class="toc-title">Contents</div>
+    <ol>
+      <li><a href="#login">1. Login</a></li>
+      <li><a href="#create-char">2. Create a Character</a></li>
+      <li><a href="#chat">3. Chat Basics</a></li>
+      <li><a href="#photo">4. Photo Mode</a></li>
+      <li><a href="#gallery">5. Gallery</a></li>
+      <li><a href="#session">6. Session Management</a></li>
+      <li><a href="#advanced">7. Advanced Features</a></li>
+      <li><a href="#account">8. Account Settings</a></li>
+    </ol>
+  </nav>
+
+  <main class="content">
+
+    <!-- ─── 1. Login ─── -->
+    <section id="login">
+      <div class="section-eyebrow">Getting Started</div>
+      <h2>1. Login</h2>
+      <p>Open the server URL in your browser and the login screen will appear. Enter the username and password provided by your admin, then click <span class="btn-demo">Login</span>.</p>
+
+      <!--
+        Screenshot: Login screen
+        <img src="screenshots/XXX.png" alt="Screenshot: Login screen" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">Screenshot: Login screen</div>
+      </div> -->
+
+      <div class="tip">Your login session is kept for 30 days. On the same browser and device, you will be logged in automatically next time.</div>
+    </section>
+
+    <!-- ─── 2. Create Character ─── -->
+    <section id="create-char">
+      <div class="section-eyebrow">Character</div>
+      <h2>2. Create a Character</h2>
+      <p>To start chatting, you first need to create a character. There are two ways to do this.</p>
+
+      <div class="feature-row">
+        <div class="feature-card">
+          <div class="fc-icon">✨</div>
+          <div class="fc-title">Create with Wizard</div>
+          <div class="fc-desc">A beginner-friendly method where you chat with an AI to decide your character step by step.</div>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon">✏️</div>
+          <div class="fc-title">Direct Input (Advanced)</div>
+          <div class="fc-desc">Directly fill in the form with name, personality, appearance, and more.</div>
+        </div>
+      </div>
+
+      <h3>Create with the Wizard</h3>
+      <p>Tap the character selection button at the bottom of the screen to open the character list. Then tap <span class="btn-demo">✨ Create with Wizard</span>.</p>
+
+      <!--
+        Screenshot: Character list and wizard button
+        <img src="screenshots/XXX.png" alt="Screenshot: Character list and wizard button" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">Screenshot: Character list and wizard button</div>
+      </div> -->
+
+      <p>Once the wizard launches, the AI will ask you questions. Answer them in order — gender, personality, appearance, clothing, and location — and your character will be created automatically.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body"><strong>Choose gender</strong> Tap a button to select.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body"><strong>Answer personality, appearance, etc.</strong> Type freely. If the AI does not understand, it will ask again.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body"><strong>Done!</strong> An image is generated and your character is registered. You can start chatting right away.</div>
+        </div>
+      </div>
+
+      <!--
+        Screenshot: Wizard screen (in progress)
+        <img src="screenshots/XXX.png" alt="Screenshot: Wizard screen (in progress)" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">Screenshot: Wizard screen (in progress)</div>
+      </div> -->
+
+      <div class="tip">After the wizard finishes, you can start an interactive tutorial. Highly recommended for first-time users.</div>
+
+      <h3>Direct Input (Advanced)</h3>
+      <p>Select <span class="btn-demo">✏ Direct Input (Advanced)</span> from the character list, or tap an existing character once to open the edit form. You can directly enter name, personality, appearance, speaking style, and more.</p>
+
+      <!--
+        Screenshot: Character edit form
+        <img src="screenshots/XXX.png" alt="Screenshot: Character edit form" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">Screenshot: Character edit form</div>
+      </div> -->
+
+      <div class="warn">
+        <strong>Appearance fields require EN conversion</strong><br>
+        After entering text in the "Appearance (body)" and "Appearance (clothing)" fields in Japanese, press the <span class="btn-demo">EN Convert</span> button next to the field. The AI translates it into an English prompt for image generation. Without converting, appearance will not be reflected in generated images.
+      </div>
+
+      <!--
+        Screenshot: Appearance field and EN Convert button
+        <img src="screenshots/XXX.png" alt="Screenshot: Appearance field and EN Convert button" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">Screenshot: Appearance field and EN Convert button</div>
+      </div> -->
+
+      <h3>How to Write Character Settings</h3>
+      <p>Fields like "Personality" accept free text, but using the <code>&lt;tag=content&gt;</code> format helps the AI understand character settings more precisely. Writing <code>{{user}}</code> will be automatically replaced with the logged-in username.</p>
+      <div class="tip" style="font-family: 'SF Mono','Consolas',monospace; font-size:13px; line-height:2.1;">
+        Example personality field:<br>
+        <code>&lt;personality=bubbly and carefree&gt;</code><br>
+        <code>&lt;likes=casting magic spells&gt;</code><br>
+        <code>&lt;location=a cottage in the forest&gt;</code><br>
+        <code>&lt;physical trait=very ticklish&gt;</code><br>
+        <code>&lt;background=lost both parents, lives alone; craves company despite her cheerful exterior&gt;</code><br><br>
+        Example opening message field:<br>
+        <code>{{user}}, you came! I'm Maho! I'm a witch — still practicing though!</code>
+      </div>
+      <p>You can add as many tags as you like. Keep them short and specific for best results.</p>
+    </section>
+
+    <!-- ─── 3. Chat ─── -->
+    <section id="chat">
+      <div class="section-eyebrow">Chat</div>
+      <h2>3. Chat Basics</h2>
+      <p>Select a character to enter the chat screen. Type your message in the input field at the bottom and press <span class="btn-demo">Send ▶</span> to start the conversation.</p>
+
+      <!--
+        Screenshot: Chat screen overview
+        <img src="screenshots/XXX.png" alt="Screenshot: Chat screen overview" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">Screenshot: Chat screen overview</div>
+      </div> -->
+
+      <h3>Writing Narration / Situation Text</h3>
+      <p>Text wrapped in <code>*～*</code> within a message is treated as narration or situation description rather than dialogue. The AI will naturally interpret it as part of the scene.</p>
+      <div class="tip" style="font-family: 'SF Mono','Consolas',monospace; font-size:14px; line-height:2;">
+        Examples:<br>
+        <code>*knocks on the door*</code><br>
+        <code>*It had started to rain outside*</code><br>
+        <code>Hey, *while holding your hand*, will you stay with me?</code>
+      </div>
+
+      <h3>Toggling Image Generation</h3>
+      <p>Above the input field there is a <span class="btn-demo">🎨 Generate</span> / <span class="btn-demo">💬 Chat Only</span> button. Tap it to toggle. In "Chat Only" mode, no images are generated — text only.</p>
+
+      <!--
+        Screenshot: Image generation toggle button
+        <img src="screenshots/XXX.png" alt="Screenshot: Image generation toggle button" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">Screenshot: Image generation toggle button</div>
+      </div> -->
+
+      <h3>Character-Led Mode</h3>
+      <p>Press the <span class="btn-demo">🎭</span> button to enter Character-Led Mode. The character will take initiative — speaking up and acting on their own. Press again to disable.</p>
+
+      <h3>USER Focus</h3>
+      <p>Press the <span class="btn-demo">👤</span> button to enable USER Focus mode. Generated images will center on your own appearance rather than the character's.</p>
+
+      <h3>Message Actions</h3>
+      <p>Long-press a message (or right-click on PC) to open the action menu.</p>
+      <div class="feature-row">
+        <div class="feature-card">
+          <div class="fc-icon">✏️</div>
+          <div class="fc-title">Edit Reply</div>
+          <div class="fc-desc">Rewrite the character's reply directly.</div>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon">🔄</div>
+          <div class="fc-title">Regenerate</div>
+          <div class="fc-desc">Generate the character's response again.</div>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon">🌿</div>
+          <div class="fc-title">Branch Here</div>
+          <div class="fc-desc">Try a different story development from this turn.</div>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon">🗑️</div>
+          <div class="fc-title">Delete</div>
+          <div class="fc-desc">Delete this turn.</div>
+        </div>
+      </div>
+
+      <!--
+        Screenshot: Message long-press menu
+        <img src="screenshots/XXX.png" alt="Screenshot: Message long-press menu" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">Screenshot: Message long-press menu</div>
+      </div> -->
+
+      <h3>Image Actions (Right-click / Long-press)</h3>
+      <p>Right-click an image in the chat (or long-press on mobile) to open the image action menu.</p>
+      <div class="feature-row">
+        <div class="feature-card">
+          <div class="fc-icon">📋</div>
+          <div class="fc-title">View Prompt</div>
+          <div class="fc-desc">View the Japanese and English prompts used to generate this image. Copying is also available.</div>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon">✏️</div>
+          <div class="fc-title">Edit Prompt Directly</div>
+          <div class="fc-desc">Manually rewrite the English prompt and regenerate. You can preview before applying the change.</div>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon">⚓</div>
+          <div class="fc-title">Set as Anchor</div>
+          <div class="fc-desc">Fix this image as the base for differential generation (see below).</div>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon">🔄</div>
+          <div class="fc-title">Re-infer and Regenerate</div>
+          <div class="fc-desc">The AI recalculates the prompt and regenerates the image.</div>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon">🎲</div>
+          <div class="fc-title">Regenerate with New Seed</div>
+          <div class="fc-desc">Keep the same prompt but use a different random seed to get a different result.</div>
+        </div>
+      </div>
+
+      <!--
+        Screenshot: Image right-click menu
+        <img src="screenshots/XXX.png" alt="Screenshot: Image right-click menu" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">Screenshot: Image right-click menu</div>
+      </div> -->
+
+      <h3>Anchor and Differential Generation</h3>
+      <p>An "anchor" is an image used as the base for differential generation. Once set, subsequent images are generated by taking the anchor's English prompt and layering only the changes you input on top. Perfect for minor tweaks like changing clothing or expression.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body"><strong>Set an anchor</strong> Right-click the image you want as a base and choose "⚓ Set as Anchor", or press the <span class="btn-demo">⚓</span> button and tap an image. The button becomes active when an anchor is set.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body"><strong>Enter only what changes and send</strong> Type just the change you want, e.g. "holding a flower in her right hand". The anchor prompt and your change are merged for generation.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body"><strong>Clear the anchor</strong> Press the <span class="btn-demo">⚓</span> button again to clear it. Generation returns to normal afterward.</div>
+        </div>
+      </div>
+
+      <div class="tip">Photo Mode's "🔄 Diff" tab automatically uses the previous image as the base without needing to set an anchor. Use it when making a series of small continuous edits.</div>
+
+      <!--
+        Screenshot: Anchor active state (⚓ button highlighted)
+        <img src="screenshots/XXX.png" alt="Screenshot: Anchor active state (⚓ button highlighted)" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">Screenshot: Anchor active state (⚓ button highlighted)</div>
+      </div> -->
+    </section>
+
+    <!-- ─── 4. Photo Mode ─── -->
+    <section id="photo">
+      <div class="section-eyebrow">Photo</div>
+      <h2>4. Photo Mode</h2>
+      <p>Photo Mode lets you focus purely on image generation without chatting. Press the <span class="btn-demo">📷</span> button to the left of the input field to start.</p>
+
+      <!--
+        Screenshot: Photo Mode screen
+        <img src="screenshots/XXX.png" alt="Screenshot: Photo Mode screen" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">Screenshot: Photo Mode screen</div>
+      </div> -->
+
+      <p>There are three mode tabs above the input field.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">TL</div>
+          <div class="step-body"><strong>Translate mode</strong> Enter a scene in Japanese and the AI translates it into an English prompt for generation.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">Δ</div>
+          <div class="step-body"><strong>Diff mode</strong> Enter only what changes from the previous image. Good for light edits like "change the pose".</div>
+        </div>
+        <div class="step">
+          <div class="step-num">EN</div>
+          <div class="step-body"><strong>Direct input</strong> Enter an English prompt directly. No AI translation is performed.</div>
+        </div>
+      </div>
+
+      <p>Generated images are displayed in a carousel at the top of the screen. Swipe horizontally to switch between them.</p>
+    </section>
+
+    <!-- ─── 5. Gallery ─── -->
+    <section id="gallery">
+      <div class="section-eyebrow">Gallery</div>
+      <h2>5. Gallery</h2>
+      <p>All images generated in chat or Photo Mode are saved in the gallery. Press the <span class="btn-demo">🖼</span> button in the header to open it.</p>
+
+      <!--
+        Screenshot: Gallery screen
+        <img src="screenshots/XXX.png" alt="Screenshot: Gallery screen" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">Screenshot: Gallery screen</div>
+      </div> -->
+
+      <p>Tap an image to view it full size. Delete unwanted images with the <span class="btn-demo">🗑</span> button in the top right.</p>
+
+      <div class="tip">Gallery images are managed per character. Switching to a different character will show that character's images.</div>
+    </section>
+
+    <!-- ─── 6. Sessions ─── -->
+    <section id="session">
+      <div class="section-eyebrow">Sessions</div>
+      <h2>6. Session Management</h2>
+      <p>NookResonance manages conversations in units called "sessions." Switching sessions lets you enjoy conversations from different timelines.</p>
+
+      <!--
+        Screenshot: Session list panel
+        <img src="screenshots/XXX.png" alt="Screenshot: Session list panel" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">Screenshot: Session list panel</div>
+      </div> -->
+
+      <h3>Starting a New Session</h3>
+      <p>Tap the session name in the header to open the session panel. Create a new one with <span class="btn-demo">＋ New Session</span>.</p>
+
+      <h3>Session Handover</h3>
+      <p>When a session approaches its turn limit, you will be prompted to hand it over. The AI summarizes the session and automatically creates a bridge message to carry into the next session.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body"><strong>Start handover</strong> Press the <span class="btn-demo">Handover</span> button in the session panel.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body"><strong>Review and edit</strong> Check the AI-suggested summary, memories, and opening message for the next session. You can edit them if needed.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body"><strong>Resume in a new session</strong> A new session carrying over the handover content is created automatically.</div>
+        </div>
+      </div>
+
+      <!--
+        Screenshot: Handover confirmation screen
+        <img src="screenshots/XXX.png" alt="Screenshot: Handover confirmation screen" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">Screenshot: Handover confirmation screen</div>
+      </div> -->
+    </section>
+
+    <!-- ─── 7. Advanced ─── -->
+    <section id="advanced">
+      <div class="section-eyebrow">Advanced</div>
+      <h2>7. Advanced Features</h2>
+      <p>Users granted "Advanced" permission by an admin can change detailed image generation settings per character.</p>
+
+      <div class="warn">Changing these settings can significantly alter the style of generated images. If you are unsure, leave the default values as they are.</div>
+
+      <h3>Workflow Settings</h3>
+      <p>When you open the character edit form, a <span class="key">Workflow</span> selector appears at the top. Use it to switch the image generation model and style.</p>
+
+      <!--
+        Screenshot: Character edit form (advanced fields)
+        <img src="screenshots/XXX.png" alt="Screenshot: Character edit form (advanced fields)" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">Screenshot: Character edit form (advanced fields)</div>
+      </div> -->
+
+      <h3>LoRA Settings</h3>
+      <p>Below the workflow selector there is a <span class="key">LoRA</span> settings section. Add LoRAs to reinforce a specific style or character.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body"><strong>Choose a LoRA</strong> Select a LoRA file from the dropdown.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body"><strong>Set strength</strong> Adjust model strength and CLIP strength with sliders (typically 0.7–1.0 is a good range).</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body"><strong>Save</strong> Press <span class="btn-demo">Save</span> at the bottom of the form to confirm.</div>
+        </div>
+      </div>
+
+      <h3>Quality Tags / Negative Prompt</h3>
+      <p>You can set quality enhancement tags and negative prompts (elements to exclude) per character.</p>
+
+      <div class="tip">Quality Tags typically contain image quality boosters like <code>masterpiece, best quality,</code>. Negative Prompt typically contains tags to exclude low quality output like <code>worst quality, blurry,</code>.</div>
+    </section>
+
+    <!-- ─── 8. Account Settings ─── -->
+    <section id="account">
+      <div class="section-eyebrow">Account</div>
+      <h2>8. Account Settings</h2>
+
+      <h3>Change Your Password</h3>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body"><strong>Open Settings</strong> Press the <span class="btn-demo">⚙</span> button in the header.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body"><strong>Choose "Change Password"</strong> The "Change Password" section is inside the settings panel.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body"><strong>Enter your current and new password, then save</strong> The new password takes effect from your next login.</div>
+        </div>
+      </div>
+
+      <!--
+        Screenshot: Change password form
+        <img src="screenshots/XXX.png" alt="Screenshot: Change password form" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">Screenshot: Change password form</div>
+      </div> -->
+
+      <div class="warn">Passwords cannot be viewed by anyone, including admins. If you forget yours, ask your admin to reset it.</div>
+    </section>
+
+  </main>
+</div>
+
+</body>
+</html>
