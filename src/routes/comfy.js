@@ -5,6 +5,7 @@ const crypto  = require('crypto');
 const { getDb } = require('../db');
 const { authMiddleware } = require('../auth');
 const { lookupBuiltin } = require('../builtinWorkflows');
+const logger = require('../logger');
 
 const router = express.Router();
 router.use(authMiddleware);
@@ -231,6 +232,14 @@ router.post('/generate', async (req, res) => {
   }
 
   // ComfyUI にサブミット
+  const genStart = Date.now();
+  logger.info('IMAGE_GEN_START', {
+    user_id:  req.user.id,
+    username: req.user.username,
+    char_id:  req.body.char_id ?? null,
+    workflow: req.body.workflow_id ?? null,
+  });
+
   let promptId;
   try {
     const resp = await fetch(`${comfyUrl}/prompt`, {
@@ -241,12 +250,32 @@ router.post('/generate', async (req, res) => {
     });
     if (!resp.ok) {
       const txt = await resp.text().catch(() => '');
+      logger.error('IMAGE_GEN_ERROR', {
+        user_id:    req.user.id,
+        username:   req.user.username,
+        error:      `ComfyUI HTTP ${resp.status}`,
+        elapsed_ms: Date.now() - genStart,
+      });
       return res.status(502).json({ error: `ComfyUI エラー (${resp.status}): ${txt.slice(0, 80)}` });
     }
     const data = await resp.json();
-    if (data.error) return res.status(502).json({ error: 'ワークフローエラー: ' + JSON.stringify(data.error).slice(0, 80) });
+    if (data.error) {
+      logger.error('IMAGE_GEN_ERROR', {
+        user_id:    req.user.id,
+        username:   req.user.username,
+        error:      'workflow error: ' + JSON.stringify(data.error).slice(0, 80),
+        elapsed_ms: Date.now() - genStart,
+      });
+      return res.status(502).json({ error: 'ワークフローエラー: ' + JSON.stringify(data.error).slice(0, 80) });
+    }
     promptId = data.prompt_id;
   } catch(e) {
+    logger.error('IMAGE_GEN_ERROR', {
+      user_id:    req.user?.id ?? null,
+      username:   req.user?.username ?? null,
+      error:      e.message,
+      elapsed_ms: Date.now() - genStart,
+    });
     if (e.name === 'TimeoutError' || e.name === 'AbortError') {
       return res.status(504).json({ error: `ComfyUI への接続がタイムアウトしました (${comfyUrl})` });
     }
@@ -259,8 +288,22 @@ router.post('/generate', async (req, res) => {
   try {
     imgInfo = await pollForResult(comfyUrl, promptId, timeoutMs);
   } catch(e) {
+    logger.error('IMAGE_GEN_ERROR', {
+      user_id:    req.user?.id ?? null,
+      username:   req.user?.username ?? null,
+      error:      e.message,
+      elapsed_ms: Date.now() - genStart,
+    });
     return res.status(504).json({ error: e.message });
   }
+
+  logger.info('IMAGE_GEN_DONE', {
+    user_id:    req.user.id,
+    username:   req.user.username,
+    char_id:    req.body.char_id ?? null,
+    workflow:   req.body.workflow_id ?? null,
+    elapsed_ms: Date.now() - genStart,
+  });
 
   const imageUrl = `${comfyUrl}/view?filename=${encodeURIComponent(imgInfo.filename)}&subfolder=${encodeURIComponent(imgInfo.subfolder || '')}&type=output`;
   res.json({ imageUrl, meta });

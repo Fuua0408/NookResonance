@@ -3,6 +3,7 @@
 const express = require('express');
 const { getDb } = require('../db');
 const { authMiddleware } = require('../auth');
+const logger = require('../logger');
 
 const router = express.Router();
 router.use(authMiddleware);
@@ -96,6 +97,12 @@ router.post('/:char_id', (req, res) => {
   );
 
   pruneOldSessions(db, char_id, req.user.id, sessionLimit);
+  logger.info('SESSION_START', {
+    user_id:    req.user.id,
+    username:   req.user.username,
+    char_id:    parseInt(req.params.char_id),
+    session_id: result.lastInsertRowid,
+  });
   res.status(201).json({ ok: true, id: result.lastInsertRowid });
 });
 
