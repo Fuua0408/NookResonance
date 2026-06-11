@@ -8,11 +8,32 @@ const { lookupBuiltin } = require('../builtinWorkflows');
 const logger = require('../logger');
 
 const router = express.Router();
-router.use(authMiddleware);
 
 function getComfyUrl() {
   return (process.env.COMFY_URL || 'http://127.0.0.1:8188').replace(/\/$/, '');
 }
+
+// ─── GET /api/comfy/image-proxy (no auth — browser <img> tags can't send Bearer) ──
+router.get('/image-proxy', async (req, res) => {
+  const { filename, subfolder, type } = req.query;
+  if (!filename) return res.status(400).end();
+
+  const comfyUrl = getComfyUrl();
+  const upstream = `${comfyUrl}/view?filename=${encodeURIComponent(filename)}&subfolder=${encodeURIComponent(subfolder || '')}&type=${encodeURIComponent(type || 'output')}`;
+
+  try {
+    const resp = await fetch(upstream, { signal: AbortSignal.timeout(30000) });
+    if (!resp.ok) return res.status(resp.status).end();
+
+    res.setHeader('Content-Type', resp.headers.get('content-type') || 'image/png');
+    const buf = await resp.arrayBuffer();
+    res.send(Buffer.from(buf));
+  } catch {
+    res.status(502).end();
+  }
+});
+
+router.use(authMiddleware);
 
 // ─── LoRA injection ─────────────────────────────────────────────────────────
 function injectLoRAs(json, map, loras) {
@@ -307,27 +328,6 @@ router.post('/generate', async (req, res) => {
 
   const imageUrl = `/api/comfy/image-proxy?filename=${encodeURIComponent(imgInfo.filename)}&subfolder=${encodeURIComponent(imgInfo.subfolder || '')}&type=output`;
   res.json({ imageUrl, meta });
-});
-
-// ─── GET /api/comfy/image-proxy ─────────────────────────────────────────────
-router.get('/image-proxy', async (req, res) => {
-  const { filename, subfolder, type } = req.query;
-  if (!filename) return res.status(400).end();
-
-  const comfyUrl = getComfyUrl();
-  const upstream = `${comfyUrl}/view?filename=${encodeURIComponent(filename)}&subfolder=${encodeURIComponent(subfolder || '')}&type=${encodeURIComponent(type || 'output')}`;
-
-  try {
-    const resp = await fetch(upstream, { signal: AbortSignal.timeout(30000) });
-    if (!resp.ok) return res.status(resp.status).end();
-
-    const contentType = resp.headers.get('content-type') || 'image/png';
-    res.setHeader('Content-Type', contentType);
-    const buf = await resp.arrayBuffer();
-    res.send(Buffer.from(buf));
-  } catch {
-    res.status(502).end();
-  }
 });
 
 // ─── GET /api/comfy/samplers ─────────────────────────────────────────────────
