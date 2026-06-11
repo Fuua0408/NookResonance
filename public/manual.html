@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NookResonance — 使い方ガイド</title>
+<style>
+  :root {
+    --bg: #faf9f7;
+    --surface: #ffffff;
+    --border: #e5e3dc;
+    --text: #1c1b18;
+    --muted: #6b6960;
+    --accent: #534AB7;
+    --accent-bg: #EEEDFE;
+    --accent-text: #3C3489;
+    --tip-bg: #E1F5EE;
+    --tip-text: #0F6E56;
+    --tip-border: #5DCAA5;
+    --warn-bg: #FAEEDA;
+    --warn-text: #854F0B;
+    --warn-border: #EF9F27;
+    --tag-bg: #EEEDFE;
+    --tag-text: #3C3489;
+    --font: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Meiryo', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 15px;
+    line-height: 1.75;
+    padding: 0 0 80px;
+  }
+
+  /* ─── Header ─── */
+  .site-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 28px 40px 24px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .site-header h1 {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: var(--accent);
+  }
+  .site-header p {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* ─── Layout ─── */
+  .layout {
+    display: flex;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 40px 24px 0;
+    gap: 40px;
+    align-items: flex-start;
+  }
+
+  /* ─── TOC ─── */
+  .toc {
+    width: 200px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 88px;
+    font-size: 13px;
+  }
+  .toc-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .toc ol {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .toc a {
+    display: block;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 5px 8px;
+    border-radius: 6px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .toc a:hover { background: var(--accent-bg); color: var(--accent-text); }
+
+  /* ─── Content ─── */
+  .content { flex: 1; min-width: 0; }
+
+  section { margin-bottom: 56px; scroll-margin-top: 100px; }
+
+  .section-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  section > h2 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.4px;
+    color: var(--text);
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 24px 0 10px;
+  }
+  p { margin-bottom: 12px; color: var(--text); }
+  p:last-child { margin-bottom: 0; }
+
+  /* ─── Image placeholder ─── */
+  .img-placeholder {
+    background: var(--surface);
+    border: 1.5px dashed var(--border);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 32px 20px;
+    margin: 16px 0;
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+  }
+  .img-placeholder .icon { font-size: 28px; }
+  .img-placeholder .label { font-weight: 500; font-size: 13px; color: var(--muted); }
+  .img-placeholder img {
+    width: 100%;
+    border-radius: 8px;
+    display: block;
+  }
+
+  /* ─── Step list ─── */
+  .steps { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
+  .step {
+    display: flex;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .step:last-child { border-bottom: none; }
+  .step-num {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--accent-bg);
+    color: var(--accent-text);
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .step-body { flex: 1; }
+  .step-body strong { font-weight: 600; display: block; margin-bottom: 2px; }
+
+  /* ─── Tips / Warnings ─── */
+  .tip, .warn {
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 14px;
+    margin: 16px 0;
+    border-left: 3px solid;
+  }
+  .tip { background: var(--tip-bg); color: var(--tip-text); border-color: var(--tip-border); }
+  .warn { background: var(--warn-bg); color: var(--warn-text); border-color: var(--warn-border); }
+
+  /* ─── Tag / Key ─── */
+  .key {
+    display: inline-block;
+    background: var(--tag-bg);
+    color: var(--tag-text);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 5px;
+    vertical-align: middle;
+  }
+  .btn-demo {
+    display: inline-block;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px 10px;
+    font-size: 13px;
+    color: var(--text);
+    font-family: var(--font);
+    font-weight: 500;
+    vertical-align: middle;
+  }
+
+  /* ─── Feature card row ─── */
+  .feature-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .feature-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .feature-card .fc-icon { font-size: 22px; margin-bottom: 6px; }
+  .feature-card .fc-title { font-weight: 600; font-size: 14px; }
+  .feature-card .fc-desc { font-size: 13px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+
+  /* ─── Code-like ─── */
+  code {
+    background: #f0ede6;
+    color: #3C3489;
+    font-family: 'SF Mono', 'Consolas', monospace;
+    font-size: 13px;
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+
+  /* ─── Responsive ─── */
+  @media (max-width: 700px) {
+    .layout { flex-direction: column; padding: 24px 16px 0; }
+    .toc { display: none; }
+    .site-header { padding: 18px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <h1>NookResonance 使い方ガイド</h1>
+  <p>キャラクターと過ごすための、はじめの一歩</p>
+</header>
+
+<div class="layout">
+
+  <nav class="toc" aria-label="目次">
+    <div class="toc-title">目次</div>
+    <ol>
+      <li><a href="#login">1. ログイン</a></li>
+      <li><a href="#create-char">2. キャラクターを作る</a></li>
+      <li><a href="#chat">3. チャットの基本</a></li>
+      <li><a href="#photo">4. フォトモード</a></li>
+      <li><a href="#gallery">5. ギャラリー</a></li>
+      <li><a href="#session">6. セッション管理</a></li>
+      <li><a href="#advanced">7. 上級者向け機能</a></li>
+      <li><a href="#account">8. アカウント設定</a></li>
+    </ol>
+  </nav>
+
+  <main class="content">
+
+    <!-- ─── 1. ログイン ─── -->
+    <section id="login">
+      <div class="section-eyebrow">はじめに</div>
+      <h2>1. ログイン</h2>
+      <p>ブラウザでサーバーのURLを開くと、ログイン画面が表示されます。管理者から教えてもらったユーザー名とパスワードを入力して <span class="btn-demo">ログイン</span> を押してください。</p>
+
+      <!--
+        スクリーンショット: ログイン画面
+        <img src="screenshots/XXX.png" alt="スクリーンショット: ログイン画面" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">スクリーンショット: ログイン画面</div>
+      </div> -->
+
+      <div class="tip">ログインは30日間保持されます。同じブラウザ・端末であれば次回から自動でログインした状態になります。</div>
+    </section>
+
+    <!-- ─── 2. キャラクター作成 ─── -->
+    <section id="create-char">
+      <div class="section-eyebrow">キャラクター</div>
+      <h2>2. キャラクターを作る</h2>
+      <p>チャットを始めるには、まずキャラクターを作る必要があります。2つの方法があります。</p>
+
+      <div class="feature-row">
+        <div class="feature-card">
+          <div class="fc-icon">✨</div>
+          <div class="fc-title">ウィザードで作る</div>
+          <div class="fc-desc">AIと会話しながらキャラクターを決めていく初心者向けの方法。</div>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon">✏️</div>
+          <div class="fc-title">直接入力（上級者）</div>
+          <div class="fc-desc">名前・性格・外見などをフォームに直接入力する方法。</div>
+        </div>
+      </div>
+
+      <h3>ウィザードで作る</h3>
+      <p>画面下部のキャラクター選択ボタンを押すと、キャラクター一覧が開きます。<span class="btn-demo">✨ ウィザードで作成</span> を押してください。</p>
+
+      <!--
+        スクリーンショット: キャラクター一覧とウィザードボタン
+        <img src="screenshots/XXX.png" alt="スクリーンショット: キャラクター一覧とウィザードボタン" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">スクリーンショット: キャラクター一覧とウィザードボタン</div>
+      </div> -->
+
+      <p>ウィザードが起動すると、AIがあなたに質問してきます。性別・性格・外見・服装・いる場所を順番に答えていくと、キャラクターが自動で作成されます。</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body"><strong>性別を選ぶ</strong>ボタンをタップして選択します。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body"><strong>性格・外見などを答える</strong>テキストで自由に入力します。うまく伝わらなければAIが再度聞いてくれます。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body"><strong>完成</strong>画像が生成され、キャラクターが登録されます。そのままチャットを始められます。</div>
+        </div>
+      </div>
+
+      <!--
+        スクリーンショット: ウィザード画面（会話中）
+        <img src="screenshots/XXX.png" alt="スクリーンショット: ウィザード画面（会話中）" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">スクリーンショット: ウィザード画面（会話中）</div>
+      </div> -->
+
+      <div class="tip">ウィザード完了後にチュートリアルを始めることができます。初めての方はぜひ試してみてください。</div>
+
+      <h3>直接入力で作る（上級者）</h3>
+      <p>キャラクター一覧で <span class="btn-demo">✏ 直接入力（上級者）</span> を選ぶか、既存キャラクターを1回タップすると編集フォームが開きます。名前・性格・外見・口調などを直接入力できます。</p>
+
+      <!--
+        スクリーンショット: キャラクター編集フォーム
+        <img src="screenshots/XXX.png" alt="スクリーンショット: キャラクター編集フォーム" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">スクリーンショット: キャラクター編集フォーム</div>
+      </div> -->
+
+      <div class="warn">
+        <strong>外見欄はEN変換が必要です</strong><br>
+        「外見（体型・特徴）」「外見（服装）」の欄は日本語で入力した後、欄の横にある <span class="btn-demo">EN変換</span> ボタンを押してください。AIが画像生成用の英語プロンプトに変換します。変換しないと画像生成に外見の情報が反映されません。
+      </div>
+
+      <!--
+        スクリーンショット: 外見欄とEN変換ボタン
+        <img src="screenshots/XXX.png" alt="スクリーンショット: 外見欄とEN変換ボタン" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">スクリーンショット: 外見欄とEN変換ボタン</div>
+      </div> -->
+
+      <h3>キャラクター設定の書き方</h3>
+      <p>「性格」などの欄は自由記述ですが、<code>&lt;タグ名=内容&gt;</code> 形式を使うと、AIがキャラクターの設定をより正確に把握しやすくなります。また <code>{{user}}</code> と書くとログイン中のユーザー名に自動で置き換わります。</p>
+      <div class="tip" style="font-family: 'SF Mono','Consolas',monospace; font-size:13px; line-height:2.1;">
+        性格欄の例：<br>
+        <code>&lt;性格=天真爛漫&gt;</code><br>
+        <code>&lt;好き=魔法を使うこと&gt;</code><br>
+        <code>&lt;場所=森の小屋&gt;</code><br>
+        <code>&lt;身体の特徴=くすぐったがり&gt;</code><br>
+        <code>&lt;設定=両親は他界しており、天涯孤独のため、人懐っこいが寂しがり&gt;</code><br><br>
+        最初のメッセージ欄の例：<br>
+        <code>{{user}}、来てくれたんだね！私はマホ！魔法使いだよ！</code>
+      </div>
+      <p>タグは自由に増やせます。「短く・具体的に」書くのがコツです。</p>
+    </section>
+
+    <!-- ─── 3. チャット ─── -->
+    <section id="chat">
+      <div class="section-eyebrow">チャット</div>
+      <h2>3. チャットの基本</h2>
+      <p>キャラクターを選択するとチャット画面になります。下部の入力欄にメッセージを入力し、<span class="btn-demo">送信 ▶</span> を押すと会話が始まります。</p>
+
+      <!--
+        スクリーンショット: チャット画面全体
+        <img src="screenshots/XXX.png" alt="スクリーンショット: チャット画面全体" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">スクリーンショット: チャット画面全体</div>
+      </div> -->
+
+      <h3>状況・地の文を書く</h3>
+      <p>メッセージの中で <code>*～*</code> で囲んだ部分は、セリフではなく「状況描写・地の文」として扱われます。AIがキャラクターとして自然に受け取ってくれます。</p>
+      <div class="tip" style="font-family: 'SF Mono','Consolas',monospace; font-size:14px; line-height:2;">
+        例：<br>
+        <code>*部屋のドアをノックする*</code><br>
+        <code>*外は雨が降り始めていた*</code><br>
+        <code>ねえ、*手を握りながら*いっしょにいてくれる？</code>
+      </div>
+
+      <h3>画像生成のオン・オフ</h3>
+      <p>入力欄の上に <span class="btn-demo">🎨 生成あり</span> / <span class="btn-demo">💬 会話のみ</span> のボタンがあります。押すと切り替えられます。「会話のみ」にすると画像生成なしでテキストだけやり取りできます。</p>
+
+      <!--
+        スクリーンショット: 画像生成トグルボタン
+        <img src="screenshots/XXX.png" alt="スクリーンショット: 画像生成トグルボタン" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">スクリーンショット: 画像生成トグルボタン</div>
+      </div> -->
+
+      <h3>キャラ主導モード</h3>
+      <p><span class="btn-demo">🎭</span> ボタンを押すと「キャラ主導モード」になります。キャラクターが自分から話しかけたり行動したりする、より積極的な会話になります。もう一度押すと解除されます。</p>
+
+      <h3>USERフォーカス</h3>
+      <p><span class="btn-demo">👤</span> ボタンを押すと「USERフォーカス」モードになります。生成される画像があなた自身の外見を主体にしたものになります。</p>
+
+      <h3>メッセージの操作</h3>
+      <p>チャット画面のメッセージを長押し（またはPC右クリック）するとメニューが表示されます。</p>
+      <div class="feature-row">
+        <div class="feature-card">
+          <div class="fc-icon">✏️</div>
+          <div class="fc-title">返答を編集</div>
+          <div class="fc-desc">キャラクターの返答を直接書き直せます。</div>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon">🔄</div>
+          <div class="fc-title">再生成</div>
+          <div class="fc-desc">キャラクターの反応をもう一度生成します。</div>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon">🌿</div>
+          <div class="fc-title">ここから分岐</div>
+          <div class="fc-desc">そのターンから別の展開を試せます。</div>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon">🗑️</div>
+          <div class="fc-title">削除</div>
+          <div class="fc-desc">このターンを削除します。</div>
+        </div>
+      </div>
+
+      <!--
+        スクリーンショット: メッセージ長押しメニュー
+        <img src="screenshots/XXX.png" alt="スクリーンショット: メッセージ長押しメニュー" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">スクリーンショット: メッセージ長押しメニュー</div>
+      </div> -->
+
+      <h3>画像の操作（右クリック・長押し）</h3>
+      <p>チャットの画像を右クリック（スマホは長押し）すると、画像専用のメニューが表示されます。</p>
+      <div class="feature-row">
+        <div class="feature-card">
+          <div class="fc-icon">📋</div>
+          <div class="fc-title">プロンプトを確認</div>
+          <div class="fc-desc">その画像を生成したときの日本語・英語プロンプトを確認できます。コピーも可能。</div>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon">✏️</div>
+          <div class="fc-title">プロンプトを直接修正</div>
+          <div class="fc-desc">英語プロンプトを手動で書き換えて再生成できます。プレビューで確認してから差し替えることも可能。</div>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon">⚓</div>
+          <div class="fc-title">アンカーを設定する</div>
+          <div class="fc-desc">この画像を差分生成のベースとして固定します（後述）。</div>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon">🔄</div>
+          <div class="fc-title">再推論して再生成</div>
+          <div class="fc-desc">プロンプトをAIが再計算し、画像を再生成します。</div>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon">🎲</div>
+          <div class="fc-title">新Seedで再生成</div>
+          <div class="fc-desc">同じプロンプトのまま、乱数（Seed）だけ変えて別パターンを生成します。</div>
+        </div>
+      </div>
+
+      <!--
+        スクリーンショット: 画像右クリックメニュー
+        <img src="screenshots/XXX.png" alt="スクリーンショット: 画像右クリックメニュー" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">スクリーンショット: 画像右クリックメニュー</div>
+      </div> -->
+
+      <h3>アンカーと差分生成</h3>
+      <p>「アンカー」とは、差分生成のベースになる画像のことです。アンカーを設定すると、次の画像生成では「アンカーの英語プロンプトをベースに、入力した変化点だけを上乗せ」して生成します。服装だけ変えたい、表情だけ変えたいといった微調整に便利です。</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body"><strong>アンカーを設定する</strong>ベースにしたい画像を右クリック →「⚓ アンカーを設定する」を選ぶか、入力欄の <span class="btn-demo">⚓</span> ボタンを押して画像をタップします。設定されるとボタンがアクティブ表示になります。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body"><strong>変化点だけ入力して送信する</strong>「右手に花を持っている」など変化させたい内容だけ入力します。アンカーのプロンプトに変化点が合成されて生成されます。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body"><strong>アンカーを解除する</strong><span class="btn-demo">⚓</span> ボタンをもう一度押すと解除できます。解除後は通常の生成に戻ります。</div>
+        </div>
+      </div>
+
+      <div class="tip">フォトモードの「🔄 差分」タブは、アンカーを設定しなくても直前の画像を自動でベースにして差分生成します。細かい連続修正を続けたいときはフォトモードの差分タブが便利です。</div>
+
+      <!--
+        スクリーンショット: アンカー設定中の状態（⚓ボタンがアクティブ）
+        <img src="screenshots/XXX.png" alt="スクリーンショット: アンカー設定中の状態（⚓ボタンがアクティブ）" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">スクリーンショット: アンカー設定中の状態（⚓ボタンがアクティブ）</div>
+      </div> -->
+    </section>
+
+    <!-- ─── 4. フォトモード ─── -->
+    <section id="photo">
+      <div class="section-eyebrow">フォト</div>
+      <h2>4. フォトモード</h2>
+      <p>フォトモードは、チャットではなく画像生成に集中するモードです。入力欄左の <span class="btn-demo">📷</span> ボタンを押すと開始できます。</p>
+
+      <!--
+        スクリーンショット: フォトモード画面
+        <img src="screenshots/XXX.png" alt="スクリーンショット: フォトモード画面" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">スクリーンショット: フォトモード画面</div>
+      </div> -->
+
+      <p>入力欄の上部に3つのモードタブがあります。</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">訳</div>
+          <div class="step-body"><strong>翻訳モード</strong>日本語でシーンを入力すると、AIが英語のプロンプトに翻訳して生成します。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">差</div>
+          <div class="step-body"><strong>差分モード</strong>前の画像からの変化だけを入力します。「ポーズを変えて」のような軽い修正向け。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">EN</div>
+          <div class="step-body"><strong>直接入力</strong>英語のプロンプトをそのまま入力します。AIによる翻訳は行われません。</div>
+        </div>
+      </div>
+
+      <p>生成した画像は画面上部のカルーセルに並びます。横スワイプで切り替えられます。</p>
+    </section>
+
+    <!-- ─── 5. ギャラリー ─── -->
+    <section id="gallery">
+      <div class="section-eyebrow">ギャラリー</div>
+      <h2>5. ギャラリー</h2>
+      <p>チャットやフォトモードで生成した画像は、ギャラリーにすべて保存されています。ヘッダーの <span class="btn-demo">🖼</span> ボタンを押すと開きます。</p>
+
+      <!--
+        スクリーンショット: ギャラリー画面
+        <img src="screenshots/XXX.png" alt="スクリーンショット: ギャラリー画面" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">スクリーンショット: ギャラリー画面</div>
+      </div> -->
+
+      <p>画像をタップすると大きく表示されます。不要な画像は右上の <span class="btn-demo">🗑</span> ボタンで削除できます。</p>
+
+      <div class="tip">ギャラリーの画像は選択中のキャラクターごとに管理されています。キャラクターを切り替えると表示される画像も変わります。</div>
+    </section>
+
+    <!-- ─── 6. セッション ─── -->
+    <section id="session">
+      <div class="section-eyebrow">セッション</div>
+      <h2>6. セッション管理</h2>
+      <p>NookResonanceでは会話を「セッション」という単位で管理します。セッションを切り替えると、別の時間軸の会話を楽しめます。</p>
+
+      <!--
+        スクリーンショット: セッション一覧パネル
+        <img src="screenshots/XXX.png" alt="スクリーンショット: セッション一覧パネル" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">スクリーンショット: セッション一覧パネル</div>
+      </div> -->
+
+      <h3>新しいセッションを始める</h3>
+      <p>ヘッダーのセッション名をタップするとセッションパネルが開きます。<span class="btn-demo">＋ 新しいセッション</span> で新規作成できます。</p>
+
+      <h3>セッションの引き継ぎ</h3>
+      <p>セッションが一定のターン数に近づくと、引き継ぎを促されます。引き継ぎを行うと、AIがセッションの内容を要約し、次のセッションへの橋渡しメッセージを自動で作ってくれます。</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body"><strong>引き継ぎを開始</strong>セッションパネルの <span class="btn-demo">引き継ぎ</span> ボタンを押します。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body"><strong>内容を確認・編集</strong>AIが提案した要約・記憶・次回オープニングメッセージを確認します。必要であれば編集できます。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body"><strong>新セッションで再開</strong>引き継ぎ内容を引き継いだ新しいセッションが自動で作られます。</div>
+        </div>
+      </div>
+
+      <!--
+        スクリーンショット: 引き継ぎ確認画面
+        <img src="screenshots/XXX.png" alt="スクリーンショット: 引き継ぎ確認画面" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">スクリーンショット: 引き継ぎ確認画面</div>
+      </div> -->
+    </section>
+
+    <!-- ─── 7. 上級者向け ─── -->
+    <section id="advanced">
+      <div class="section-eyebrow">上級者向け</div>
+      <h2>7. 上級者向け機能</h2>
+      <p>管理者から「上級者」権限を付与されたユーザーは、キャラクターごとに画像生成の詳細設定を変更できます。</p>
+
+      <div class="warn">この設定を変更すると生成される画像の雰囲気が大きく変わることがあります。よくわからない場合はデフォルト値のままにしておくことをおすすめします。</div>
+
+      <h3>ワークフローの設定</h3>
+      <p>キャラクター編集フォームを開くと、上部に <span class="key">ワークフロー</span> の選択欄が表示されます。使用する画像生成モデル・スタイルをここで切り替えられます。</p>
+
+      <!--
+        スクリーンショット: キャラクター編集フォーム（上級者項目）
+        <img src="screenshots/XXX.png" alt="スクリーンショット: キャラクター編集フォーム（上級者項目）" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">スクリーンショット: キャラクター編集フォーム（上級者項目）</div>
+      </div> -->
+
+      <h3>LoRA設定</h3>
+      <p>ワークフロー選択の下に <span class="key">LoRA</span> の設定欄があります。特定のスタイルや人物を強化するLoRAを追加できます。</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body"><strong>LoRAを選ぶ</strong>ドロップダウンからLoRAファイルを選択します。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body"><strong>強度を設定する</strong>モデル強度・CLIP強度をスライダーで調整します（通常は0.7〜1.0が目安）。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body"><strong>保存する</strong>フォーム下部の <span class="btn-demo">保存</span> を押して確定します。</div>
+        </div>
+      </div>
+
+      <h3>Quality Tags / Negative Prompt</h3>
+      <p>生成品質に関するタグや、生成してほしくない要素（ネガティブプロンプト）をキャラクターごとに設定できます。</p>
+
+      <div class="tip">Quality Tags は <code>masterpiece, best quality, </code> のような画質向上タグを入れるのが一般的です。Negative には <code>worst quality, blurry, </code> のような低品質を除外するタグを入れます。</div>
+    </section>
+
+    <!-- ─── 8. アカウント設定 ─── -->
+    <section id="account">
+      <div class="section-eyebrow">アカウント</div>
+      <h2>8. アカウント設定</h2>
+
+      <h3>パスワードを変更する</h3>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body"><strong>設定を開く</strong>ヘッダーの <span class="btn-demo">⚙</span> ボタンを押します。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body"><strong>「パスワード変更」を選ぶ</strong>設定パネルの中に「パスワード変更」の欄があります。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body"><strong>現在のパスワードと新しいパスワードを入力して保存</strong>変更が完了したら次回ログインから新しいパスワードが有効になります。</div>
+        </div>
+      </div>
+
+      <!--
+        スクリーンショット: パスワード変更フォーム
+        <img src="screenshots/XXX.png" alt="スクリーンショット: パスワード変更フォーム" class="img-placeholder">
+      -->
+      <!-- <div class="img-placeholder">
+        <div class="icon">🖼</div>
+        <div class="label">スクリーンショット: パスワード変更フォーム</div>
+      </div> -->
+
+      <div class="warn">パスワードは管理者でも確認できません。忘れた場合は管理者に再発行を依頼してください。</div>
+    </section>
+
+  </main>
+</div>
+
+</body>
+</html>
