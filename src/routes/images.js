@@ -13,9 +13,6 @@ router.use(authMiddleware);
 const THUMB_SIZE = 200;
 const COMFY_APP_SUBFOLDER = 'nookresonance';
 
-function getComfySettings() {
-  return { comfyUrl: (process.env.COMFY_URL || '').replace(/\/$/, '') };
-}
 
 function getCacheDir(userId, charId) {
   return path.join('data', 'cache', String(userId), String(charId), 'thumbs');
@@ -44,9 +41,9 @@ function listSourceImages(userId, charId) {
     .map(f => ({ basename: f, srcPath: path.join(charDir, f) }));
 }
 
-function buildComfyViewUrl(comfyUrl, userId, charId, basename) {
+function buildComfyViewUrl(userId, charId, basename) {
   const subfolder = `${COMFY_APP_SUBFOLDER}/${userId}/${charId}`;
-  return `${comfyUrl}/view?filename=${encodeURIComponent(basename)}&subfolder=${encodeURIComponent(subfolder)}&type=output`;
+  return `/api/comfy/image-proxy?filename=${encodeURIComponent(basename)}&subfolder=${encodeURIComponent(subfolder)}&type=output`;
 }
 
 async function generateThumb(srcPath, thumbPath) {
@@ -89,7 +86,6 @@ router.get('/:char_id', async (req, res) => {
   const db = getDb();
   if (!ownsChar(db, char_id, req.user.id)) return res.status(404).json({ error: 'Not found' });
 
-  const { comfyUrl } = getComfySettings();
   const thumbsDir = getCacheDir(req.user.id, char_id);
   const metaPath = getMetaPath(req.user.id, char_id);
   const meta = readMeta(metaPath);
@@ -109,12 +105,12 @@ router.get('/:char_id', async (req, res) => {
 
     const thumbUrl = fs.existsSync(thumbPath)
       ? `/api/images/cache/${char_id}/thumbs/${stem}.jpg`
-      : buildComfyViewUrl(comfyUrl, req.user.id, char_id, img.basename);
+      : buildComfyViewUrl(req.user.id, char_id, img.basename);
 
     list.push({
       filename: img.basename,
       thumb_url: thumbUrl,
-      image_url: buildComfyViewUrl(comfyUrl, req.user.id, char_id, img.basename),
+      image_url: buildComfyViewUrl(req.user.id, char_id, img.basename),
     });
   }
 
