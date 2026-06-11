@@ -16,7 +16,8 @@ const workflowRoutes = require('./routes/workflows');
 const settingsRoutes = require('./routes/settings');
 const imageRoutes = require('./routes/images');
 const llmRoutes   = require('./routes/llm');
-const comfyRoutes = require('./routes/comfy');
+const comfyRoutes   = require('./routes/comfy');
+const uploadsRoutes = require('./routes/uploads');
 
 const app = express();
 const PORT = process.env.PORT || 18090;
@@ -36,7 +37,8 @@ app.use('/api/workflows', workflowRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/llm',   llmRoutes);
-app.use('/api/comfy', comfyRoutes);
+app.use('/api/comfy',   comfyRoutes);
+app.use('/api/uploads', uploadsRoutes);
 
 // API fallback must stay JSON; otherwise the SPA fallback returns HTML to fetch().
 app.use('/api', (req, res) => {

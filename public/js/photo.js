@@ -128,6 +128,11 @@ function updatePhotoUI() {
     btn.textContent = inPhoto ? t('chat.send_photo', '📷 生成') : t('chat.send', '送信 ▶');
   }
 
+  // 画像添付ボタン：フォトモード中は非表示
+  const btnAttach = document.getElementById('btnAttachImage');
+  if (btnAttach) btnAttach.style.display = inPhoto ? 'none' : '';
+  if (inPhoto && typeof clearAttachedImage === 'function') clearAttachedImage();
+
   // カルーセルを再描画
   if (inPhoto) renderPhotoCarousel();
 }
