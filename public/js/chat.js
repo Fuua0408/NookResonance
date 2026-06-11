@@ -3,6 +3,25 @@
    チャットUI・ターン操作・コンテキストメニュー・スクロール
    ═════════════════════════════════════════════ */
 
+// 直接ComfyUI URLをバックエンドプロキシ経由のURLに変換する
+// 保存済みの http://IP:PORT/view?... を /api/comfy/image-proxy?... に正規化
+function normalizeComfyUrl(url) {
+  if (!url) return url;
+  if (url.startsWith('/') || url.startsWith('blob:') || url.startsWith('data:')) return url;
+  try {
+    const u = new URL(url);
+    if (u.pathname === '/view' && u.searchParams.has('filename')) {
+      const params = new URLSearchParams({
+        filename: u.searchParams.get('filename'),
+        subfolder: u.searchParams.get('subfolder') || '',
+        type: u.searchParams.get('type') || 'output',
+      });
+      return `/api/comfy/image-proxy?${params}`;
+    }
+  } catch { /* pass */ }
+  return url;
+}
+
 async function _chatSubmitTurnOrig() {
   if (isGenerating) { showToast(t('chat.generating', '生成中です')); return; }
   if (!activeChar)  { showToast(t('chat.no_char', 'キャラクターを選択してください')); openCharModal(); return; }
@@ -189,8 +208,9 @@ function appendImageToLog(imageUrl, turnIdx = null) {
     div.dataset.turnIdx = turnIdx;
     bindImageContext(div, turnIdx);
   }
-  const escapedUrl = imageUrl.replace(/'/g, "\\'");
-  div.innerHTML = `<img src="${imageUrl}" alt="生成画像" onclick="openLightbox('${escapedUrl}')">`;
+  const proxyUrl = normalizeComfyUrl(imageUrl);
+  const escapedUrl = proxyUrl.replace(/'/g, "\\'");
+  div.innerHTML = `<img src="${proxyUrl}" alt="生成画像" onclick="openLightbox('${escapedUrl}')">`;
   log.appendChild(div);
   scrollLogToBottom();
 }
@@ -866,16 +886,18 @@ function appendImageToLogWithIndex(imageUrl, turnIdx) {
   div.className = 'turn-image';
   div.dataset.turnIdx = turnIdx;
   bindImageContext(div, turnIdx);
-  const escapedUrl = imageUrl.replace(/'/g, "\\'");
-  div.innerHTML = `<img src="${imageUrl}" alt="生成画像" onclick="openLightbox('${escapedUrl}')">`;
+  const proxyUrl = normalizeComfyUrl(imageUrl);
+  const escapedUrl = proxyUrl.replace(/'/g, "\\'");
+  div.innerHTML = `<img src="${proxyUrl}" alt="生成画像" onclick="openLightbox('${escapedUrl}')">`;
   log.appendChild(div);
   scrollLogToBottom();
 }
 function updateTurnImage(turnIdx, newUrl) {
   const div = document.querySelector(`.turn-image[data-turn-idx="${turnIdx}"]`);
   if (!div) return;
-  const escapedUrl = newUrl.replace(/'/g, "\\'");
-  div.innerHTML = `<img src="${newUrl}" alt="生成画像" onclick="openLightbox('${escapedUrl}')">`;
+  const proxyUrl = normalizeComfyUrl(newUrl);
+  const escapedUrl = proxyUrl.replace(/'/g, "\\'");
+  div.innerHTML = `<img src="${proxyUrl}" alt="生成画像" onclick="openLightbox('${escapedUrl}')">`;
 }
 function updateHeaderSession() {
   const el = document.getElementById('headerSession');
