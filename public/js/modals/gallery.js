@@ -63,6 +63,8 @@ function formatGalleryImageCount(count) {
 }
 
 function _renderGallery() {
+  _galleryBlobUrls.forEach(u => URL.revokeObjectURL(u));
+  _galleryBlobUrls = [];
   const body = document.getElementById('galleryBody');
   if (!body) return;
 
@@ -186,6 +188,8 @@ function openGalleryLightbox(idx) {
 }
 
 let _galleryObserver = null;
+let _galleryBlobUrls = [];
+
 function _observeGalleryImg(el, src) {
   if (!src) return;
   if (!_galleryObserver) {
@@ -194,13 +198,17 @@ function _observeGalleryImg(el, src) {
         if (entry.isIntersecting) {
           const img = entry.target;
           if (img.dataset.src) {
-            img.src = img.dataset.src;
-            img.onerror = () => {
-              if (img.src.endsWith('.jpg')) img.src = img.src.replace(/\.jpg$/i, '.png');
-              img.onerror = null;
-            };
+            const url = img.dataset.src;
             delete img.dataset.src;
             _galleryObserver.unobserve(img);
+            fetch(url, { headers: { 'Authorization': `Bearer ${getAuthToken()}` } })
+              .then(r => r.ok ? r.blob() : Promise.reject(r.status))
+              .then(blob => {
+                const u = URL.createObjectURL(blob);
+                _galleryBlobUrls.push(u);
+                img.src = u;
+              })
+              .catch(() => {});
           }
         }
       });
