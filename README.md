@@ -143,6 +143,42 @@ nookresonance/1/12/20260609_223416_0001
 - `/api/llm`: OpenAI互換LLMへのプロキシ
 - `/api/comfy`: ComfyUI生成、Sampler/LoRA取得、グローバルLoRA管理
 
+### ログ仕様
+
+サーバーは winston を使ってコンソールとファイルに構造化ログを出力します。
+
+**出力先**
+
+| ファイル | 対象レベル | ローテーション |
+|---|---|---|
+| `logs/app.log` | info 以上 | 10 MB × 5世代 |
+| `logs/error.log` | error のみ | 5 MB × 3世代 |
+
+`logs/` ディレクトリは `.gitignore` 対象です。
+
+**ログイベント一覧**
+
+| message | level | 発生タイミング | 付属フィールド |
+|---|---|---|---|
+| `LOGIN_OK` | info | ログイン成功・JWT発行後 | `user_id`, `username`, `ip` |
+| `LOGIN_FAIL` | warn | ユーザー不在またはパスワード不一致 | `username`, `ip` |
+| `SESSION_START` | info | 新規セッション作成成功後 | `user_id`, `username`, `char_id`, `session_id` |
+| `IMAGE_GEN_START` | info | ComfyUI へのリクエスト送信直前 | `user_id`, `username`, `char_id`, `workflow` |
+| `IMAGE_GEN_DONE` | info | ComfyUI から画像パスを受け取った後 | `user_id`, `username`, `char_id`, `workflow`, `elapsed_ms` |
+| `IMAGE_GEN_ERROR` | error | ComfyUI 接続エラーまたは生成タイムアウト | `user_id`, `username`, `error`, `elapsed_ms` |
+
+**出力フォーマット（ファイル）**
+
+```json
+{"timestamp":"2026-06-11 14:23:01","level":"info","message":"LOGIN_OK","user_id":3,"username":"alice","ip":"::1"}
+{"timestamp":"2026-06-11 14:25:10","level":"info","message":"SESSION_START","user_id":3,"username":"alice","char_id":7,"session_id":42}
+{"timestamp":"2026-06-11 14:26:18","level":"info","message":"IMAGE_GEN_DONE","user_id":3,"username":"alice","char_id":7,"workflow":"anima","elapsed_ms":18204}
+```
+
+パスワード・JWTトークン・チャット/プロンプト本文はログに含まれません。
+
+---
+
 ### 開発メモ
 
 - フロント更新時にブラウザキャッシュが残る場合は、scriptタグのバージョンやService Worker相当のキャッシュ設定を更新してください。
@@ -283,6 +319,42 @@ The gallery reads images from `COMFY_OUTPUT_DIR` and stores thumbnails under `da
 - `/api/images`: gallery, thumbnail sync, removed-image markers
 - `/api/llm`: proxy to an OpenAI-compatible LLM server
 - `/api/comfy`: ComfyUI generation, sampler/LoRA lookup, global LoRA management
+
+### Logging
+
+The server uses winston to write structured logs to the console and to files.
+
+**Output files**
+
+| File | Level | Rotation |
+|---|---|---|
+| `logs/app.log` | info and above | 10 MB × 5 files |
+| `logs/error.log` | error only | 5 MB × 3 files |
+
+The `logs/` directory is excluded from git.
+
+**Log events**
+
+| message | level | When | Fields |
+|---|---|---|---|
+| `LOGIN_OK` | info | Login succeeded, JWT issued | `user_id`, `username`, `ip` |
+| `LOGIN_FAIL` | warn | User not found or wrong password | `username`, `ip` |
+| `SESSION_START` | info | New session created | `user_id`, `username`, `char_id`, `session_id` |
+| `IMAGE_GEN_START` | info | Before submitting to ComfyUI | `user_id`, `username`, `char_id`, `workflow` |
+| `IMAGE_GEN_DONE` | info | After receiving the image path from ComfyUI | `user_id`, `username`, `char_id`, `workflow`, `elapsed_ms` |
+| `IMAGE_GEN_ERROR` | error | ComfyUI connection error or generation timeout | `user_id`, `username`, `error`, `elapsed_ms` |
+
+**File format**
+
+```json
+{"timestamp":"2026-06-11 14:23:01","level":"info","message":"LOGIN_OK","user_id":3,"username":"alice","ip":"::1"}
+{"timestamp":"2026-06-11 14:25:10","level":"info","message":"SESSION_START","user_id":3,"username":"alice","char_id":7,"session_id":42}
+{"timestamp":"2026-06-11 14:26:18","level":"info","message":"IMAGE_GEN_DONE","user_id":3,"username":"alice","char_id":7,"workflow":"anima","elapsed_ms":18204}
+```
+
+Passwords, JWT tokens, and chat/prompt text are never included in logs.
+
+---
 
 ### Development Notes
 

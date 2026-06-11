@@ -5,6 +5,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { getDb } = require('../db');
 const { authMiddleware } = require('../auth');
+const logger = require('../logger');
 
 const router = express.Router();
 
@@ -17,10 +18,16 @@ router.post('/login', async (req, res) => {
 
   const db = getDb();
   const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
-  if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+  if (!user) {
+    logger.warn('LOGIN_FAIL', { username, ip: req.ip });
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
 
   const ok = await bcrypt.compare(password, user.password_hash);
-  if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
+  if (!ok) {
+    logger.warn('LOGIN_FAIL', { username, ip: req.ip });
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
 
   if (!process.env.JWT_SECRET) {
     return res.status(500).json({ error: 'JWT_SECRET is not configured on the server' });
@@ -37,6 +44,7 @@ router.post('/login', async (req, res) => {
     return res.status(500).json({ error: 'Token generation failed: ' + err.message });
   }
 
+  logger.info('LOGIN_OK', { user_id: user.id, username: user.username, ip: req.ip });
   res.json({ token, user: { id: user.id, username: user.username, is_admin: user.is_admin, is_advanced: user.is_advanced } });
 });
 
