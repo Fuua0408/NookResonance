@@ -295,13 +295,18 @@
     <section id="create-char">
       <div class="section-eyebrow">Character</div>
       <h2>2. Create a Character</h2>
-      <p>To start chatting, you first need to create a character. There are two ways to do this.</p>
+      <p>To start chatting, you first need to create a character. There are three ways to do this.</p>
 
       <div class="feature-row">
         <div class="feature-card">
-          <div class="fc-icon">✨</div>
+          <div class="fc-icon">🧙</div>
           <div class="fc-title">Create with Wizard</div>
-          <div class="fc-desc">A beginner-friendly method where you chat with an AI to decide your character step by step.</div>
+          <div class="fc-desc">A beginner-friendly method where you chat with an AI to decide gender, personality, appearance, clothing, and location step by step.</div>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon">🖼️</div>
+          <div class="fc-title">Create from Image</div>
+          <div class="fc-desc">Upload a reference image and the AI reads the appearance automatically. Just add personality and location to finish.</div>
         </div>
         <div class="feature-card">
           <div class="fc-icon">✏️</div>
@@ -311,16 +316,7 @@
       </div>
 
       <h3>Create with the Wizard</h3>
-      <p>Tap the character selection button at the bottom of the screen to open the character list. Then tap <span class="btn-demo">✨ Create with Wizard</span>.</p>
-
-      <!--
-        Screenshot: Character list and wizard button
-        <img src="screenshots/XXX.png" alt="Screenshot: Character list and wizard button" class="img-placeholder">
-      -->
-      <!-- <div class="img-placeholder">
-        <div class="icon">🖼</div>
-        <div class="label">Screenshot: Character list and wizard button</div>
-      </div> -->
+      <p>Tap the character selection button at the bottom of the screen to open the character list. Then tap <span class="btn-demo">🧙 Create with Wizard</span>.</p>
 
       <p>Once the wizard launches, the AI will ask you questions. Answer them in order — gender, personality, appearance, clothing, and location — and your character will be created automatically.</p>
 
@@ -339,16 +335,35 @@
         </div>
       </div>
 
-      <!--
-        Screenshot: Wizard screen (in progress)
-        <img src="screenshots/XXX.png" alt="Screenshot: Wizard screen (in progress)" class="img-placeholder">
-      -->
-      <!-- <div class="img-placeholder">
-        <div class="icon">🖼</div>
-        <div class="label">Screenshot: Wizard screen (in progress)</div>
-      </div> -->
-
       <div class="tip">After the wizard finishes, you can start an interactive tutorial. Highly recommended for first-time users.</div>
+
+      <h3>Create from Image</h3>
+      <p>Select <span class="btn-demo">🖼 Create from Image</span> from the character list to launch the image wizard.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body"><strong>Upload a reference image</strong> Tap "📁 Choose Image" and select an illustration or photo of the character you have in mind.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body"><strong>AI reads the appearance</strong> The AI automatically extracts hair, eyes, body type, clothing, and location from the image. Tap "Change something" to adjust any part.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body"><strong>Set personality and location</strong> Answer the AI's questions to describe the character's personality and usual setting.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body"><strong>Choose an icon</strong> When ComfyUI is connected, pick between the uploaded reference image and the generated image as the character icon.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-body"><strong>Enter a name and finish</strong> Type a name and your character is registered.</div>
+        </div>
+      </div>
+
+      <div class="tip">The image wizard works even without a ComfyUI connection. In that case, the uploaded image is used directly as the character icon.</div>
 
       <h3>Direct Input (Advanced)</h3>
       <p>Select <span class="btn-demo">✏ Direct Input (Advanced)</span> from the character list, or tap an existing character once to open the edit form. You can directly enter name, personality, appearance, speaking style, and more.</p>

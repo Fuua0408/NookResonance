@@ -295,13 +295,18 @@
     <section id="create-char">
       <div class="section-eyebrow">キャラクター</div>
       <h2>2. キャラクターを作る</h2>
-      <p>チャットを始めるには、まずキャラクターを作る必要があります。2つの方法があります。</p>
+      <p>チャットを始めるには、まずキャラクターを作る必要があります。3つの方法があります。</p>
 
       <div class="feature-row">
         <div class="feature-card">
-          <div class="fc-icon">✨</div>
+          <div class="fc-icon">🧙</div>
           <div class="fc-title">ウィザードで作る</div>
-          <div class="fc-desc">AIと会話しながらキャラクターを決めていく初心者向けの方法。</div>
+          <div class="fc-desc">AIと会話しながら性別・性格・外見・服装・場所を決めていく初心者向けの方法。</div>
+        </div>
+        <div class="feature-card">
+          <div class="fc-icon">🖼️</div>
+          <div class="fc-title">画像から作る</div>
+          <div class="fc-desc">参考画像をアップロードするとAIが外見を読み取り、性格と場所を追加するだけでキャラクターが完成。</div>
         </div>
         <div class="feature-card">
           <div class="fc-icon">✏️</div>
@@ -311,16 +316,7 @@
       </div>
 
       <h3>ウィザードで作る</h3>
-      <p>画面下部のキャラクター選択ボタンを押すと、キャラクター一覧が開きます。<span class="btn-demo">✨ ウィザードで作成</span> を押してください。</p>
-
-      <!--
-        スクリーンショット: キャラクター一覧とウィザードボタン
-        <img src="screenshots/XXX.png" alt="スクリーンショット: キャラクター一覧とウィザードボタン" class="img-placeholder">
-      -->
-      <!-- <div class="img-placeholder">
-        <div class="icon">🖼</div>
-        <div class="label">スクリーンショット: キャラクター一覧とウィザードボタン</div>
-      </div> -->
+      <p>画面下部のキャラクター選択ボタンを押すと、キャラクター一覧が開きます。<span class="btn-demo">🧙 ウィザードで作成</span> を押してください。</p>
 
       <p>ウィザードが起動すると、AIがあなたに質問してきます。性別・性格・外見・服装・いる場所を順番に答えていくと、キャラクターが自動で作成されます。</p>
 
@@ -339,16 +335,35 @@
         </div>
       </div>
 
-      <!--
-        スクリーンショット: ウィザード画面（会話中）
-        <img src="screenshots/XXX.png" alt="スクリーンショット: ウィザード画面（会話中）" class="img-placeholder">
-      -->
-      <!-- <div class="img-placeholder">
-        <div class="icon">🖼</div>
-        <div class="label">スクリーンショット: ウィザード画面（会話中）</div>
-      </div> -->
-
       <div class="tip">ウィザード完了後にチュートリアルを始めることができます。初めての方はぜひ試してみてください。</div>
+
+      <h3>画像から作る</h3>
+      <p>キャラクター一覧で <span class="btn-demo">🖼 画像から作成</span> を選ぶと、画像ウィザードが起動します。</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body"><strong>参考画像をアップロード</strong>「📁 画像を選ぶ」ボタンで、作りたいキャラクターのイラストや写真を選択します。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body"><strong>AIが外見を読み取る</strong>AIが画像から髪・目・体型・服装・場所を自動で読み取って提案します。変えたい部分があれば「変える」で修正できます。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body"><strong>性格と場所を設定</strong>AIの質問に答えて性格と普段いる場所を入力します。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body"><strong>アイコンを選ぶ</strong>ComfyUI接続時は参考画像と生成画像の2択からアイコンを選べます。</div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-body"><strong>名前を入力して完成</strong>名前を入力すればキャラクターが登録されます。</div>
+        </div>
+      </div>
+
+      <div class="tip">画像ウィザードはComfyUI未接続でも使えます。その場合はアップロードした画像がそのままアイコンになります。</div>
 
       <h3>直接入力で作る（上級者）</h3>
       <p>キャラクター一覧で <span class="btn-demo">✏ 直接入力（上級者）</span> を選ぶか、既存キャラクターを1回タップすると編集フォームが開きます。名前・性格・外見・口調などを直接入力できます。</p>
