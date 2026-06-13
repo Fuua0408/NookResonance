@@ -340,7 +340,6 @@ async function openPromptEditModal(turnIdx) {
   const closeModal = () => modal.remove();
   modal.querySelector('#peClose').addEventListener('click', closeModal);
   modal.querySelector('#peBtnCancel').addEventListener('click', closeModal);
-  modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 
   // ランダムSeed
   modal.querySelector('#peBtnRandSeed').addEventListener('click', () => {
@@ -459,7 +458,6 @@ async function openPromptEditModal(turnIdx) {
   modal.querySelector('#peBtnCancel').removeEventListener('click', _origCloseModal);
   modal.querySelector('#peClose').addEventListener('click', _patchedClose);
   modal.querySelector('#peBtnCancel').addEventListener('click', _patchedClose);
-  modal.addEventListener('click', e => { if (e.target === modal) _patchedClose(); });
 
   // 外見・場所の相互翻訳（ENモード以外）
   if (!_isEN) {
