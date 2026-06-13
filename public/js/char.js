@@ -672,6 +672,11 @@ async function saveCharFromUI() {
   };
 
   const saved = await saveChar(char);
+
+  // 新規キャラのPOST失敗時: saveCharが一時IDのまま返す → モーダルを閉じない
+  const wasNew = typeof char.id === 'string' && char.id.startsWith('char_');
+  if (wasNew && saved.id === char.id) return;
+
   if (activeChar?.id === char.id || activeChar?.id === saved.id) {
     activeChar = saved;
     if (activeSession && String(activeSession.char_id) === String(saved.id)) {
