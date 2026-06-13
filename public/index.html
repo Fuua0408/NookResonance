@@ -338,7 +338,7 @@
         <textarea class="f-textarea" id="editAppearanceBody"
           placeholder="髪色・髪型・目の色・体型・肌など変わらない特徴" data-i18n-placeholder="char.body_placeholder"></textarea>
         <div class="en-row">
-          <div class="en-cache" id="enCacheBodyDisplay" data-i18n="misc.not_generated">（未生成）</div>
+          <textarea class="en-cache" id="enCacheBodyDisplay" placeholder="（未生成）" data-i18n-placeholder="misc.not_generated"></textarea>
           <button class="btn-en" onclick="generateAppearanceBodyEN()" data-i18n="char.en_convert">🔄 EN変換</button>
         </div>
       </div>
@@ -347,10 +347,11 @@
         <textarea class="f-textarea" id="editAppearanceClothing"
           placeholder="初期・デフォルトの服装" data-i18n-placeholder="char.clothing_placeholder"></textarea>
         <div class="en-row">
-          <div class="en-cache" id="enCacheClothingDisplay" data-i18n="misc.not_generated">（未生成）</div>
+          <textarea class="en-cache" id="enCacheClothingDisplay" placeholder="（未生成）" data-i18n-placeholder="misc.not_generated"></textarea>
           <button class="btn-en" onclick="generateAppearanceClothingEN()" data-i18n="char.en_convert">🔄 EN変換</button>
         </div>
-        <div style="text-align:right;margin-top:4px;">
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:4px;">
+          <button class="btn-en" onclick="previewStandingImage()" style="font-size:11px;" data-i18n="char.preview_standing">🖼 立ち絵を確認</button>
           <button class="btn-en" onclick="generateAppearanceAllEN()" style="font-size:11px;" data-i18n="char.en_convert_all">✨ 両方まとめてEN変換</button>
         </div>
       </div>
@@ -1021,6 +1022,7 @@ async function initAfterLogin() {
 <script src="js/modals/char-panel.js"></script>
 <script src="js/modals/wf-manager.js"></script>
 <script src="js/modals/prompt-edit.js"></script>
+<script src="js/modals/backport.js"></script>
 <script src="js/modals/handover.js"></script>
 <script src="js/char-data.js"></script>
 <script src="js/modals/wizard.js"></script>
