@@ -91,15 +91,24 @@ async function translatePrompt(jpText, prevEN = '', narrative = false) {
   let currentClothing = prevClothing;
   if (!isUserFocus) {
     const clothingResult = await getChatCompletion([
-      { role: 'system', content: `You are analyzing a scene description to determine clothing changes.
-Current clothing: "${prevClothing}"
+      { role: 'system', content: `You are analyzing a scene description to track the current state of the character's clothing.
+
+"Clothing state" includes not only which garments are worn, but also how they are currently being worn (e.g. properly worn, loosened, unbuttoned, untied, pulled down/up, off-shoulder, disheveled, partially removed).
+
+Current clothing state: "${prevClothing}"
+
 Rules:
-- If clothing has changed, return ONLY the clothes currently being worn in English tags format
-- Do NOT include any clothes that have been removed or taken off
+- Start from the current clothing state above. Carry ALL garments and their states forward unchanged, UNLESS the scene explicitly changes or removes a specific garment
+- Only update the entries that the scene directly acts upon: modify state descriptors for affected garments, or remove garments that are fully taken off
+- Garments not mentioned in the scene must appear in the output exactly as they were in the current state
+- Output format: garments separated by ", ". If a garment has a state descriptor, append it in parentheses immediately after the garment name: "garment (state)" or "garment (state1, state2)". Never use a bare comma between a garment and its state. Example: "business jacket, blouse, tight skirt (pulled up), black pantyhose"
+- Garments that remain worn but are loosened, displaced, or disheveled should include both the garment and its state using the format above (e.g. "shirt (unbuttoned, off-shoulder)")
+- If a garment is fully removed, omit it from the output entirely. Never write "removed" as a state descriptor
+- If the scene describes clothing being fixed or put back in order, remove the relevant state descriptors for those garments
 - If tops, bottoms, AND innerwear are all removed, return exactly: naked
-- If NO clothing change is described, return exactly: NO_CHANGE
-- If socks or shoes are removed, exclude them from the output. But socks/shoes do NOT count toward the "naked" determination
-- Return only the clothing tags, "naked", or "NO_CHANGE". Nothing else.` },
+- If NO change to clothing or its state is described, return exactly: NO_CHANGE
+- Exclude socks/shoes from the output regardless. Socks/shoes do NOT count toward the "naked" determination
+- Return only the complete updated clothing state, "naked", or "NO_CHANGE". Nothing else.` },
       { role: 'user', content: sceneText },
     ], { noThink });
     const clothingRaw = cleanLLMResponse(clothingResult);
@@ -141,7 +150,8 @@ Return only the location description or NO_CHANGE, nothing else.` },
 Write a single cohesive English scene description based on the scene.
 ${context ? `\n${context}\n` : ''}${styleRef}Rules:
 - Physical appearance must be preserved exactly as specified
-- Use the current clothing and location as specified above
+- The "Current clothing" line describes both the garments worn and their current state (e.g. unbuttoned, loosened, off-shoulder, disheveled). This state must be preserved and reflected in the description exactly as given, even if the new scene text does not restate it
+- The "Current location" line must be reflected as specified
 - Describe pose, action, expression, and emotional state from the scene
 - Match the writing style of the style reference if provided
 - Do NOT include any dialogue, speech, or quoted text (no 「」"" or similar)
@@ -190,15 +200,24 @@ async function translatePromptCharMode(userJP, charMsg, prevEN = '', narrative =
   let currentClothing = prevClothing;
   if (!isUserFocus) {
     const clothingResult = await getChatCompletion([
-      { role: 'system', content: `You are analyzing a scene to determine clothing changes.
-Current clothing: "${prevClothing}"
+      { role: 'system', content: `You are analyzing a scene description to track the current state of the character's clothing.
+
+"Clothing state" includes not only which garments are worn, but also how they are currently being worn (e.g. properly worn, loosened, unbuttoned, untied, pulled down/up, off-shoulder, disheveled, partially removed).
+
+Current clothing state: "${prevClothing}"
+
 Rules:
-- If clothing has changed, return ONLY the clothes currently being worn in English tags format
-- Do NOT include any clothes that have been removed or taken off
+- Start from the current clothing state above. Carry ALL garments and their states forward unchanged, UNLESS the scene explicitly changes or removes a specific garment
+- Only update the entries that the scene directly acts upon: modify state descriptors for affected garments, or remove garments that are fully taken off
+- Garments not mentioned in the scene must appear in the output exactly as they were in the current state
+- Output format: garments separated by ", ". If a garment has a state descriptor, append it in parentheses immediately after the garment name: "garment (state)" or "garment (state1, state2)". Never use a bare comma between a garment and its state. Example: "business jacket, blouse, tight skirt (pulled up), black pantyhose"
+- Garments that remain worn but are loosened, displaced, or disheveled should include both the garment and its state using the format above (e.g. "shirt (unbuttoned, off-shoulder)")
+- If a garment is fully removed, omit it from the output entirely. Never write "removed" as a state descriptor
+- If the scene describes clothing being fixed or put back in order, remove the relevant state descriptors for those garments
 - If tops, bottoms, AND innerwear are all removed, return exactly: naked
-- If NO clothing change is described, return exactly: NO_CHANGE
-- If socks or shoes are removed, exclude them from the output. But socks/shoes do NOT count toward the "naked" determination
-- Return only the clothing tags, "naked", or "NO_CHANGE". Nothing else.` },
+- If NO change to clothing or its state is described, return exactly: NO_CHANGE
+- Exclude socks/shoes from the output regardless. Socks/shoes do NOT count toward the "naked" determination
+- Return only the complete updated clothing state, "naked", or "NO_CHANGE". Nothing else.` },
       { role: 'user', content: inputText },
     ], { noThink });
     const clothingRaw = cleanLLMResponse(clothingResult);
@@ -239,7 +258,8 @@ Return only the location description or NO_CHANGE, nothing else.` },
 Write a single cohesive English scene description.
 ${context ? `\n${context}\n` : ''}${styleRef}Rules:
 - Physical appearance must be preserved exactly as specified
-- Use the current clothing and location as specified above
+- The "Current clothing" line describes both the garments worn and their current state (e.g. unbuttoned, loosened, off-shoulder, disheveled). This state must be preserved and reflected in the description exactly as given, even if the new scene text does not restate it
+- The "Current location" line must be reflected as specified
 - Describe pose, action, expression, and emotional state from the scene
 - Match the writing style of the style reference if provided
 - Do NOT include any dialogue, speech, or quoted text (no 「」"" or similar)
