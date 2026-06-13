@@ -366,6 +366,12 @@ const I18N = {
     'prompt_edit.mode_full': 'Full',
     'prompt_edit.mode_direct': 'Direct',
     'prompt_edit.no_en':    'Enter an English prompt',
+    'prompt_edit.appearance_label':       'Current Appearance',
+    'prompt_edit.appearance_placeholder': 'Enter appearance',
+    'prompt_edit.location_label':         'Current Location',
+    'prompt_edit.location_placeholder':   'Enter location',
+    'prompt_edit.jp_placeholder_short':   'Enter in Japanese (optional)',
+    'prompt_edit.save_state':             'Save State',
 
     // ── バックポート ──
     'backport.menu_label':    'Save prompt to character settings',
@@ -405,6 +411,7 @@ const I18N = {
     'toast.translate_error': '❌ Translation error: ',
     'toast.back_translated': '✓ Back-translated',
     'toast.preview_fail':   '❌ Preview failed: ',
+    'toast.state_saved':     '✓ State saved',
     'toast.prompt_replaced': '✓ Prompt & image replaced',
     'toast.gen_fail':       '❌ Generation failed: ',
     'toast.import_ok':     '✓ Imported. Review and save.',
