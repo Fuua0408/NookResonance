@@ -101,6 +101,8 @@ async function openPromptEditModal(turnIdx) {
     display:flex; align-items:flex-end;
   `;
 
+  const _isEN = isEnglishMode();
+
   modal.innerHTML = `
     <div style="
       width:100%; max-width:560px; margin:0 auto;
@@ -187,6 +189,72 @@ async function openPromptEditModal(turnIdx) {
           <div id="peSeedNote" style="font-size:11px;color:var(--text-pale);margin-top:4px;">${t('misc.seed_loading', 'Seed取得中…')}</div>
         </div>
 
+        <!-- 外見・場所 -->
+        <div style="border-top:0.5px solid var(--border);padding-top:12px;">
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-weight:500;">${t('prompt_edit.appearance_label', '現在の外見')}</div>
+          ${_isEN ? '' : `
+          <textarea id="peAppearanceJP" rows="1" style="
+            width:100%;box-sizing:border-box;
+            background:var(--bg-log);border:0.5px solid var(--border-input);
+            border-radius:var(--radius-sm);padding:8px 12px;
+            font-size:13px;color:var(--text);line-height:1.6;
+            font-family:var(--font-sans);resize:vertical;margin-bottom:4px;
+          " placeholder="${t('prompt_edit.jp_placeholder_short', '日本語で入力（任意）')}"></textarea>
+          <div style="display:flex;gap:6px;margin-bottom:6px;">
+            <button id="peBtnAppearanceJpToEn" style="
+              flex:1;padding:6px 8px;font-size:12px;
+              background:var(--accent-light);border:0.5px solid var(--border-input);
+              border-radius:var(--radius-sm);color:var(--text-mid);cursor:pointer;
+              font-family:var(--font-sans);white-space:nowrap;
+            ">↓ JP→EN</button>
+            <button id="peBtnAppearanceEnToJp" style="
+              flex:1;padding:6px 8px;font-size:12px;
+              background:var(--accent-light);border:0.5px solid var(--border-input);
+              border-radius:var(--radius-sm);color:var(--text-mid);cursor:pointer;
+              font-family:var(--font-sans);white-space:nowrap;
+            ">↑ EN→JP</button>
+          </div>`}
+          <textarea id="peAppearance" rows="2" style="
+            width:100%;box-sizing:border-box;
+            background:var(--bg-log);border:0.5px solid var(--border-input);
+            border-radius:var(--radius-sm);padding:10px 12px;
+            font-size:13px;color:var(--text);line-height:1.6;
+            font-family:var(--font-sans);resize:vertical;
+          " placeholder="${t('prompt_edit.appearance_placeholder', '現在の外見を入力')}"></textarea>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-weight:500;">${t('prompt_edit.location_label', '現在の場所')}</div>
+          ${_isEN ? '' : `
+          <textarea id="peLocationJP" rows="1" style="
+            width:100%;box-sizing:border-box;
+            background:var(--bg-log);border:0.5px solid var(--border-input);
+            border-radius:var(--radius-sm);padding:8px 12px;
+            font-size:13px;color:var(--text);line-height:1.6;
+            font-family:var(--font-sans);resize:vertical;margin-bottom:4px;
+          " placeholder="${t('prompt_edit.jp_placeholder_short', '日本語で入力（任意）')}"></textarea>
+          <div style="display:flex;gap:6px;margin-bottom:6px;">
+            <button id="peBtnLocationJpToEn" style="
+              flex:1;padding:6px 8px;font-size:12px;
+              background:var(--accent-light);border:0.5px solid var(--border-input);
+              border-radius:var(--radius-sm);color:var(--text-mid);cursor:pointer;
+              font-family:var(--font-sans);white-space:nowrap;
+            ">↓ JP→EN</button>
+            <button id="peBtnLocationEnToJp" style="
+              flex:1;padding:6px 8px;font-size:12px;
+              background:var(--accent-light);border:0.5px solid var(--border-input);
+              border-radius:var(--radius-sm);color:var(--text-mid);cursor:pointer;
+              font-family:var(--font-sans);white-space:nowrap;
+            ">↑ EN→JP</button>
+          </div>`}
+          <textarea id="peLocation" rows="2" style="
+            width:100%;box-sizing:border-box;
+            background:var(--bg-log);border:0.5px solid var(--border-input);
+            border-radius:var(--radius-sm);padding:10px 12px;
+            font-size:13px;color:var(--text);line-height:1.6;
+            font-family:var(--font-sans);resize:vertical;
+          " placeholder="${t('prompt_edit.location_placeholder', '現在の場所を入力')}"></textarea>
+        </div>
+
         <!-- プレビュー -->
         <div id="pePreviewArea" style="display:none;">
           <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-weight:500;">${t('prompt_edit.preview_label', 'プレビュー')}</div>
@@ -202,6 +270,12 @@ async function openPromptEditModal(turnIdx) {
 
       <!-- フッターボタン -->
       <div style="padding:10px 16px 24px;border-top:0.5px solid var(--border);display:flex;gap:8px;flex-shrink:0;">
+        <button id="peBtnSaveState" style="
+          flex:1;padding:11px;font-size:13px;
+          background:var(--accent-light);border:0.5px solid var(--border-input);
+          border-radius:var(--radius-md);color:var(--text-mid);cursor:pointer;
+          font-family:var(--font-sans);
+        ">${t('prompt_edit.save_state', '状態を保存')}</button>
         <button id="peBtnCancel" style="
           flex:1;padding:11px;font-size:13px;
           background:var(--accent-light);border:0.5px solid var(--border-input);
@@ -233,6 +307,11 @@ async function openPromptEditModal(turnIdx) {
 
   peJP.value = turn.jp_prompt || '';
   peEN.value = turn.en_prompt || '';
+
+  const peAppearance = modal.querySelector('#peAppearance');
+  const peLocation   = modal.querySelector('#peLocation');
+  peAppearance.value = activeSession?.context?.appearance || activeSession?.current_clothing || '';
+  peLocation.value   = activeSession?.context?.location   || activeSession?.current_location || '';
 
   // Seed初期化: gen_metaがあればそこから即取得、なければhistory逆引き
   const seedNote = modal.querySelector('#peSeedNote');
@@ -272,6 +351,16 @@ async function openPromptEditModal(turnIdx) {
   modal.querySelector('#peBtnJpToEn').addEventListener('click', async () => {
     const jpText = peJP.value.trim();
     if (!jpText) { showToast(t('prompt_edit.no_jp', '日本語を入力してください')); return; }
+
+    // translatePromptがcurrent_clothing/current_locationを参照するため、モーダルの値を一時反映
+    if (activeSession) {
+      if (!activeSession.context) activeSession.context = { summary: '', appearance: '', location: '' };
+      activeSession.context.appearance = peAppearance.value;
+      activeSession.context.location   = peLocation.value;
+      activeSession.current_clothing   = peAppearance.value;
+      activeSession.current_location   = peLocation.value;
+    }
+
     const mode = modal.querySelector('#peTranslateMode').value;
     const btn  = modal.querySelector('#peBtnJpToEn');
     btn.textContent = '⏳…'; btn.disabled = true;
@@ -372,6 +461,69 @@ async function openPromptEditModal(turnIdx) {
   modal.querySelector('#peBtnCancel').addEventListener('click', _patchedClose);
   modal.addEventListener('click', e => { if (e.target === modal) _patchedClose(); });
 
+  // 外見・場所の相互翻訳（ENモード以外）
+  if (!_isEN) {
+    const _stateTranslate = async (jpEl, enEl, jpToEn, btnJp, btnEn) => {
+      if (jpToEn) {
+        const jpText = jpEl.value.trim();
+        if (!jpText) { showToast(t('prompt_edit.no_jp', '日本語を入力してください')); return; }
+        btnJp.textContent = '⏳…'; btnJp.disabled = true;
+        try {
+          const raw = await getChatCompletion([
+            { role: 'system', content: 'Translate the following Japanese character appearance or location description into English tags for an AI image generator. Output comma-separated English tags only, nothing else.' },
+            { role: 'user',   content: jpText },
+          ], { noThink: true });
+          enEl.value = cleanLLMResponse(raw);
+          showToast(t('toast.translated', '✓ 翻訳しました'));
+        } catch(e) {
+          showToast(t('toast.translate_error', '❌ 翻訳エラー: ') + e.message.slice(0, 40));
+        } finally {
+          btnJp.textContent = '↓ JP→EN'; btnJp.disabled = false;
+        }
+      } else {
+        const enText = enEl.value.trim();
+        if (!enText) { showToast(t('prompt_edit.no_en', '英語プロンプトを入力してください')); return; }
+        btnEn.textContent = '⏳…'; btnEn.disabled = true;
+        try {
+          const raw = await getChatCompletion([
+            { role: 'system', content: 'Translate the following English character appearance or location description into natural Japanese. Output only the Japanese translation, nothing else.' },
+            { role: 'user',   content: enText },
+          ], { noThink: true });
+          jpEl.value = cleanLLMResponse(raw);
+          showToast(t('toast.back_translated', '✓ 逆変換しました'));
+        } catch(e) {
+          showToast(t('toast.translate_error', '❌ 変換エラー: ') + e.message.slice(0, 40));
+        } finally {
+          btnEn.textContent = '↑ EN→JP'; btnEn.disabled = false;
+        }
+      }
+    };
+
+    const peAppearanceJP = modal.querySelector('#peAppearanceJP');
+    const btnAppJpToEn   = modal.querySelector('#peBtnAppearanceJpToEn');
+    const btnAppEnToJp   = modal.querySelector('#peBtnAppearanceEnToJp');
+    btnAppJpToEn.addEventListener('click', () => _stateTranslate(peAppearanceJP, peAppearance, true,  btnAppJpToEn, btnAppEnToJp));
+    btnAppEnToJp.addEventListener('click', () => _stateTranslate(peAppearanceJP, peAppearance, false, btnAppJpToEn, btnAppEnToJp));
+
+    const peLocationJP  = modal.querySelector('#peLocationJP');
+    const btnLocJpToEn  = modal.querySelector('#peBtnLocationJpToEn');
+    const btnLocEnToJp  = modal.querySelector('#peBtnLocationEnToJp');
+    btnLocJpToEn.addEventListener('click', () => _stateTranslate(peLocationJP, peLocation, true,  btnLocJpToEn, btnLocEnToJp));
+    btnLocEnToJp.addEventListener('click', () => _stateTranslate(peLocationJP, peLocation, false, btnLocJpToEn, btnLocEnToJp));
+  }
+
+  // 状態を保存（ENテキストが空でもappearance/locationだけ保存）
+  modal.querySelector('#peBtnSaveState').addEventListener('click', async () => {
+    if (!activeSession.context) activeSession.context = { summary: '', appearance: '', location: '' };
+    activeSession.context.appearance = peAppearance.value;
+    activeSession.context.location   = peLocation.value;
+    activeSession.current_clothing   = peAppearance.value;
+    activeSession.current_location   = peLocation.value;
+    await saveTurnToSession(null);
+    showToast(t('toast.state_saved', '✓ 状態を保存しました'));
+    _patchedClose();
+  });
+
   // プレビュー生成（モーダル内のみ、チャットに影響なし）
   btnPreview.addEventListener('click', async () => {
     const enText = peEN.value.trim();
@@ -428,6 +580,13 @@ async function openPromptEditModal(turnIdx) {
       turn.en_prompt  = enText;
       turn.image_url  = imageUrl;
       turn.gen_meta   = { ...editMeta, anchor_turn_idx: activeSession.active_anchor_idx ?? null };
+
+      // context更新
+      if (!activeSession.context) activeSession.context = { summary: '', appearance: '', location: '' };
+      activeSession.context.appearance = peAppearance.value;
+      activeSession.context.location   = peLocation.value;
+      activeSession.current_clothing   = peAppearance.value;
+      activeSession.current_location   = peLocation.value;
 
       // DOM更新
       updateTurnImage(turnIdx, imageUrl);
