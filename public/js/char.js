@@ -481,7 +481,8 @@ function isNotGeneratedText(value) {
 
 async function saveCharFromUI() {
   const overlay  = document.getElementById('charEditOverlay');
-  const charId   = overlay?.dataset.charId || '';
+  const rawId    = overlay?.dataset.charId || '';
+  const charId   = rawId !== '' && !isNaN(rawId) ? Number(rawId) : rawId;
   const cacheEl  = document.getElementById('enCacheDisplay');
   const existing = loadChars().find(c => c.id === charId) || {};
 
@@ -545,7 +546,12 @@ async function saveCharFromUI() {
   };
 
   const saved = await saveChar(char);
-  if (activeChar?.id === char.id || activeChar?.id === saved.id) activeChar = saved;
+  if (activeChar?.id === char.id || activeChar?.id === saved.id) {
+    activeChar = saved;
+    if (activeSession && String(activeSession.char_id) === String(saved.id)) {
+      activeSession.current_clothing = saved.appearance_clothing_en?.trim() || '';
+    }
+  }
   showToast(t('char.save_ok', '保存しました'));
   closeModal('charEditOverlay');
   renderCharList();
