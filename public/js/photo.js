@@ -82,6 +82,8 @@ function startPhotoSession() {
   _photoCarouselIdx    = 0;
   _photoTranslateMode  = 'translate';
 
+  clearChatLog();
+
   // セグメントコントロールを初期化
   setPhotoTranslateMode('translate');
 
