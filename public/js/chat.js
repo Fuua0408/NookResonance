@@ -459,6 +459,14 @@ function showImageCtxMenu(x, y, turnIdx) {
   items.push('sep');
 
   items.push({
+    icon: '📥',
+    label: t('backport.menu_label', 'このプロンプトをキャラ設定に保存'),
+    action: () => openBackportModal(turnIdx),
+  });
+
+  items.push('sep');
+
+  items.push({
     icon: '🎲', label: t('chat.reroll_new_seed', '新Seedで再生成'),
     action: () => rerollTurnNewSeed(turnIdx),
   });

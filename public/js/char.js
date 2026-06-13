@@ -294,7 +294,7 @@ async function generateAppearanceBodyEN() {
     ], { noThink });
     const en = cleanLLMResponse(result);
     const el = document.getElementById('enCacheBodyDisplay');
-    if (el) el.textContent = en;
+    if (el) el.value = en;
     showToast(t('toast.en_gen_ok', '身体特徴EN変換完了'));
   } catch(e) {
     showToast(t('toast.en_gen_fail', 'EN変換エラー: ') + e.message.slice(0, 40));
@@ -312,7 +312,7 @@ async function generateAppearanceClothingEN() {
     ], { noThink });
     const en = cleanLLMResponse(result);
     const el = document.getElementById('enCacheClothingDisplay');
-    if (el) el.textContent = en;
+    if (el) el.value = en;
     showToast(t('toast.en_gen_ok', '服装EN変換完了'));
   } catch(e) {
     showToast(t('toast.en_gen_fail', 'EN変換エラー: ') + e.message.slice(0, 40));
@@ -324,6 +324,132 @@ async function generateAppearanceAllEN() {
   await generateAppearanceClothingEN();
   showToast(t('toast.en_gen_ok', '✓ 両方のEN変換完了'));
 }
+
+async function previewStandingImage() {
+  if (!activeChar) {
+    showToast(t('toast.no_char', 'キャラクターを選択してください'));
+    return;
+  }
+
+  const bodyEN = (() => {
+    const el = document.getElementById('enCacheBodyDisplay');
+    const v = el?.value?.trim();
+    return isNotGeneratedText(v) ? '' : v;
+  })();
+  const clothingEN = (() => {
+    const el = document.getElementById('enCacheClothingDisplay');
+    const v = el?.value?.trim();
+    return isNotGeneratedText(v) ? '' : v;
+  })();
+
+  if (!bodyEN && !clothingEN) {
+    showToast(t('char.preview_no_en', 'EN変換してから確認してください'));
+    return;
+  }
+
+  const qualityTags  = document.getElementById('editQualityTags')?.value?.trim()
+    || activeChar?.workflow_params?.quality_tags?.trim()
+    || getSetting('global_quality_tags', '');
+  const triggerWords = typeof getLoRATriggerWords === 'function' ? getLoRATriggerWords() : '';
+  const initialPrompt = [triggerWords, qualityTags, bodyEN, clothingEN].filter(Boolean).join(', ');
+
+  document.getElementById('standingPreviewModal')?.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'standingPreviewModal';
+  modal.style.cssText = `
+    position:fixed; inset:0; z-index:600;
+    background:rgba(61,46,30,0.5);
+    display:flex; align-items:center; justify-content:center;
+  `;
+
+  modal.innerHTML = `
+    <div style="
+      width:90%; max-width:420px;
+      background:var(--bg); border-radius:var(--radius-xl);
+      display:flex; flex-direction:column; max-height:92vh;
+      overflow:hidden;
+    ">
+      <div style="padding:12px 16px;display:flex;align-items:center;border-bottom:0.5px solid var(--border);flex-shrink:0;">
+        <div style="font-family:var(--font-serif);font-size:16px;font-weight:500;color:var(--text);">🖼 ${t('char.preview_standing', '立ち絵を確認')}</div>
+        <button id="spClose"
+          style="margin-left:auto;width:30px;height:30px;border-radius:50%;background:var(--accent-light);border:none;cursor:pointer;font-size:14px;color:var(--text-mid);">✕</button>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;">
+        <div id="spImgWrap" style="
+          width:100%;border-radius:var(--radius-lg);overflow:hidden;
+          background:var(--accent-light);
+          min-height:180px;display:flex;align-items:center;justify-content:center;
+          font-size:13px;color:var(--text-pale);
+        ">${t('status.generating', '生成中…')}</div>
+        <div>
+          <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px;">Prompt</div>
+          <textarea id="spPromptTA" rows="5" style="
+            width:100%;box-sizing:border-box;
+            background:var(--bg-log);border:0.5px solid var(--border-input);
+            border-radius:var(--radius-sm);padding:8px 10px;
+            font-size:11px;color:var(--text);line-height:1.5;
+            font-family:monospace;resize:vertical;
+          "></textarea>
+        </div>
+      </div>
+      <div style="padding:10px 16px 20px;border-top:0.5px solid var(--border);flex-shrink:0;">
+        <button id="spGenBtn" style="
+          width:100%;padding:11px;font-size:13px;
+          background:var(--accent);border:none;
+          border-radius:var(--radius-md);color:var(--bg);cursor:pointer;
+          font-family:var(--font-sans);font-weight:500;
+        ">${t('char.preview_regen', '🔄 再生成')}</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  const imgWrap  = modal.querySelector('#spImgWrap');
+  const promptTA = modal.querySelector('#spPromptTA');
+  const genBtn   = modal.querySelector('#spGenBtn');
+
+  promptTA.value = initialPrompt;
+
+  modal.querySelector('#spClose').addEventListener('click', () => modal.remove());
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+  const runGenerate = async () => {
+    const p = promptTA.value.trim();
+    if (!p) { showToast(t('char.preview_no_en', 'EN変換してから確認してください')); return; }
+
+    genBtn.textContent = t('chat.generating', '生成中…');
+    genBtn.disabled    = true;
+    promptTA.disabled  = true;
+    imgWrap.innerHTML  = '';
+    imgWrap.textContent = t('status.generating', '生成中…');
+    imgWrap.style.minHeight = '180px';
+
+    try {
+      const { imageUrl } = await generateImage(p);
+      imgWrap.innerHTML  = '';
+      imgWrap.style.minHeight = '';
+      const img = document.createElement('img');
+      img.src = imageUrl;
+      img.style.cssText = 'width:100%;border-radius:var(--radius-lg);display:block;';
+      imgWrap.appendChild(img);
+    } catch(e) {
+      imgWrap.textContent = '❌ ' + e.message.slice(0, 60);
+      showToast(t('toast.gen_fail', '❌ 生成失敗: ') + e.message.slice(0, 40));
+    } finally {
+      genBtn.textContent = t('char.preview_regen', '🔄 再生成');
+      genBtn.disabled    = false;
+      promptTA.disabled  = false;
+    }
+  };
+
+  genBtn.addEventListener('click', runGenerate);
+
+  // 開いたら即生成
+  runGenerate();
+}
+
 // キャラオーバーライドのユーザー外見EN生成
 async function generateUserProfileAppearanceEN() {
   const jpText = document.getElementById('editUserProfileAppearance')?.value?.trim();
@@ -380,9 +506,9 @@ function openCharEdit(char) {
     setFieldValue('editPersonality', char.personality || '');
     setFieldValue('editOpeningMessage', char.opening_message || '');
     const cacheBodyEl = document.getElementById('enCacheBodyDisplay');
-    if (cacheBodyEl) cacheBodyEl.textContent = char.appearance_body_en || t('misc.not_generated', '（未生成）');
+    if (cacheBodyEl) cacheBodyEl.value = char.appearance_body_en || '';
     const cacheClothingEl = document.getElementById('enCacheClothingDisplay');
-    if (cacheClothingEl) cacheClothingEl.textContent = char.appearance_clothing_en || t('misc.not_generated', '（未生成）');
+    if (cacheClothingEl) cacheClothingEl.value = char.appearance_clothing_en || '';
     const cacheEl = document.getElementById('enCacheDisplay');
     if (cacheEl) cacheEl.textContent = char.appearance_en || t('misc.not_generated', '（未生成）');
     const wfSel = document.getElementById('editWfSelect');
@@ -415,9 +541,9 @@ function openCharEdit(char) {
      'editOpeningMessage',
     ].forEach(id => setFieldValue(id, ''));
     const cacheBodyEl = document.getElementById('enCacheBodyDisplay');
-    if (cacheBodyEl) cacheBodyEl.textContent = t('misc.not_generated', '（未生成）');
+    if (cacheBodyEl) cacheBodyEl.value = '';
     const cacheClothingEl = document.getElementById('enCacheClothingDisplay');
-    if (cacheClothingEl) cacheClothingEl.textContent = t('misc.not_generated', '（未生成）');
+    if (cacheClothingEl) cacheClothingEl.value = '';
     const cacheEl = document.getElementById('enCacheDisplay');
     if (cacheEl) cacheEl.textContent = t('misc.not_generated', '（未生成）');
     if (document.getElementById('editSampler'))  document.getElementById('editSampler')._restoreVal  = '';
@@ -502,9 +628,9 @@ async function saveCharFromUI() {
     appearance:    getFieldValue('editAppearanceBody') || getFieldValue('editAppearance'),
     appearance_body:     getFieldValue('editAppearanceBody')     || '',
     appearance_clothing: getFieldValue('editAppearanceClothing') || '',
-    appearance_body_en:    (isNotGeneratedText(document.getElementById('enCacheBodyDisplay')?.textContent?.trim())    ? '' : document.getElementById('enCacheBodyDisplay')?.textContent?.trim())    || existing.appearance_body_en    || '',
-    appearance_clothing_en: (isNotGeneratedText(document.getElementById('enCacheClothingDisplay')?.textContent?.trim()) ? '' : document.getElementById('enCacheClothingDisplay')?.textContent?.trim()) || existing.appearance_clothing_en || '',
-    appearance_en: (isNotGeneratedText(document.getElementById('enCacheBodyDisplay')?.textContent?.trim()) ? '' : document.getElementById('enCacheBodyDisplay')?.textContent?.trim()) || existing.appearance_en || '',
+    appearance_body_en:    (isNotGeneratedText(document.getElementById('enCacheBodyDisplay')?.value?.trim())    ? '' : document.getElementById('enCacheBodyDisplay')?.value?.trim())    || existing.appearance_body_en    || '',
+    appearance_clothing_en: (isNotGeneratedText(document.getElementById('enCacheClothingDisplay')?.value?.trim()) ? '' : document.getElementById('enCacheClothingDisplay')?.value?.trim()) || existing.appearance_clothing_en || '',
+    appearance_en: (isNotGeneratedText(document.getElementById('enCacheBodyDisplay')?.value?.trim()) ? '' : document.getElementById('enCacheBodyDisplay')?.value?.trim()) || existing.appearance_en || '',
     personality:   getFieldValue('editPersonality'),
     workflow_id: (getCurrentUser()?.is_admin || getCurrentUser()?.is_advanced)
       ? (document.getElementById('editWfSelect')?.value || 'anima')
