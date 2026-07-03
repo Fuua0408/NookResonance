@@ -252,6 +252,17 @@ async function submitTurnWithImage() {
       }
       turn.char_message = charMsg;
       appendCharMessage(charMsg, tIdx);
+
+      // 服装状態の追跡（感想モードでも服装変化を見逃さない）
+      if (!(document.getElementById('userFocusToggle')?.checked ?? false)) {
+        try {
+          updateStatusBadge(t('status.tracking_state', '状態を確認中…'));
+          const trackInput = `User direction: ${jpText || '(no input)'}\nCharacter reaction: ${charMsg}`;
+          await trackClothingState(trackInput);
+        } catch(e) {
+          console.warn('[NookResonance] clothing tracking failed (image-react turn):', e.message);
+        }
+      }
     }
 
     await saveTurnToSession(turn);

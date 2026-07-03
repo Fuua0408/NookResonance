@@ -351,15 +351,6 @@ async function openPromptEditModal(turnIdx) {
     const jpText = peJP.value.trim();
     if (!jpText) { showToast(t('prompt_edit.no_jp', '日本語を入力してください')); return; }
 
-    // translatePromptがcurrent_clothing/current_locationを参照するため、モーダルの値を一時反映
-    if (activeSession) {
-      if (!activeSession.context) activeSession.context = { summary: '', appearance: '', location: '' };
-      activeSession.context.appearance = peAppearance.value;
-      activeSession.context.location   = peLocation.value;
-      activeSession.current_clothing   = peAppearance.value;
-      activeSession.current_location   = peLocation.value;
-    }
-
     const mode = modal.querySelector('#peTranslateMode').value;
     const btn  = modal.querySelector('#peBtnJpToEn');
     btn.textContent = '⏳…'; btn.disabled = true;
@@ -371,11 +362,11 @@ async function openPromptEditModal(turnIdx) {
         // 差分: アンカー＞前ターンEN＞空（初回）
         const anchor = getAnchorEN();
         const prevEN = anchor || (turnIdx === 0 ? '' : (activeSession.turns[turnIdx - 1]?.en_prompt || ''));
-        result = await translatePrompt(jpText, prevEN, narrative);
+        result = await translatePrompt(jpText, prevEN, narrative, { skipStateUpdate: true });
 
       } else if (mode === 'full') {
         // フル: 外見・quality_tags込みで初回モード相当（prevEN=''）
-        result = await translatePrompt(jpText, '', narrative);
+        result = await translatePrompt(jpText, '', narrative, { skipStateUpdate: true });
 
       } else {
         // ダイレクト: 外見・quality_tags・前EN一切なし、promptStyleNaturalに従う

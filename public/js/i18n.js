@@ -431,6 +431,7 @@ const I18N = {
     'status.generating_continue': 'Generating continuation…',
     'status.summarizing':  'Generating summary…',
     'status.analyzing_image': 'Analyzing image…',
+    'status.tracking_state': 'Tracking state…',
 
     // ── 親愛度ラベル ──
     'aff.label_0':         'Deep Hatred',
