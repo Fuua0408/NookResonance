@@ -157,7 +157,7 @@ Current location: ${lastState.location   || '(not set)'}`
   const step3b = await getChatCompletion([
     { role: 'system', content: step3bSystem },
     { role: 'user',   content: step3bUser },
-  ]);
+  ], { noThink: true });
   let step3bText = cleanLLMResponse(step3b);
   if (typeof isAbnormalOutput === 'function' && isAbnormalOutput(step3bText)) {
     _renderHandoverProgress(t('status.handover_retry', 'リカバリー試行中… ') + '(4/5)');
