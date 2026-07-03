@@ -88,8 +88,10 @@ function resolveStateValue(raw, previous, opts = {}) {
   // 先頭が NO_CHANGE（後続にゴミが付いていても）
   if (/^NO[_\s]?CHANGE\b/i.test(v)) return previous;
 
-  // クリーンなタグ列（ASCII英数・カンマ・括弧・空白・記号のみ、200字以内）なら有効値
-  if (/^[a-z0-9 ,()''\-\/.]+$/i.test(v) && v.length <= 200) return v;
+  // クリーンなタグ列（ASCII英数・カンマ・括弧・空白・記号のみ、600字以内）なら有効値。
+  // 上限はトークン打ち切り対策ではなく、暴走・脱線した長文出力を弾くための質的ガード。
+  // ガーメント数の多い服装リストでも正当な出力が弾かれないよう十分な余裕を持たせている。
+  if (/^[a-z0-9 ,()''\-\/.]+$/i.test(v) && v.length <= 600) return v;
 
   // 本文中に NO_CHANGE が紛れ込み、かつクリーンなタグ列でない → 変化なし
   if (/\bNO[_\s]?CHANGE\b/i.test(v)) return previous;
@@ -99,9 +101,149 @@ function resolveStateValue(raw, previous, opts = {}) {
 }
 
 // ─────────────────────────────────────────────
+// 服装状態のパース/シリアライズ
+// 保存形式は従来通り文字列。配列はターン内処理でのみ使用する。
+// ─────────────────────────────────────────────
+
+// "jacket (unbuttoned), skirt (pulled up, torn)" → ["jacket (unbuttoned)", "skirt (pulled up, torn)"]
+// 括弧内のカンマでは分割しない（括弧深度を追跡する）
+function parseClothingItems(str) {
+  const s = (str || '').trim();
+  if (!s || /^naked$/i.test(s)) return [];
+  const items = [];
+  let depth = 0, cur = '';
+  for (const ch of s) {
+    if (ch === '(') depth++;
+    if (ch === ')') depth = Math.max(0, depth - 1);
+    if (ch === ',' && depth === 0) {
+      if (cur.trim()) items.push(cur.trim());
+      cur = '';
+    } else {
+      cur += ch;
+    }
+  }
+  if (cur.trim()) items.push(cur.trim());
+  return items;
+}
+
+// ["jacket (unbuttoned)", "blouse"] → "jacket (unbuttoned), blouse"
+// 空配列 → "naked"
+function serializeClothingItems(items) {
+  const valid = (items || []).map(i => (i || '').trim()).filter(Boolean);
+  return valid.length ? valid.join(', ') : 'naked';
+}
+
+// LLMのJSON差分出力を検証してマージ。異常時はnullを返す（呼び出し側で前状態維持）
+function mergeClothingChanges(items, changesJson) {
+  let parsed;
+  try {
+    const cleaned = (changesJson || '').replace(/^```(json)?/m, '').replace(/```$/m, '').trim();
+    parsed = JSON.parse(cleaned);
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== 'object') return null;
+
+  if (parsed.naked === true) return [];
+
+  const changes = Array.isArray(parsed.changes) ? parsed.changes : null;
+  if (changes === null) return null;
+  if (changes.length === 0) return items;
+
+  const result = items.slice();
+  const removeIdx = new Set();
+
+  for (const c of changes) {
+    if (!c || typeof c !== 'object') return null;
+    const idx = Number.parseInt(c.id, 10) - 1;
+
+    if (c.action === 'add') {
+      const desc = (c.description || '').trim();
+      if (!desc || !/^[a-z0-9 ()''\-\/.,]+$/i.test(desc) || desc.length > 120) return null;
+      result.push(desc);
+      continue;
+    }
+
+    if (!Number.isInteger(idx) || idx < 0 || idx >= items.length) return null;
+
+    if (c.action === 'remove') {
+      removeIdx.add(idx);
+    } else if (c.action === 'update') {
+      const desc = (c.description || '').trim();
+      if (!desc || !/^[a-z0-9 ()''\-\/.,]+$/i.test(desc) || desc.length > 120) return null;
+      result[idx] = desc;
+    } else {
+      return null;
+    }
+  }
+
+  return result.filter((_, i) => !removeIdx.has(i));
+}
+
+// 服装状態トラッキング（ID差分方式）
+// 返り値: 更新後の服装文字列（変化なし・失敗時は prevClothing をそのまま返す）
+// 副作用: 変化があれば activeSession.current_clothing を更新
+async function trackClothingState(sceneText) {
+  const charAppearanceClothingEN = activeChar?.appearance_clothing_en?.trim() || '';
+  const prevClothing = activeSession?.current_clothing || charAppearanceClothingEN || '';
+  const items = parseClothingItems(prevClothing);
+
+  const numbered = items.length
+    ? items.map((it, i) => `${i + 1}: ${it}`).join('\n')
+    : '(nothing worn — the character is naked)';
+
+  const system = `You are analyzing a scene description to track changes to a character's clothing.
+LANGUAGE RULE: Your output MUST be in English only.
+
+"Clothing state" includes not only which garments are worn, but also how they are currently being worn (e.g. properly worn, loosened, unbuttoned, untied, pulled down/up, off-shoulder, disheveled, partially removed).
+
+Current clothing (numbered list):
+${numbered}
+
+Your task: report ONLY the items that this scene explicitly changes. Do NOT re-list unchanged items.
+
+Respond with ONLY a JSON object in this exact schema:
+{
+  "changes": [
+    {"id": "2", "action": "update", "description": "blouse (unbuttoned, off-shoulder)"},
+    {"id": "1", "action": "remove"},
+    {"action": "add", "description": "cardigan (draped over shoulders)"}
+  ]
+}
+
+Rules:
+- "id" refers to the number in the list above. Only use ids that exist in the list
+- "update": the garment is still worn but its state changed. "description" must contain the garment name followed by its state in parentheses: "garment (state1, state2)". If all state issues are fixed (put back in order), output just the garment name without parentheses
+- "remove": the garment is fully taken off. Removed garments must NOT appear as updates
+- "add": the character puts on a garment that is not in the list. "description" follows the same format
+- If NO physical action on clothing occurs in the scene (dialogue only, expressions only, movement without touching clothes), return exactly: {"changes": []}
+- If ALL of tops, bottoms, AND innerwear end up removed, return exactly: {"naked": true}
+- Ignore socks and shoes entirely: never add, update, or remove them, and they do not count toward nakedness
+- When in doubt about whether something changed, return {"changes": []}
+- Output ONLY the JSON object. No explanation, no markdown fences.`;
+
+  const raw = await getChatCompletion([
+    { role: 'system', content: system },
+    { role: 'user',   content: sceneText },
+  ], { noThink: true });
+
+  const merged = mergeClothingChanges(items, raw);
+  if (merged === null) {
+    if (getSetting('debugMode', false)) console.warn('[NookResonance] clothing merge failed, raw:', raw);
+    return prevClothing;
+  }
+
+  const next = serializeClothingItems(merged);
+  if (next !== prevClothing && activeSession) {
+    activeSession.current_clothing = next;
+  }
+  return next;
+}
+
+// ─────────────────────────────────────────────
 // 翻訳システム
 // ─────────────────────────────────────────────
-async function translatePrompt(jpText, prevEN = '', narrative = false) {
+async function translatePrompt(jpText, prevEN = '', narrative = false, opts = {}) {
   const charAppearanceEN         = activeChar?.appearance_en?.trim()                  || '';
   const charAppearanceBodyEN     = activeChar?.appearance_body_en?.trim()              || charAppearanceEN;
   const charAppearanceClothingEN = activeChar?.appearance_clothing_en?.trim()          || '';
@@ -116,57 +258,30 @@ async function translatePrompt(jpText, prevEN = '', narrative = false) {
   const bodyEN     = isUserFocus ? userAppearanceEN : charAppearanceBodyEN;
   const appearanceEN = isUserFocus ? userAppearanceEN : charAppearanceEN;
 
-  // ── Step 1: 服装の状態判定 ──
-  const prevClothing = activeSession?.current_clothing || charAppearanceClothingEN || '';
-  let currentClothing = prevClothing;
-  if (!isUserFocus) {
-    const clothingResult = await getChatCompletion([
-      { role: 'system', content: `You are analyzing a scene description to track the current state of the character's clothing.
-LANGUAGE RULE: Your output MUST be in English only. Never use Japanese, Korean, Chinese, or any other language.
-
-"Clothing state" includes not only which garments are worn, but also how they are currently being worn (e.g. properly worn, loosened, unbuttoned, untied, pulled down/up, off-shoulder, disheveled, partially removed).
-
-Current clothing state: "${prevClothing}"
-
-Rules:
-- Start from the current clothing state above. Carry ALL garments and their states forward unchanged, UNLESS the scene explicitly changes or removes a specific garment
-- Only update the entries that the scene directly acts upon: modify state descriptors for affected garments, or remove garments that are fully taken off
-- Garments not mentioned in the scene must appear in the output exactly as they were in the current state
-- Output format: garments separated by ", ". If a garment has a state descriptor, append it in parentheses immediately after the garment name: "garment (state)" or "garment (state1, state2)". Never use a bare comma between a garment and its state. Example: "business jacket, blouse, tight skirt (pulled up), black pantyhose"
-- Garments that remain worn but are loosened, displaced, or disheveled should include both the garment and its state using the format above (e.g. "shirt (unbuttoned, off-shoulder)")
-- If a garment is fully removed, omit it from the output entirely. Never write "removed" as a state descriptor
-- If the scene describes clothing being fixed or put back in order, remove the relevant state descriptors for those garments
-- If tops, bottoms, AND innerwear are all removed, return exactly: naked
-- If NO physical action on clothing is described (dialogue only, expressions only, movement without touching clothes), return exactly: NO_CHANGE
-- Do NOT re-output the current clothing state when nothing changed. When in doubt, return NO_CHANGE.
-- Exclude socks/shoes from the output regardless. Socks/shoes do NOT count toward the "naked" determination
-- Return only the complete updated clothing state, "naked", or "NO_CHANGE". Nothing else.` },
-      { role: 'user', content: sceneText },
-    ], { noThink, maxTokensOverride: 256 });
-    const clothingRaw = cleanLLMResponse(clothingResult);
-    const resolvedClothing = resolveStateValue(clothingRaw, prevClothing, { allowNaked: true });
-    if (resolvedClothing !== prevClothing) {
-      currentClothing = resolvedClothing;
-      if (activeSession) activeSession.current_clothing = currentClothing;
-    }
+  // ── Step 1: 服装の状態判定（ID差分方式） ──
+  let currentClothing = activeSession?.current_clothing || charAppearanceClothingEN || '';
+  if (!isUserFocus && !opts.skipStateUpdate) {
+    currentClothing = await trackClothingState(sceneText);
   }
 
   // ── Step 2: 場所の状態判定 ──
   const prevLocation = activeSession?.current_location || activeSession?.context?.location || '';
   let currentLocation = prevLocation;
-  const locationResult = await getChatCompletion([
-    { role: 'system', content: `You are analyzing a scene description to determine location changes.
+  if (!opts.skipStateUpdate) {
+    const locationResult = await getChatCompletion([
+      { role: 'system', content: `You are analyzing a scene description to determine location changes.
 Current location: "${prevLocation}"
 If the location has changed, return the new location description in English (brief, natural language).
 If NO location change is described, return exactly: NO_CHANGE
 Return only the location description or NO_CHANGE, nothing else.` },
-    { role: 'user', content: sceneText },
-  ], { noThink, maxTokensOverride: 128 });
-  const locationRaw = cleanLLMResponse(locationResult);
-  const resolvedLocation = resolveStateValue(locationRaw, prevLocation);
-  if (resolvedLocation !== prevLocation) {
-    currentLocation = resolvedLocation;
-    if (activeSession) activeSession.current_location = currentLocation;
+      { role: 'user', content: sceneText },
+    ], { noThink });
+    const locationRaw = cleanLLMResponse(locationResult);
+    const resolvedLocation = resolveStateValue(locationRaw, prevLocation);
+    if (resolvedLocation !== prevLocation) {
+      currentLocation = resolvedLocation;
+      if (activeSession) activeSession.current_location = currentLocation;
+    }
   }
 
   // ── Step 3: プロンプト生成 ──
@@ -212,7 +327,7 @@ Output only comma-separated English tags, nothing else.`;
   return [qualityTags, bodyEN, currentClothing, sceneEN].filter(Boolean).join(', ');
 }
 
-async function translatePromptCharMode(userJP, charMsg, prevEN = '', narrative = false) {
+async function translatePromptCharMode(userJP, charMsg, prevEN = '', narrative = false, opts = {}) {
   const charAppearanceEN         = activeChar?.appearance_en?.trim()                  || '';
   const charAppearanceBodyEN     = activeChar?.appearance_body_en?.trim()              || charAppearanceEN;
   const charAppearanceClothingEN = activeChar?.appearance_clothing_en?.trim()          || '';
@@ -229,57 +344,30 @@ async function translatePromptCharMode(userJP, charMsg, prevEN = '', narrative =
     ? `Scene: ${userJP}`
     : `User direction: ${userJP}\nCharacter reaction: ${charMsg}`;
 
-  // ── Step 1: 服装の状態判定 ──
-  const prevClothing = activeSession?.current_clothing || charAppearanceClothingEN || '';
-  let currentClothing = prevClothing;
-  if (!isUserFocus) {
-    const clothingResult = await getChatCompletion([
-      { role: 'system', content: `You are analyzing a scene description to track the current state of the character's clothing.
-LANGUAGE RULE: Your output MUST be in English only. Never use Japanese, Korean, Chinese, or any other language.
-
-"Clothing state" includes not only which garments are worn, but also how they are currently being worn (e.g. properly worn, loosened, unbuttoned, untied, pulled down/up, off-shoulder, disheveled, partially removed).
-
-Current clothing state: "${prevClothing}"
-
-Rules:
-- Start from the current clothing state above. Carry ALL garments and their states forward unchanged, UNLESS the scene explicitly changes or removes a specific garment
-- Only update the entries that the scene directly acts upon: modify state descriptors for affected garments, or remove garments that are fully taken off
-- Garments not mentioned in the scene must appear in the output exactly as they were in the current state
-- Output format: garments separated by ", ". If a garment has a state descriptor, append it in parentheses immediately after the garment name: "garment (state)" or "garment (state1, state2)". Never use a bare comma between a garment and its state. Example: "business jacket, blouse, tight skirt (pulled up), black pantyhose"
-- Garments that remain worn but are loosened, displaced, or disheveled should include both the garment and its state using the format above (e.g. "shirt (unbuttoned, off-shoulder)")
-- If a garment is fully removed, omit it from the output entirely. Never write "removed" as a state descriptor
-- If the scene describes clothing being fixed or put back in order, remove the relevant state descriptors for those garments
-- If tops, bottoms, AND innerwear are all removed, return exactly: naked
-- If NO physical action on clothing is described (dialogue only, expressions only, movement without touching clothes), return exactly: NO_CHANGE
-- Do NOT re-output the current clothing state when nothing changed. When in doubt, return NO_CHANGE.
-- Exclude socks/shoes from the output regardless. Socks/shoes do NOT count toward the "naked" determination
-- Return only the complete updated clothing state, "naked", or "NO_CHANGE". Nothing else.` },
-      { role: 'user', content: inputText },
-    ], { noThink, maxTokensOverride: 256 });
-    const clothingRaw = cleanLLMResponse(clothingResult);
-    const resolvedClothing = resolveStateValue(clothingRaw, prevClothing, { allowNaked: true });
-    if (resolvedClothing !== prevClothing) {
-      currentClothing = resolvedClothing;
-      if (activeSession) activeSession.current_clothing = currentClothing;
-    }
+  // ── Step 1: 服装の状態判定（ID差分方式） ──
+  let currentClothing = activeSession?.current_clothing || charAppearanceClothingEN || '';
+  if (!isUserFocus && !opts.skipStateUpdate) {
+    currentClothing = await trackClothingState(inputText);
   }
 
   // ── Step 2: 場所の状態判定 ──
   const prevLocation = activeSession?.current_location || activeSession?.context?.location || '';
   let currentLocation = prevLocation;
-  const locationResult = await getChatCompletion([
-    { role: 'system', content: `You are analyzing a scene to determine location changes.
+  if (!opts.skipStateUpdate) {
+    const locationResult = await getChatCompletion([
+      { role: 'system', content: `You are analyzing a scene to determine location changes.
 Current location: "${prevLocation}"
 If the location has changed, return the new location description in English.
 If NO location change is described, return exactly: NO_CHANGE
 Return only the location description or NO_CHANGE, nothing else.` },
-    { role: 'user', content: inputText },
-  ], { noThink, maxTokensOverride: 128 });
-  const locationRaw = cleanLLMResponse(locationResult);
-  const resolvedLocation = resolveStateValue(locationRaw, prevLocation);
-  if (resolvedLocation !== prevLocation) {
-    currentLocation = resolvedLocation;
-    if (activeSession) activeSession.current_location = currentLocation;
+      { role: 'user', content: inputText },
+    ], { noThink });
+    const locationRaw = cleanLLMResponse(locationResult);
+    const resolvedLocation = resolveStateValue(locationRaw, prevLocation);
+    if (resolvedLocation !== prevLocation) {
+      currentLocation = resolvedLocation;
+      if (activeSession) activeSession.current_location = currentLocation;
+    }
   }
 
   // ── Step 3: プロンプト生成 ──

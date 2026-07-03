@@ -237,10 +237,10 @@ async function batchRetranslate() {
       const prevEN = anchor || (i === 0 ? '' : (activeSession.turns[i - 1]?.en_prompt || ''));
       if (!inPhoto && turn.gen_mode === 'char' && turn.char_message) {
         // チャットモードのキャラ主導のみ
-        turn.en_prompt = await translatePromptCharMode(turn.user_message || '', turn.char_message, prevEN, turn.is_narrative);
+        turn.en_prompt = await translatePromptCharMode(turn.user_message || '', turn.char_message, prevEN, turn.is_narrative, { skipStateUpdate: true });
       } else {
         // フォトモード・通常チャットモード共通
-        turn.en_prompt = await translatePrompt(turn.jp_prompt, prevEN, turn.is_narrative);
+        turn.en_prompt = await translatePrompt(turn.jp_prompt, prevEN, turn.is_narrative, { skipStateUpdate: true });
       }
     }
 
