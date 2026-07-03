@@ -26,8 +26,10 @@ async function imageUrlToBase64(url) {
     reader.readAsDataURL(blob);
   });
 }
-async function getChatCompletion(messages, { noThink = false } = {}) {
-  const data = await restPost('llm/chat', { messages, noThink });
+async function getChatCompletion(messages, { noThink = false, maxTokensOverride } = {}) {
+  const body = { messages, noThink };
+  if (Number.isInteger(maxTokensOverride) && maxTokensOverride > 0) body.maxTokensOverride = maxTokensOverride;
+  const data = await restPost('llm/chat', body);
   if (data.error) throw new Error(data.error);
   return (data.text || '').trim();
 }
@@ -60,12 +62,40 @@ function cleanLLMResponse(text) {
     .replace(/\(Wait[,\s][\s\S]*/i, '')
     .replace(/\*\*(Refined|Note|Final|Actually|Wait)[\s\S]*/i, '')
     .replace(/\n\n\*\*[\s\S]*/g, '')
+    // 括弧なし Wait 系（行頭 or -> の後）
+    .replace(/(^|\n|\->)\s*(Wait|Actually|Hold on|Let me|Hmm)[,\s][\s\S]*$/i, '')
+    // [Note: ...] / [Self correction: ...] 形式
+    .replace(/\[(Note|Self[\s-]?correction|Revision)[:\s][\s\S]*?\]/gi, '')
     // _empty_ などのプレースホルダーを除去
     .replace(/_empty_/gi, '')
     .replace(/\._[a-z_]+_/gi, '')
     // 長すぎる単語（30文字以上・スペースなし）を除去
     .replace(/\b[a-zA-Z]{30,}\b/g, '')
     .trim();
+}
+
+// ─────────────────────────────────────────────
+// 状態抽出ヘルパ
+// ─────────────────────────────────────────────
+// 服装・場所の抽出結果を頑健に解決する。
+// 思考リーク・多言語混入・NO_CHANGE埋め込みを全てケア。
+function resolveStateValue(raw, previous, opts = {}) {
+  const v = (raw || '').trim();
+  if (!v) return previous;
+
+  if (opts.allowNaked && /^naked$/i.test(v)) return 'naked';
+
+  // 先頭が NO_CHANGE（後続にゴミが付いていても）
+  if (/^NO[_\s]?CHANGE\b/i.test(v)) return previous;
+
+  // クリーンなタグ列（ASCII英数・カンマ・括弧・空白・記号のみ、200字以内）なら有効値
+  if (/^[a-z0-9 ,()''\-\/.]+$/i.test(v) && v.length <= 200) return v;
+
+  // 本文中に NO_CHANGE が紛れ込み、かつクリーンなタグ列でない → 変化なし
+  if (/\bNO[_\s]?CHANGE\b/i.test(v)) return previous;
+
+  // ここまで来たら思考リーク等の異常 → 前状態維持
+  return previous;
 }
 
 // ─────────────────────────────────────────────
@@ -92,6 +122,7 @@ async function translatePrompt(jpText, prevEN = '', narrative = false) {
   if (!isUserFocus) {
     const clothingResult = await getChatCompletion([
       { role: 'system', content: `You are analyzing a scene description to track the current state of the character's clothing.
+LANGUAGE RULE: Your output MUST be in English only. Never use Japanese, Korean, Chinese, or any other language.
 
 "Clothing state" includes not only which garments are worn, but also how they are currently being worn (e.g. properly worn, loosened, unbuttoned, untied, pulled down/up, off-shoulder, disheveled, partially removed).
 
@@ -106,14 +137,16 @@ Rules:
 - If a garment is fully removed, omit it from the output entirely. Never write "removed" as a state descriptor
 - If the scene describes clothing being fixed or put back in order, remove the relevant state descriptors for those garments
 - If tops, bottoms, AND innerwear are all removed, return exactly: naked
-- If NO change to clothing or its state is described, return exactly: NO_CHANGE
+- If NO physical action on clothing is described (dialogue only, expressions only, movement without touching clothes), return exactly: NO_CHANGE
+- Do NOT re-output the current clothing state when nothing changed. When in doubt, return NO_CHANGE.
 - Exclude socks/shoes from the output regardless. Socks/shoes do NOT count toward the "naked" determination
 - Return only the complete updated clothing state, "naked", or "NO_CHANGE". Nothing else.` },
       { role: 'user', content: sceneText },
-    ], { noThink });
+    ], { noThink, maxTokensOverride: 256 });
     const clothingRaw = cleanLLMResponse(clothingResult);
-    if (clothingRaw !== 'NO_CHANGE' && clothingRaw.length > 0) {
-      currentClothing = clothingRaw;
+    const resolvedClothing = resolveStateValue(clothingRaw, prevClothing, { allowNaked: true });
+    if (resolvedClothing !== prevClothing) {
+      currentClothing = resolvedClothing;
       if (activeSession) activeSession.current_clothing = currentClothing;
     }
   }
@@ -128,10 +161,11 @@ If the location has changed, return the new location description in English (bri
 If NO location change is described, return exactly: NO_CHANGE
 Return only the location description or NO_CHANGE, nothing else.` },
     { role: 'user', content: sceneText },
-  ], { noThink });
+  ], { noThink, maxTokensOverride: 128 });
   const locationRaw = cleanLLMResponse(locationResult);
-  if (locationRaw !== 'NO_CHANGE' && locationRaw.length > 0) {
-    currentLocation = locationRaw;
+  const resolvedLocation = resolveStateValue(locationRaw, prevLocation);
+  if (resolvedLocation !== prevLocation) {
+    currentLocation = resolvedLocation;
     if (activeSession) activeSession.current_location = currentLocation;
   }
 
@@ -201,6 +235,7 @@ async function translatePromptCharMode(userJP, charMsg, prevEN = '', narrative =
   if (!isUserFocus) {
     const clothingResult = await getChatCompletion([
       { role: 'system', content: `You are analyzing a scene description to track the current state of the character's clothing.
+LANGUAGE RULE: Your output MUST be in English only. Never use Japanese, Korean, Chinese, or any other language.
 
 "Clothing state" includes not only which garments are worn, but also how they are currently being worn (e.g. properly worn, loosened, unbuttoned, untied, pulled down/up, off-shoulder, disheveled, partially removed).
 
@@ -215,14 +250,16 @@ Rules:
 - If a garment is fully removed, omit it from the output entirely. Never write "removed" as a state descriptor
 - If the scene describes clothing being fixed or put back in order, remove the relevant state descriptors for those garments
 - If tops, bottoms, AND innerwear are all removed, return exactly: naked
-- If NO change to clothing or its state is described, return exactly: NO_CHANGE
+- If NO physical action on clothing is described (dialogue only, expressions only, movement without touching clothes), return exactly: NO_CHANGE
+- Do NOT re-output the current clothing state when nothing changed. When in doubt, return NO_CHANGE.
 - Exclude socks/shoes from the output regardless. Socks/shoes do NOT count toward the "naked" determination
 - Return only the complete updated clothing state, "naked", or "NO_CHANGE". Nothing else.` },
       { role: 'user', content: inputText },
-    ], { noThink });
+    ], { noThink, maxTokensOverride: 256 });
     const clothingRaw = cleanLLMResponse(clothingResult);
-    if (clothingRaw !== 'NO_CHANGE' && clothingRaw.length > 0) {
-      currentClothing = clothingRaw;
+    const resolvedClothing = resolveStateValue(clothingRaw, prevClothing, { allowNaked: true });
+    if (resolvedClothing !== prevClothing) {
+      currentClothing = resolvedClothing;
       if (activeSession) activeSession.current_clothing = currentClothing;
     }
   }
@@ -237,10 +274,11 @@ If the location has changed, return the new location description in English.
 If NO location change is described, return exactly: NO_CHANGE
 Return only the location description or NO_CHANGE, nothing else.` },
     { role: 'user', content: inputText },
-  ], { noThink });
+  ], { noThink, maxTokensOverride: 128 });
   const locationRaw = cleanLLMResponse(locationResult);
-  if (locationRaw !== 'NO_CHANGE' && locationRaw.length > 0) {
-    currentLocation = locationRaw;
+  const resolvedLocation = resolveStateValue(locationRaw, prevLocation);
+  if (resolvedLocation !== prevLocation) {
+    currentLocation = resolvedLocation;
     if (activeSession) activeSession.current_location = currentLocation;
   }
 
