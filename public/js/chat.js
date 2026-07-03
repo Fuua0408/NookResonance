@@ -168,6 +168,17 @@ async function _chatSubmitTurnOrig() {
       }
       turn.char_message = charMsg;
       appendCharMessage(charMsg, tIdx);
+
+      // 服装状態の追跡（生成なしターンでも服装変化を見逃さない）
+      if (!(document.getElementById('userFocusToggle')?.checked ?? false)) {
+        try {
+          updateStatusBadge(t('status.tracking_state', '状態を確認中…'));
+          const trackInput = `User direction: ${jpText || '(no input)'}\nCharacter reaction: ${charMsg}`;
+          await trackClothingState(trackInput);
+        } catch(e) {
+          console.warn('[NookResonance] clothing tracking failed (chat-only turn):', e.message);
+        }
+      }
     }
 
     // セッションに保存
@@ -604,9 +615,9 @@ async function rerollImageFromTurn(turnIdx) {
     const prevEN = getAnchorEN() || (turnIdx === 0 ? '' : (activeSession.turns[turnIdx - 1]?.en_prompt || ''));
     let enPrompt;
     if (turn.gen_mode === 'char' && turn.char_message) {
-      enPrompt = await translatePromptCharMode(turn.user_message || '', turn.char_message, prevEN, turn.is_narrative);
+      enPrompt = await translatePromptCharMode(turn.user_message || '', turn.char_message, prevEN, turn.is_narrative, { skipStateUpdate: true });
     } else {
-      enPrompt = await translatePrompt(turn.user_message || turn.jp_prompt || '', prevEN, turn.is_narrative);
+      enPrompt = await translatePrompt(turn.user_message || turn.jp_prompt || '', prevEN, turn.is_narrative, { skipStateUpdate: true });
     }
     turn.en_prompt = enPrompt;
 
@@ -640,9 +651,9 @@ async function rerollTurnWithRetranslate(turnIdx, withCharReaction) {
     const prevEN = anchor || (turnIdx === 0 ? '' : (activeSession.turns[turnIdx - 1]?.en_prompt || ''));
     let newEN;
     if (turn.gen_mode === 'char' && turn.char_message) {
-      newEN = await translatePromptCharMode(turn.user_message || '', turn.char_message, prevEN, turn.is_narrative);
+      newEN = await translatePromptCharMode(turn.user_message || '', turn.char_message, prevEN, turn.is_narrative, { skipStateUpdate: true });
     } else {
-      newEN = await translatePrompt(turn.jp_prompt, prevEN, turn.is_narrative);
+      newEN = await translatePrompt(turn.jp_prompt, prevEN, turn.is_narrative, { skipStateUpdate: true });
     }
     turn.en_prompt = newEN;
 
