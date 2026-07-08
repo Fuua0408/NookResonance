@@ -126,8 +126,6 @@ function initSettingsUI() {
   // ログインユーザー名表示
   const userEl = document.getElementById('settingsUsername');
   if (userEl) userEl.textContent = getCurrentUser()?.username || '';
-  const mcpUserIdEl = document.getElementById('mcpUserIdDisplay');
-  if (mcpUserIdEl) mcpUserIdEl.textContent = getCurrentUser()?.id ?? '-';
   const mcpEndpointEl = document.getElementById('mcpEndpointDisplay');
   if (mcpEndpointEl) mcpEndpointEl.textContent = `${location.origin}/mcp`;
 
@@ -169,14 +167,14 @@ function initSettingsUI() {
 }
 
 // グローバルWF設定をUIに反映（管理者用）
-function copyMcpUserId() {
+/*
   const userId = getCurrentUser()?.id;
   if (userId === undefined || userId === null) {
     showToast(t('toast.login_required', 'ログインが必要です'));
     return;
   }
   copyToClipboard(String(userId));
-}
+*/
 
 function copyMcpEndpoint() {
   copyToClipboard(`${location.origin}/mcp`);
@@ -190,6 +188,9 @@ function copyMcpBearerHeader() {
   }
   copyToClipboard(`Authorization: Bearer ${token}`);
 }
+
+window.copyMcpEndpoint = copyMcpEndpoint;
+window.copyMcpBearerHeader = copyMcpBearerHeader;
 
 async function loadAdminWfSettings() {
   try {

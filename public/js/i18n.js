@@ -316,12 +316,10 @@ const I18N = {
     'settings.users_password_placeholder':'Password',
     'settings.users_add_button':         'Add',
     'settings.mcp_section':              'MCP Integration',
-    'settings.mcp_user_id':              'User ID',
-    'settings.mcp_copy_user_id':         'Copy ID',
     'settings.mcp_endpoint':             'Endpoint',
     'settings.mcp_copy_endpoint':        'Copy URL',
     'settings.mcp_copy_bearer':          'Copy Auth Header',
-    'settings.mcp_token_note':           'Copies the Authorization header for external MCP clients. The token is not shown on screen.',
+    'settings.mcp_token_note':           'Copies the Authorization header for external MCP clients. The user is resolved from the token, and the token is not shown on screen.',
 
     // ── 引き継ぎ（Handover）──
     'handover.title':      'Session Handover',

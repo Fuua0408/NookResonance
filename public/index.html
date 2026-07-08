@@ -542,29 +542,21 @@
 
       <!-- MCP connection -->
       <div>
-        <div class="section-label" data-i18n="settings.mcp_section">MCP連携</div>
+        <div class="section-label" data-i18n="settings.mcp_section">MCP Integration</div>
         <div class="field-group">
-          <div class="num-row">
-            <div>
-              <div class="num-label" style="font-size:13px;" data-i18n="settings.mcp_user_id">User ID</div>
-              <div id="mcpUserIdDisplay" class="mono" style="font-size:12px;color:var(--text-dim);margin-top:2px;">-</div>
-            </div>
-            <button class="btn-secondary" style="font-size:11px;padding:4px 10px;" onclick="copyMcpUserId()" data-i18n="settings.mcp_copy_user_id">IDをコピー</button>
-          </div>
-          <div class="sep"></div>
           <div class="num-row">
             <div style="min-width:0;flex:1;">
               <div class="num-label" style="font-size:13px;" data-i18n="settings.mcp_endpoint">Endpoint</div>
               <div id="mcpEndpointDisplay" class="mono" style="font-size:12px;color:var(--text-dim);margin-top:2px;word-break:break-all;">/mcp</div>
             </div>
-            <button class="btn-secondary" style="font-size:11px;padding:4px 10px;" onclick="copyMcpEndpoint()" data-i18n="settings.mcp_copy_endpoint">URLをコピー</button>
+            <button class="btn-secondary" style="font-size:11px;padding:4px 10px;" onclick="copyMcpEndpoint()" data-i18n="settings.mcp_copy_endpoint">Copy URL</button>
           </div>
           <div class="sep"></div>
           <button class="btn-secondary" style="width:100%;padding:9px;" onclick="copyMcpBearerHeader()" data-i18n="settings.mcp_copy_bearer">
-            認証ヘッダーをコピー
+            Copy Auth Header
           </button>
           <div style="font-size:11px;color:var(--text-pale);padding:6px 2px 0;" data-i18n="settings.mcp_token_note">
-            外部MCPクライアントへ貼り付ける認証ヘッダーをコピーします。トークンは画面には表示されません。
+            Copies the Authorization header for external MCP clients. The user is resolved from the token, and the token is not shown on screen.
           </div>
         </div>
       </div>
@@ -1041,7 +1033,7 @@ async function initAfterLogin() {
 </script>
 
 <script src="/js/i18n.js"></script>
-<script src="js/api.js"></script>
+<script src="js/api.js?v=mcp-token-auth"></script>
 <script src="js/workflows.js"></script>
 <script src="js/llm.js"></script>
 <script src="js/comfyui.js"></script>
