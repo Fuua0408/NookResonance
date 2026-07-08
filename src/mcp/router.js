@@ -18,16 +18,12 @@ const CHARACTER_PROFILE_TOOL = {
   inputSchema: {
     type: 'object',
     properties: {
-      user_id: {
-        type: ['integer', 'string'],
-        description: 'Authenticated NookResonance user ID.',
-      },
       character_name: {
         type: 'string',
         description: 'Exact character name to look up.',
       },
     },
-    required: ['user_id', 'character_name'],
+    required: ['character_name'],
     additionalProperties: false,
   },
   outputSchema: {
@@ -80,7 +76,7 @@ function handleInitialize(id, params = {}) {
       tools: { listChanged: false },
     },
     serverInfo: SERVER_INFO,
-    instructions: 'Use get_character_profile with a Bearer token, user_id, and character_name to read character personality and speaking tone.',
+    instructions: 'Use get_character_profile with a Bearer token and character_name to read character personality and speaking tone for the authenticated user.',
   });
 }
 
