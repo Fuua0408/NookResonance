@@ -126,6 +126,10 @@ function initSettingsUI() {
   // ログインユーザー名表示
   const userEl = document.getElementById('settingsUsername');
   if (userEl) userEl.textContent = getCurrentUser()?.username || '';
+  const mcpUserIdEl = document.getElementById('mcpUserIdDisplay');
+  if (mcpUserIdEl) mcpUserIdEl.textContent = getCurrentUser()?.id ?? '-';
+  const mcpEndpointEl = document.getElementById('mcpEndpointDisplay');
+  if (mcpEndpointEl) mcpEndpointEl.textContent = `${location.origin}/mcp`;
 
   // 管理者専用セクション（値の反映 + 表示制御）
   const isAdmin = !!getCurrentUser()?.is_admin;
@@ -165,6 +169,28 @@ function initSettingsUI() {
 }
 
 // グローバルWF設定をUIに反映（管理者用）
+function copyMcpUserId() {
+  const userId = getCurrentUser()?.id;
+  if (userId === undefined || userId === null) {
+    showToast(t('toast.login_required', 'ログインが必要です'));
+    return;
+  }
+  copyToClipboard(String(userId));
+}
+
+function copyMcpEndpoint() {
+  copyToClipboard(`${location.origin}/mcp`);
+}
+
+function copyMcpBearerHeader() {
+  const token = getAuthToken();
+  if (!token) {
+    showToast(t('toast.login_required', 'ログインが必要です'));
+    return;
+  }
+  copyToClipboard(`Authorization: Bearer ${token}`);
+}
+
 async function loadAdminWfSettings() {
   try {
     const s = await restGet('settings');
