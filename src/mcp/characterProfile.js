@@ -11,6 +11,21 @@ const TONE_KEYS = [
   'voice_style',
 ];
 
+const AFFECTION_DEFAULT = 130;
+const AFFECTION_MIN = 0;
+const AFFECTION_MAX = 255;
+const AFFECTION_STAGES = [
+  { min: 0, max: 5, label: '憎悪' },
+  { min: 6, max: 36, label: '大嫌い' },
+  { min: 37, max: 72, label: '嫌い' },
+  { min: 73, max: 109, label: '苦手' },
+  { min: 110, max: 145, label: '普通' },
+  { min: 146, max: 181, label: '好き' },
+  { min: 182, max: 218, label: 'とても好き' },
+  { min: 219, max: 249, label: '大好き' },
+  { min: 250, max: 255, label: '愛' },
+];
+
 function parseCharData(row) {
   try {
     return JSON.parse(row.char_data || '{}');
@@ -54,6 +69,31 @@ function getStoredTone(charData) {
   return extractToneFromPersonality(charData.personality || '');
 }
 
+function clampAffection(value) {
+  return Math.max(AFFECTION_MIN, Math.min(AFFECTION_MAX, Math.round(value)));
+}
+
+function getAffectionLabel(level) {
+  const stage = AFFECTION_STAGES.find(s => level >= s.min && level <= s.max);
+  return stage?.label || '';
+}
+
+function getAffection(charData) {
+  if (charData.affection_enabled === false) return null;
+
+  const raw = charData.affection;
+  const numeric = raw === undefined || raw === null || raw === ''
+    ? AFFECTION_DEFAULT
+    : Number(raw);
+  if (!Number.isFinite(numeric)) return null;
+
+  const level = clampAffection(numeric);
+  return {
+    level,
+    label: getAffectionLabel(level),
+  };
+}
+
 function getCharacterProfileForMcp(authenticatedUser, args = {}) {
   const characterName = typeof args.character_name === 'string'
     ? args.character_name.trim()
@@ -88,6 +128,7 @@ function getCharacterProfileForMcp(authenticatedUser, args = {}) {
   const charData = parseCharData(row);
   const personality = typeof charData.personality === 'string' ? charData.personality.trim() : '';
   const tone = getStoredTone(charData);
+  const affection = getAffection(charData);
 
   return {
     user_id: row.user_id,
@@ -95,6 +136,7 @@ function getCharacterProfileForMcp(authenticatedUser, args = {}) {
     character_name: row.name,
     personality,
     tone,
+    affection,
     updated_at: row.updated_at,
   };
 }
@@ -102,4 +144,5 @@ function getCharacterProfileForMcp(authenticatedUser, args = {}) {
 module.exports = {
   getCharacterProfileForMcp,
   extractToneFromPersonality,
+  getAffection,
 };
