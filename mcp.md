@@ -119,7 +119,11 @@ Invoke-RestMethod `
   }'
 ```
 
-The response includes the `get_character_profile` tool definition.
+The response includes these tool definitions:
+
+- `get_character_profile`
+- `list_characters`
+- `search_characters`
 
 ## Tool: get_character_profile
 
@@ -223,6 +227,99 @@ Successful response:
 }
 ```
 
+## Tool: list_characters
+
+### Purpose
+
+Lists lightweight character information for characters owned by the authenticated user. Use this before `get_character_profile` when the exact character name is unknown or ambiguous.
+
+### Input
+
+```json
+{}
+```
+
+### Output
+
+```json
+{
+  "characters": [
+    {
+      "character_id": 12,
+      "character_name": "Character Name",
+      "affection": {
+        "level": 130,
+        "label": "普通"
+      },
+      "summary": "Short tone/personality preview...",
+      "updated_at": "2026-07-08 12:34:56"
+    }
+  ]
+}
+```
+
+`list_characters` intentionally returns a lightweight preview and does not return the full `personality` text.
+
+If the authenticated user has no characters, it returns:
+
+```json
+{
+  "characters": []
+}
+```
+
+## Tool: search_characters
+
+### Purpose
+
+Searches characters owned by the authenticated user by exact or partial text in character name, personality, and speaking-tone fields. Use this when the user refers to a character by traits, tone, or an uncertain name.
+
+### Input
+
+```json
+{
+  "query": "soft voice",
+  "limit": 10
+}
+```
+
+Fields:
+
+| Field | Type | Required | Description |
+|---|---|---:|---|
+| `query` | string | yes | Keyword to search character names, personality, or speaking tone. |
+| `limit` | integer | no | Maximum number of matches. Defaults to 10 and is capped at 25. |
+
+### Output
+
+```json
+{
+  "query": "soft voice",
+  "matches": [
+    {
+      "character_id": 12,
+      "character_name": "Character Name",
+      "matched_fields": ["tone"],
+      "preview": "soft voice / Short personality preview...",
+      "affection": {
+        "level": 130,
+        "label": "普通"
+      },
+      "updated_at": "2026-07-08 12:34:56"
+    }
+  ]
+}
+```
+
+If there are no matches, it returns an empty `matches` array instead of an error.
+
+```json
+{
+  "query": "unknown keyword",
+  "matches": []
+}
+```
+
 ## Tone Extraction
 
 The server checks the following character data fields first:
@@ -284,6 +381,11 @@ Examples:
 [MCP] tools/call name=get_character_profile userId=1 characterName="Character Name"
 [MCP] get_character_profile success userId=1 characterId=12 characterName="Character Name"
 [MCP] get_character_profile error userId=1 characterName="Missing Character" message="Character not found"
+[MCP] tools/call name=list_characters userId=1
+[MCP] list_characters success userId=1 count=3
+[MCP] tools/call name=search_characters userId=1 query="soft voice" limit=10
+[MCP] search_characters success userId=1 query="soft voice" count=1
+[MCP] search_characters error userId=1 query="" message="query is required"
 ```
 
 Bearer tokens, passwords, JWT values, and Authorization headers are not logged.
@@ -299,7 +401,9 @@ Common messages:
 | `character_name is required` | `character_name` was not provided. |
 | `Character not found` | No character with the exact name exists for the authenticated user. |
 | `Multiple characters matched the same name` | More than one character has the same name for the user. Rename one character or make names unique. |
-| `Unknown tool: ...` | A tool other than `get_character_profile` was requested. |
+| `query is required` | `search_characters` was called without a non-empty query. |
+| `limit is invalid` | `search_characters` received a non-integer or non-positive limit. |
+| `Unknown tool: ...` | An undefined MCP tool was requested. |
 
 Authentication failures return normal HTTP `401` JSON responses from the shared NookResonance auth middleware.
 

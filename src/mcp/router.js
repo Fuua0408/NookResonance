@@ -2,7 +2,11 @@
 
 const express = require('express');
 const { authMiddleware } = require('../auth');
-const { getCharacterProfileForMcp } = require('./characterProfile');
+const {
+  getCharacterProfileForMcp,
+  listCharactersForMcp,
+  searchCharactersForMcp,
+} = require('./characterProfile');
 const logger = require('../logger');
 
 const PROTOCOL_VERSION = '2025-06-18';
@@ -15,7 +19,7 @@ const SERVER_INFO = {
 const CHARACTER_PROFILE_TOOL = {
   name: 'get_character_profile',
   title: 'Get Character Profile',
-  description: 'Use this tool when the user asks to reference, inspect, summarize, roleplay as, or preserve consistency with a NookResonance character. It returns the authenticated user\'s character personality, speaking tone, and affection information by exact character name. Use it before answering in a character\'s voice, checking character consistency, or explaining a character\'s personality or relationship with the user.',
+  description: 'Use this tool when the user asks to reference, inspect, summarize, roleplay as, or preserve consistency with a NookResonance character. It returns the authenticated user\'s character personality, speaking tone, and affection information by exact character name. If the exact character name is unknown or ambiguous, call list_characters or search_characters first, then use the returned character_name.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -54,8 +58,130 @@ const CHARACTER_PROFILE_TOOL = {
   },
   annotations: {
     readOnlyHint: true,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: false,
   },
 };
+
+const LIST_CHARACTERS_TOOL = {
+  name: 'list_characters',
+  title: 'List Characters',
+  description: 'List NookResonance characters owned by the authenticated user. Use this tool when the user did not provide an exact character name, when you need to check available characters, or before calling get_character_profile if the character name is ambiguous.',
+  inputSchema: {
+    type: 'object',
+    properties: {},
+    additionalProperties: false,
+  },
+  outputSchema: {
+    type: 'object',
+    properties: {
+      characters: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            character_id: { type: 'integer' },
+            character_name: { type: 'string' },
+            affection: {
+              anyOf: [
+                {
+                  type: 'object',
+                  properties: {
+                    level: { type: 'integer' },
+                    label: { type: 'string' },
+                  },
+                  required: ['level', 'label'],
+                },
+                { type: 'null' },
+              ],
+            },
+            summary: { type: 'string' },
+            updated_at: { type: 'string' },
+          },
+          required: ['character_id', 'character_name', 'affection', 'summary', 'updated_at'],
+        },
+      },
+    },
+    required: ['characters'],
+  },
+  annotations: {
+    readOnlyHint: true,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: false,
+  },
+};
+
+const SEARCH_CHARACTERS_TOOL = {
+  name: 'search_characters',
+  title: 'Search Characters',
+  description: 'Search NookResonance characters owned by the authenticated user by character name, personality, or speaking tone. Use this tool when the user\'s character reference is ambiguous, when the exact character name is unknown, or when searching by traits such as personality or tone. Use the returned character_name with get_character_profile when detailed profile information is needed.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      query: {
+        type: 'string',
+        description: 'Keyword to search character names, personality, or speaking tone.',
+      },
+      limit: {
+        type: 'integer',
+        description: 'Maximum number of matches to return. Defaults to 10 and is capped at 25.',
+      },
+    },
+    required: ['query'],
+    additionalProperties: false,
+  },
+  outputSchema: {
+    type: 'object',
+    properties: {
+      query: { type: 'string' },
+      matches: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            character_id: { type: 'integer' },
+            character_name: { type: 'string' },
+            matched_fields: {
+              type: 'array',
+              items: { type: 'string' },
+            },
+            preview: { type: 'string' },
+            affection: {
+              anyOf: [
+                {
+                  type: 'object',
+                  properties: {
+                    level: { type: 'integer' },
+                    label: { type: 'string' },
+                  },
+                  required: ['level', 'label'],
+                },
+                { type: 'null' },
+              ],
+            },
+            updated_at: { type: 'string' },
+          },
+          required: ['character_id', 'character_name', 'matched_fields', 'preview', 'affection', 'updated_at'],
+        },
+      },
+    },
+    required: ['query', 'matches'],
+  },
+  annotations: {
+    readOnlyHint: true,
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: false,
+  },
+};
+
+const TOOLS = [
+  CHARACTER_PROFILE_TOOL,
+  LIST_CHARACTERS_TOOL,
+  SEARCH_CHARACTERS_TOOL,
+];
 
 function jsonRpcResult(id, result) {
   return { jsonrpc: '2.0', id, result };
@@ -90,14 +216,22 @@ function handleInitialize(id, params = {}) {
       tools: { listChanged: false },
     },
     serverInfo: SERVER_INFO,
-    instructions: 'Use get_character_profile with a Bearer token and character_name to read character personality and speaking tone for the authenticated user.',
+    instructions: 'Use list_characters to inspect available characters, search_characters when the exact character name is unknown, and get_character_profile with an exact character_name to read personality, speaking tone, and affection for the authenticated user.',
   });
 }
 
 function handleToolsList(id) {
   return jsonRpcResult(id, {
-    tools: [CHARACTER_PROFILE_TOOL],
+    tools: TOOLS,
   });
+}
+
+function mcpToolResult(result) {
+  return {
+    content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+    structuredContent: result,
+    isError: false,
+  };
 }
 
 function handleToolsCall(id, params = {}, user) {
@@ -108,25 +242,46 @@ function handleToolsCall(id, params = {}, user) {
     ? args.character_name.trim()
     : (typeof args.characterName === 'string' ? args.characterName.trim() : '');
   const logCharacterName = characterName || '<missing>';
+  const query = typeof args.query === 'string' ? args.query.trim() : '';
+  const limit = args.limit ?? '';
 
-  logger.info(`[MCP] tools/call name=${toolName || '<missing>'} userId=${user?.id ?? '<unknown>'} characterName=${JSON.stringify(logCharacterName)}`);
+  if (toolName === SEARCH_CHARACTERS_TOOL.name) {
+    logger.info(`[MCP] tools/call name=${toolName} userId=${user?.id ?? '<unknown>'} query=${JSON.stringify(query)} limit=${JSON.stringify(limit)}`);
+  } else if (toolName === LIST_CHARACTERS_TOOL.name) {
+    logger.info(`[MCP] tools/call name=${toolName} userId=${user?.id ?? '<unknown>'}`);
+  } else {
+    logger.info(`[MCP] tools/call name=${toolName || '<missing>'} userId=${user?.id ?? '<unknown>'} characterName=${JSON.stringify(logCharacterName)}`);
+  }
 
-  if (params.name !== CHARACTER_PROFILE_TOOL.name) {
+  if (!TOOLS.find(tool => tool.name === params.name)) {
     logger.warn(`[MCP] tools/call error userId=${user?.id ?? '<unknown>'} name=${toolName || '<missing>'} characterName=${JSON.stringify(logCharacterName)} message=${JSON.stringify(`Unknown tool: ${toolName}`)}`);
     return jsonRpcResult(id, toolErrorResult(`Unknown tool: ${params.name || ''}`));
   }
 
   try {
+    if (toolName === LIST_CHARACTERS_TOOL.name) {
+      const result = listCharactersForMcp(user);
+      logger.info(`[MCP] list_characters success userId=${user?.id ?? '<unknown>'} count=${result.characters.length}`);
+      return jsonRpcResult(id, mcpToolResult(result));
+    }
+
+    if (toolName === SEARCH_CHARACTERS_TOOL.name) {
+      const result = searchCharactersForMcp(user, args);
+      logger.info(`[MCP] search_characters success userId=${user?.id ?? '<unknown>'} query=${JSON.stringify(result.query)} count=${result.matches.length}`);
+      return jsonRpcResult(id, mcpToolResult(result));
+    }
+
     const profile = getCharacterProfileForMcp(user, args);
-    const text = JSON.stringify(profile, null, 2);
     logger.info(`[MCP] get_character_profile success userId=${user?.id ?? '<unknown>'} characterId=${profile.character_id} characterName=${JSON.stringify(profile.character_name)}`);
-    return jsonRpcResult(id, {
-      content: [{ type: 'text', text }],
-      structuredContent: profile,
-      isError: false,
-    });
+    return jsonRpcResult(id, mcpToolResult(profile));
   } catch (err) {
-    logger.warn(`[MCP] get_character_profile error userId=${user?.id ?? '<unknown>'} characterName=${JSON.stringify(logCharacterName)} message=${JSON.stringify(err.message)}`);
+    if (toolName === SEARCH_CHARACTERS_TOOL.name) {
+      logger.warn(`[MCP] search_characters error userId=${user?.id ?? '<unknown>'} query=${JSON.stringify(query)} message=${JSON.stringify(err.message)}`);
+    } else if (toolName === LIST_CHARACTERS_TOOL.name) {
+      logger.warn(`[MCP] list_characters error userId=${user?.id ?? '<unknown>'} message=${JSON.stringify(err.message)}`);
+    } else {
+      logger.warn(`[MCP] get_character_profile error userId=${user?.id ?? '<unknown>'} characterName=${JSON.stringify(logCharacterName)} message=${JSON.stringify(err.message)}`);
+    }
     return jsonRpcResult(id, toolErrorResult(err.message));
   }
 }
