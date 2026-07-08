@@ -191,6 +191,10 @@ function copyMcpBearerHeader() {
   copyToClipboard(`Authorization: Bearer ${token}`);
 }
 
+window.copyMcpUserId = copyMcpUserId;
+window.copyMcpEndpoint = copyMcpEndpoint;
+window.copyMcpBearerHeader = copyMcpBearerHeader;
+
 async function loadAdminWfSettings() {
   try {
     const s = await restGet('settings');
