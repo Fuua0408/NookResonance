@@ -469,24 +469,120 @@ function isAbnormalRaw(raw) {
 
   return false;
 }
+
+// テキスト中の異常断片だけをピンポイントで除去して返す。
+// 除去量が40%超 or 除去後が空の場合は null（呼び出し側でフォールバック）。
+function stripAnomalousSpans(text) {
+  if (!text) return null;
+  const totalLen = text.length;
+  const ANOMALY_PATTERNS = [
+    /([─━\-!?！？♡❤🤍💔💥]){6,}/gu,
+    /[ｦ-ﾟ]{6,}/gu,
+    /(.{1,6})\1{4,}/gu,
+  ];
+  let stripped = text;
+  for (const pat of ANOMALY_PATTERNS) {
+    stripped = stripped.replace(pat, '');
+  }
+  stripped = stripped.trim();
+  if (!stripped) return null;
+  if ((totalLen - stripped.length) / totalLen > 0.4) return null;
+  return stripped;
+}
+
+function estimateTokens(text) {
+  return Math.ceil((text || '').length * 0.7);
+}
+
+let _summaryUpdateInFlight = false;
+
 function buildHistoryMessages(excludeTurnIdx = -1) {
   if (!activeSession?.turns?.length) return [];
-  const historyTurns = parseInt(getSetting('llmHistoryTurns', 10));
+
+  const maxHistoryTokens = parseInt(getSetting('llmHistoryMaxTokens', 1500));
+  const historyTurns     = parseInt(getSetting('llmHistoryTurns', 10));
+
   const filtered = activeSession.turns
     .map((turn, i) => ({ turn, i }))
     .filter(({ i }) => i !== excludeTurnIdx);
-  // 0 = 全件、それ以外は末尾からN件
-  const sliced = historyTurns === 0 ? filtered : filtered.slice(-historyTurns);
-  return sliced.flatMap(({ turn }) => {
+
+  // 新しい方から積んでいき、予算を超えたら止める（最低1ターンは保証）
+  const kept = [];
+  let used = 0;
+  for (let k = filtered.length - 1; k >= 0; k--) {
+    const { turn } = filtered[k];
+    const t = estimateTokens(turn.user_message) + estimateTokens(turn.char_message);
+    const overTokenBudget = maxHistoryTokens > 0 && used + t > maxHistoryTokens && kept.length > 0;
+    const overTurnBudget  = historyTurns > 0 && kept.length >= historyTurns;
+    if (overTokenBudget || overTurnBudget) break;
+    kept.unshift(filtered[k]);
+    used += t;
+  }
+
+  // 窓の外に押し出されたターンがあれば要約トリガー（fire-and-forget）
+  const oldestKeptIdx = kept.length ? kept[0].i : filtered.length;
+  maybeScheduleSummaryUpdate(oldestKeptIdx);
+
+  return kept.flatMap(({ turn }) => {
     const msgs = [];
     if (turn.user_message) msgs.push({ role: 'user', content: turn.user_message });
     if (turn.char_message && turn.char_message !== '__ABNORMAL__') {
-      // 履歴に思考タグが混入していたら除去（Gemma3/4両対応）
       const cleaned = cleanLLMResponse(turn.char_message);
       if (cleaned) msgs.push({ role: 'assistant', content: cleaned });
     }
     return msgs;
   });
+}
+
+async function maybeScheduleSummaryUpdate(oldestKeptIdx) {
+  if (_summaryUpdateInFlight) return;
+  if (!activeSession || !activeChar) return;
+
+  const already = activeSession.memory_summary_upto_idx ?? 0;
+  const pending = oldestKeptIdx - already;
+  const BATCH_THRESHOLD = 3;
+  if (pending < BATCH_THRESHOLD) return;
+
+  _summaryUpdateInFlight = true;
+  try {
+    const toFold = activeSession.turns.slice(already, oldestKeptIdx);
+    const foldText = toFold.map(turn => {
+      const parts = [];
+      if (turn.user_message) parts.push(`ユーザー: ${turn.user_message}`);
+      if (turn.char_message && turn.char_message !== '__ABNORMAL__') {
+        const msg = cleanLLMResponse(turn.char_message);
+        if (msg) parts.push(`${activeChar.name}: ${msg}`);
+      }
+      return parts.join('\n');
+    }).filter(Boolean).join('\n\n');
+
+    if (!foldText) return;
+
+    const prevSummary = activeSession.memory_summary || '';
+    const system = `あなたは会話ログを要約するアシスタントです。
+既存の要約と新しいやり取りを統合し、重要な出来事・約束・感情の変化だけを2〜4文で簡潔にまとめてください。
+些末な描写（動作の詳細など）は省略し、後で会話の一貫性を保つために必要な情報を優先してください。
+要約のみ出力し、説明は不要です。`;
+    const user = `既存の要約:\n${prevSummary || '(なし)'}\n\n新しいやり取り:\n${foldText}\n\n更新後の要約:`;
+
+    const raw = await getChatCompletion(
+      [{ role: 'system', content: system }, { role: 'user', content: user }],
+      { noThink: true }
+    );
+    const updated = cleanLLMResponse(raw);
+    if (updated && !isAbnormalOutput(updated)) {
+      activeSession.memory_summary = updated;
+      activeSession.memory_summary_upto_idx = oldestKeptIdx;
+      if (isRestEnabled() && activeSession.id && !isLocalSessionId(activeSession.id)) {
+        restPut(`sessions/${activeChar.id}/${activeSession.id}`, activeSession)
+          .catch(e => console.warn('[NookResonance] memory_summary save failed:', e.message));
+      }
+    }
+  } catch(e) {
+    console.warn('[NookResonance] summary update failed:', e.message);
+  } finally {
+    _summaryUpdateInFlight = false;
+  }
 }
 // 親愛度に応じた態度指示を返す
 function _getAttitudeGuide(value) {
@@ -513,171 +609,198 @@ function _getAttitudeGuideEN(value) {
   return `You deeply love the user. Treat them as someone irreplaceable and express your love without reservation.`;
 }
 
-function buildCharSystemPrompt(char, narrative = false) {
-  if (isEnglishMode()) {
-    return _buildCharSystemPromptEN(char, narrative);
+// ─────────────────────────────────────────────
+// 状態統合ヘルパ（3系統優先順位: ライブ > context > last_state）
+// ─────────────────────────────────────────────
+function resolveCurrentState(char, session) {
+  const ctx = session?.context || {};
+  return {
+    appearance: session?.current_clothing || ctx.appearance || char.last_state?.appearance || '',
+    location:   session?.current_location || ctx.location   || char.last_state?.location   || '',
+  };
+}
+
+// ─────────────────────────────────────────────
+// System prompt ビルダ（JA/EN統合版）
+// ─────────────────────────────────────────────
+const LABELS = {
+  ja: {
+    appearance:      '【外見】',
+    charSettings:    '【キャラクター設定】',
+    relationship:    '【現在の関係性】',
+    attitude:        '【親愛度に基づく態度】',
+    state:           '【現在の状態】',
+    stateAppearance: '現在の外見:',
+    stateLocation:   '現在の場所:',
+    userInfo:        '【ユーザー情報】',
+    permanentMemory: '【恒久的な記憶】',
+    prevSession:     '【前回セッションまでの経緯】',
+    sessionSummary:  '【このセッションでのこれまでの流れ（要約）】',
+  },
+  en: {
+    appearance:      '[Appearance]',
+    charSettings:    '[Character Settings]',
+    relationship:    '[Current Relationship]',
+    attitude:        '[Attitude based on affection level]',
+    state:           '[Current State]',
+    stateAppearance: 'Current appearance:',
+    stateLocation:   'Current location:',
+    userInfo:        '[User Information]',
+    permanentMemory: '[Permanent Memory]',
+    prevSession:     '[Story So Far (Previous Session)]',
+    sessionSummary:  '[This Session So Far (Summary)]',
+  },
+};
+
+function buildMemoryBlock(char, session, lang) {
+  const L = LABELS[lang];
+  const lines = [];
+  const notes = char.memory_notes || [];
+  if (notes.length) {
+    lines.push(L.permanentMemory);
+    notes.forEach(n => lines.push(`  - ${n}`));
   }
-  const lines = [
-    `あなたは「${char.name}」というキャラクターです。`,
-    `以下の設定に従って、キャラクターとして自然に会話してください。`,
-    ``,
-    `【外見】`,
-    char.appearance || '（外見設定なし）',
-    ``,
-    `【キャラクター設定】`,
-    char.personality || '（設定なし）',
-  ];
-
-  // 親愛度情報を差し込む
-  if (typeof isCharAffectionEnabled === 'function' && isCharAffectionEnabled(char)) {
-    const affValue  = char.affection ?? 130;
-    const llmLabel  = typeof affectionLLMLabel === 'function' ? affectionLLMLabel(affValue) : '';
-    const stageLabel = typeof affectionLabel === 'function' ? affectionLabel(affValue) : '';
-    const isFirst   = char.is_first_meeting !== false;
-    const notes     = char.memory_notes || [];
-    const lastState = char.last_state || {};
-
-    lines.push(``, `【現在の関係性】`);
-    lines.push(`現在の親愛度: ${stageLabel}（関係性: ${llmLabel}）`);
-    lines.push(`初対面: ${isFirst ? 'はい' : 'いいえ'}`);
-    if (char.user_name) lines.push(`ユーザーの呼び方: ${char.user_name}`);
-
-    // 親愛度に応じた態度指示
-    const attitudeGuide = _getAttitudeGuide(affValue);
-    if (attitudeGuide) lines.push(`\n【親愛度に基づく態度】\n${attitudeGuide}`);
-    if (notes.length) {
-      lines.push(`記憶メモ:`);
-      notes.forEach(n => lines.push(`  - ${n}`));
-    }
-    if (lastState.appearance) lines.push(`現在の外見: ${lastState.appearance}`);
-    if (lastState.location)   lines.push(`現在の場所: ${lastState.location}`);
+  if (session?.context?.summary) {
+    lines.push(``, L.prevSession);
+    lines.push(session.context.summary);
   }
-
-  // 前回セッション概要（セッションcontextから参照）
-  const ctx = activeSession?.context;
-  if (ctx?.summary)    { lines.push(``, `【前回のセッション概要】`); lines.push(ctx.summary); }
-  if (ctx?.appearance) { lines.push(``, `【現在の外見】`); lines.push(ctx.appearance); }
-  if (ctx?.location)   { lines.push(``, `【現在の場所】`); lines.push(ctx.location); }
-
-  // ユーザー情報（キャラオーバーライド優先・グローバルフォールバック）
-  const up = char.user_profile || {};
-  const userName            = up.name       || getSetting('userName', '')       || '';
-  const userAppearanceBase  = up.appearance || getSetting('userAppearance', '') || '';
-  const userState           = activeSession?.user_state || {};
-  // user_stateの外見があればオーバーライド
-  const userAppearance = userState.appearance || userAppearanceBase;
-  const userLocation   = userState.location   || '';
-  if (userName || userAppearance || userLocation) {
-    lines.push(``, `【ユーザー情報】`);
-    if (userName)       lines.push(`名前: ${userName}`);
-    if (userAppearance) lines.push(`外見: ${userAppearance}`);
-    if (userLocation)   lines.push(`現在の場所: ${userLocation}`);
+  if (session?.memory_summary) {
+    lines.push(``, L.sessionSummary);
+    lines.push(session.memory_summary);
   }
+  return lines.join('\n');
+}
 
-  lines.push(
-    ``,
-    `【重要な指示】`,
-    `- 必ず日本語で返答してください`,
-    `- 画像が共有される場合があります。その場合は状況の一部として自然に受け入れてください`,
-    `- キャラクターとして自然にロールプレイしてください`,
-    `- 余分な説明や前置きは不要です。セリフだけ返してください`,
-    `- （状況）と書かれたメッセージは地の文・ナレーションです。その状況を受け入れて自然に反応してください`,
-  );
-
-  // キャラ主導権モード
-  const charLead = document.getElementById('charLeadToggle')?.checked;
-  if (charLead) {
-    lines.push(
-      ``,
-      `【キャラ主導モード（最重要）】`,
+// JA/EN両対応の指示ブロック定義。priority昇順で並べ、末尾ほど強い指示となる。
+const INSTRUCTION_BLOCKS = [
+  {
+    priority: 0,
+    ja: [
+      `【基本指示】`,
+      `- 必ず日本語で返答してください`,
+      `- 画像が共有される場合があります。その場合は状況の一部として自然に受け入れてください`,
+      `- キャラクターとして自然にロールプレイしてください`,
+      `- 余分な説明や前置きは不要です。セリフだけ返してください`,
+      `- （状況）と書かれたメッセージは地の文・ナレーションです。その状況を受け入れて自然に反応してください`,
+    ],
+    en: [
+      `[Core Instructions]`,
+      `- Always respond in English`,
+      `- Images may be shared. If so, accept them naturally as part of the situation`,
+      `- Roleplay naturally as this character`,
+      `- No extra explanations or preamble. Return only dialogue`,
+      `- Messages written as "(situation) ..." are narrative descriptions. Accept the situation and respond naturally`,
+    ],
+    condition: () => true,
+  },
+  {
+    priority: 10,
+    ja: [
+      `【キャラ主導モード：以下は上の基本指示より優先されます】`,
       `- あなたが会話と展開を完全にリードしてください`,
       `- 受け身の返答・質問で終わることを禁止します`,
       `- 自分の感情・欲求・意志を前面に出し、積極的に行動・発言してください`,
       `- ユーザーの同意を待たずに、次の展開を宣言・提案・実行してください`,
       `- 例：「行くぞ」「これにしろ」「こっちに来い」のように引っ張る口調を使ってよいです`,
       `- 質問するなら選択肢を与えず「どうする？」より「〇〇するから覚悟しろ」のように迫る形が望ましい`,
-    );
-  }
-
-  return lines.join('\n');
-}
-
-function _buildCharSystemPromptEN(char, narrative = false) {
-  const lines = [
-    `You are a character named "${char.name}".`,
-    `Follow the settings below and converse naturally as this character.`,
-    ``,
-    `[Appearance]`,
-    char.appearance || '(no appearance defined)',
-    ``,
-    `[Character Settings]`,
-    char.personality || '(no settings defined)',
-  ];
-
-  if (typeof isCharAffectionEnabled === 'function' && isCharAffectionEnabled(char)) {
-    const affValue   = char.affection ?? 130;
-    const llmLabel   = typeof affectionLLMLabel === 'function' ? affectionLLMLabel(affValue) : '';
-    const stageLabel = typeof affectionLabel    === 'function' ? affectionLabel(affValue)    : '';
-    const isFirst    = char.is_first_meeting !== false;
-    const notes      = char.memory_notes || [];
-    const lastState  = char.last_state   || {};
-
-    lines.push(``, `[Current Relationship]`);
-    lines.push(`Current affection level: ${stageLabel} (relationship: ${llmLabel})`);
-    lines.push(`First meeting: ${isFirst ? 'yes' : 'no'}`);
-    if (char.user_name) lines.push(`How to address the user: ${char.user_name}`);
-
-    const attitudeGuide = _getAttitudeGuideEN(affValue);
-    if (attitudeGuide) lines.push(`\n[Attitude based on affection level]\n${attitudeGuide}`);
-
-    if (notes.length) {
-      lines.push(`Memory notes:`);
-      notes.forEach(n => lines.push(`  - ${n}`));
-    }
-    if (lastState.appearance) lines.push(`Current appearance: ${lastState.appearance}`);
-    if (lastState.location)   lines.push(`Current location: ${lastState.location}`);
-  }
-
-  const ctx = activeSession?.context;
-  if (ctx?.summary)    { lines.push(``, `[Previous Session Summary]`); lines.push(ctx.summary); }
-  if (ctx?.appearance) { lines.push(``, `[Current Appearance]`); lines.push(ctx.appearance); }
-  if (ctx?.location)   { lines.push(``, `[Current Location]`); lines.push(ctx.location); }
-
-  const up = char.user_profile || {};
-  const userName           = up.name       || getSetting('userName', '')       || '';
-  const userAppearanceBase = up.appearance || getSetting('userAppearance', '') || '';
-  const userState          = activeSession?.user_state || {};
-  const userAppearance     = userState.appearance || userAppearanceBase;
-  const userLocation       = userState.location   || '';
-  if (userName || userAppearance || userLocation) {
-    lines.push(``, `[User Information]`);
-    if (userName)       lines.push(`Name: ${userName}`);
-    if (userAppearance) lines.push(`Appearance: ${userAppearance}`);
-    if (userLocation)   lines.push(`Current location: ${userLocation}`);
-  }
-
-  lines.push(
-    ``,
-    `[Important Instructions]`,
-    `- Always respond in English`,
-    `- Images may be shared. If so, accept them naturally as part of the situation`,
-    `- Roleplay naturally as this character`,
-    `- No extra explanations or preamble. Return only dialogue`,
-    `- Messages written as "(situation) ..." are narrative descriptions. Accept the situation and respond naturally`,
-  );
-
-  const charLead = document.getElementById('charLeadToggle')?.checked;
-  if (charLead) {
-    lines.push(
-      ``,
-      `[Character-Led Mode (HIGHEST PRIORITY)]`,
+    ],
+    en: [
+      `[Character-Led Mode: overrides the core instructions above]`,
       `- You must fully lead the conversation and narrative`,
       `- Passive responses or ending with questions are forbidden`,
       `- Express your emotions, desires, and will proactively`,
       `- Declare, propose, or act without waiting for user consent`,
       `- Use assertive language that pulls the user along`,
-    );
+    ],
+    condition: (opts) => opts.charLead,
+  },
+];
+
+function buildInstructionBlocks(options, lang) {
+  return INSTRUCTION_BLOCKS
+    .filter(b => b.condition(options))
+    .sort((a, b) => a.priority - b.priority)
+    .map(b => b[lang].join('\n'))
+    .join('\n\n');
+}
+
+function buildCharSystemPrompt(char, narrative = false) {
+  const lang    = isEnglishMode() ? 'en' : 'ja';
+  const L       = LABELS[lang];
+  const session = activeSession;
+
+  const intro = lang === 'en'
+    ? [`You are a character named "${char.name}".`, `Follow the settings below and converse naturally as this character.`]
+    : [`あなたは「${char.name}」というキャラクターです。`, `以下の設定に従って、キャラクターとして自然に会話してください。`];
+
+  const lines = [
+    ...intro,
+    ``,
+    L.appearance,
+    char.appearance || (lang === 'en' ? '(no appearance defined)' : '（外見設定なし）'),
+    ``,
+    L.charSettings,
+    char.personality || (lang === 'en' ? '(no settings defined)' : '（設定なし）'),
+  ];
+
+  // 親愛度・関係性セクション
+  if (typeof isCharAffectionEnabled === 'function' && isCharAffectionEnabled(char)) {
+    const affValue   = char.affection ?? 130;
+    const llmLabel   = typeof affectionLLMLabel === 'function' ? affectionLLMLabel(affValue) : '';
+    const stageLabel = typeof affectionLabel    === 'function' ? affectionLabel(affValue)    : '';
+    const isFirst    = char.is_first_meeting !== false;
+
+    lines.push(``, L.relationship);
+    if (lang === 'en') {
+      lines.push(`Current affection level: ${stageLabel} (relationship: ${llmLabel})`);
+      lines.push(`First meeting: ${isFirst ? 'yes' : 'no'}`);
+      if (char.user_name) lines.push(`How to address the user: ${char.user_name}`);
+    } else {
+      lines.push(`現在の親愛度: ${stageLabel}（関係性: ${llmLabel}）`);
+      lines.push(`初対面: ${isFirst ? 'はい' : 'いいえ'}`);
+      if (char.user_name) lines.push(`ユーザーの呼び方: ${char.user_name}`);
+    }
+
+    const attitudeGuide = lang === 'en' ? _getAttitudeGuideEN(affValue) : _getAttitudeGuide(affValue);
+    if (attitudeGuide) lines.push(`\n${L.attitude}\n${attitudeGuide}`);
   }
+
+  // 現在の状態（3系統を統合して1箇所だけ出力）
+  const state = resolveCurrentState(char, session);
+  if (state.appearance || state.location) {
+    lines.push(``, L.state);
+    if (state.appearance) lines.push(`${L.stateAppearance} ${state.appearance}`);
+    if (state.location)   lines.push(`${L.stateLocation} ${state.location}`);
+  }
+
+  // 記憶ブロック（恒久記憶 → 前回セッション要約 → 今セッション要約）
+  const memoryBlock = buildMemoryBlock(char, session, lang);
+  if (memoryBlock) lines.push(``, memoryBlock);
+
+  // ユーザー情報
+  const up             = char.user_profile || {};
+  const userName       = up.name       || getSetting('userName', '')       || '';
+  const userAppBase    = up.appearance || getSetting('userAppearance', '') || '';
+  const userState      = session?.user_state || {};
+  const userAppearance = userState.appearance || userAppBase;
+  const userLocation   = userState.location   || '';
+  if (userName || userAppearance || userLocation) {
+    lines.push(``, L.userInfo);
+    if (lang === 'en') {
+      if (userName)       lines.push(`Name: ${userName}`);
+      if (userAppearance) lines.push(`Appearance: ${userAppearance}`);
+      if (userLocation)   lines.push(`Current location: ${userLocation}`);
+    } else {
+      if (userName)       lines.push(`名前: ${userName}`);
+      if (userAppearance) lines.push(`外見: ${userAppearance}`);
+      if (userLocation)   lines.push(`現在の場所: ${userLocation}`);
+    }
+  }
+
+  // 指示ブロック（priority順・末尾ほど強い）
+  const charLead   = document.getElementById('charLeadToggle')?.checked ?? false;
+  const instructions = buildInstructionBlocks({ charLead }, lang);
+  if (instructions) lines.push(``, instructions);
 
   return lines.join('\n');
 }
@@ -710,6 +833,8 @@ async function getCharResponse(imageUrl, userText, narrative = false) {
   const cleaned = cleanLLMResponse(result);
   if (isAbnormalOutput(cleaned)) {
     if (getSetting('debugMode', false)) console.warn('[NookResonance] ABNORMAL_RAW\nPrompt:', messages, '\nResponse:', result);
+    const stripped = stripAnomalousSpans(cleaned);
+    if (stripped && !isAbnormalOutput(stripped)) return stripped;
     if (!isEnglishMode()) {
       if (typeof updateStatusBadge === 'function') updateStatusBadge('リカバリー試行中…');
       const extracted = await extractJapaneseResponse(result);
@@ -741,6 +866,8 @@ async function getCharResponseContinue() {
   const cleaned = cleanLLMResponse(result);
   if (isAbnormalOutput(cleaned)) {
     if (getSetting('debugMode', false)) console.warn('[NookResonance] ABNORMAL_RAW\nPrompt:', messages, '\nResponse:', result);
+    const stripped = stripAnomalousSpans(cleaned);
+    if (stripped && !isAbnormalOutput(stripped)) return stripped;
     if (!isEnglishMode()) {
       if (typeof updateStatusBadge === 'function') updateStatusBadge('リカバリー試行中…');
       const extracted = await extractJapaneseResponse(result);
@@ -764,6 +891,8 @@ async function getCharResponseText(userText, narrative = false, excludeTurnIdx =
   const cleaned = cleanLLMResponse(result);
   if (isAbnormalOutput(cleaned)) {
     if (getSetting('debugMode', false)) console.warn('[NookResonance] ABNORMAL_RAW\nPrompt:', messages, '\nResponse:', result);
+    const stripped = stripAnomalousSpans(cleaned);
+    if (stripped && !isAbnormalOutput(stripped)) return stripped;
     if (!isEnglishMode()) {
       if (typeof updateStatusBadge === 'function') updateStatusBadge('リカバリー試行中…');
       const extracted = await extractJapaneseResponse(result);
