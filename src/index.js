@@ -18,6 +18,7 @@ const imageRoutes = require('./routes/images');
 const llmRoutes   = require('./routes/llm');
 const comfyRoutes   = require('./routes/comfy');
 const uploadsRoutes = require('./routes/uploads');
+const mcpRoutes = require('./mcp');
 
 const app = express();
 const PORT = process.env.PORT || 18090;
@@ -39,6 +40,8 @@ app.use('/api/images', imageRoutes);
 app.use('/api/llm',   llmRoutes);
 app.use('/api/comfy',   comfyRoutes);
 app.use('/api/uploads', uploadsRoutes);
+app.use('/mcp', mcpRoutes());
+app.use('/api/mcp', mcpRoutes());
 
 // API fallback must stay JSON; otherwise the SPA fallback returns HTML to fetch().
 app.use('/api', (req, res) => {
