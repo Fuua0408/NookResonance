@@ -3,6 +3,7 @@
 const express = require('express');
 const { authMiddleware } = require('../auth');
 const { getCharacterProfileForMcp } = require('./characterProfile');
+const logger = require('../logger');
 
 const PROTOCOL_VERSION = '2025-06-18';
 const SERVER_INFO = {
@@ -14,7 +15,7 @@ const SERVER_INFO = {
 const CHARACTER_PROFILE_TOOL = {
   name: 'get_character_profile',
   title: 'Get Character Profile',
-  description: 'Return the personality and speaking tone for a character owned by the authenticated user.',
+  description: 'Use this tool when the user asks to reference, inspect, summarize, roleplay as, or preserve consistency with a NookResonance character. It returns the authenticated user\'s character personality, speaking tone, and affection information by exact character name. Use it before answering in a character\'s voice, checking character consistency, or explaining a character\'s personality or relationship with the user.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -34,9 +35,22 @@ const CHARACTER_PROFILE_TOOL = {
       character_name: { type: 'string' },
       personality: { type: 'string' },
       tone: { type: 'string' },
+      affection: {
+        anyOf: [
+          {
+            type: 'object',
+            properties: {
+              level: { type: 'integer' },
+              label: { type: 'string' },
+            },
+            required: ['level', 'label'],
+          },
+          { type: 'null' },
+        ],
+      },
       updated_at: { type: 'string' },
     },
-    required: ['user_id', 'character_id', 'character_name', 'personality', 'tone', 'updated_at'],
+    required: ['user_id', 'character_id', 'character_name', 'personality', 'tone', 'affection', 'updated_at'],
   },
   annotations: {
     readOnlyHint: true,
@@ -87,19 +101,32 @@ function handleToolsList(id) {
 }
 
 function handleToolsCall(id, params = {}, user) {
+  params = params || {};
+  const toolName = params.name || '';
+  const args = params.arguments || {};
+  const characterName = typeof args.character_name === 'string'
+    ? args.character_name.trim()
+    : (typeof args.characterName === 'string' ? args.characterName.trim() : '');
+  const logCharacterName = characterName || '<missing>';
+
+  logger.info(`[MCP] tools/call name=${toolName || '<missing>'} userId=${user?.id ?? '<unknown>'} characterName=${JSON.stringify(logCharacterName)}`);
+
   if (params.name !== CHARACTER_PROFILE_TOOL.name) {
+    logger.warn(`[MCP] tools/call error userId=${user?.id ?? '<unknown>'} name=${toolName || '<missing>'} characterName=${JSON.stringify(logCharacterName)} message=${JSON.stringify(`Unknown tool: ${toolName}`)}`);
     return jsonRpcResult(id, toolErrorResult(`Unknown tool: ${params.name || ''}`));
   }
 
   try {
-    const profile = getCharacterProfileForMcp(user, params.arguments || {});
+    const profile = getCharacterProfileForMcp(user, args);
     const text = JSON.stringify(profile, null, 2);
+    logger.info(`[MCP] get_character_profile success userId=${user?.id ?? '<unknown>'} characterId=${profile.character_id} characterName=${JSON.stringify(profile.character_name)}`);
     return jsonRpcResult(id, {
       content: [{ type: 'text', text }],
       structuredContent: profile,
       isError: false,
     });
   } catch (err) {
+    logger.warn(`[MCP] get_character_profile error userId=${user?.id ?? '<unknown>'} characterName=${JSON.stringify(logCharacterName)} message=${JSON.stringify(err.message)}`);
     return jsonRpcResult(id, toolErrorResult(err.message));
   }
 }
