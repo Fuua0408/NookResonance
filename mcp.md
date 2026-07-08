@@ -125,7 +125,7 @@ The response includes the `get_character_profile` tool definition.
 
 ### Purpose
 
-Returns the personality and speaking tone for a character owned by the authenticated user.
+Returns the personality, speaking tone, and affection information for a character owned by the authenticated user.
 
 ### Input
 
@@ -150,6 +150,10 @@ Fields:
   "character_name": "Character Name",
   "personality": "Character personality text...",
   "tone": "Speaking tone text...",
+  "affection": {
+    "level": 130,
+    "label": "普通"
+  },
   "updated_at": "2026-07-08 12:34:56"
 }
 ```
@@ -163,6 +167,7 @@ Fields:
 | `character_name` | Character name. |
 | `personality` | Value stored in the character `personality` field. |
 | `tone` | Speaking tone extracted from stored tone fields or personality text. |
+| `affection` | Character affection information, or `null` when affection is disabled or invalid. |
 | `updated_at` | Last character update timestamp. |
 
 ### Call Example
@@ -198,7 +203,7 @@ Successful response:
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"user_id\": 1,\n  \"character_id\": 12,\n  \"character_name\": \"Character Name\",\n  \"personality\": \"...\",\n  \"tone\": \"...\",\n  \"updated_at\": \"2026-07-08 12:34:56\"\n}"
+        "text": "{\n  \"user_id\": 1,\n  \"character_id\": 12,\n  \"character_name\": \"Character Name\",\n  \"personality\": \"...\",\n  \"tone\": \"...\",\n  \"affection\": {\n    \"level\": 130,\n    \"label\": \"普通\"\n  },\n  \"updated_at\": \"2026-07-08 12:34:56\"\n}"
       }
     ],
     "structuredContent": {
@@ -207,6 +212,10 @@ Successful response:
       "character_name": "Character Name",
       "personality": "...",
       "tone": "...",
+      "affection": {
+        "level": 130,
+        "label": "普通"
+      },
       "updated_at": "2026-07-08 12:34:56"
     },
     "isError": false
@@ -242,6 +251,42 @@ The extraction looks for lines containing words such as:
 - `speaking`
 
 If no tone information is found, `tone` is returned as an empty string.
+
+## Affection
+
+The server reads affection from character data:
+
+- `affection`: numeric affection level.
+- `affection_enabled`: when this is `false`, affection is returned as `null`.
+
+If `affection` is not stored, the server follows the existing NookResonance default and returns:
+
+```json
+{
+  "level": 130,
+  "label": "普通"
+}
+```
+
+If affection is disabled for the character or the stored value is invalid, the response uses:
+
+```json
+"affection": null
+```
+
+## Logging
+
+The MCP server logs tool calls through the existing server logger. Logs include the MCP method, tool name, authenticated user ID, requested character name, and success or error result.
+
+Examples:
+
+```text
+[MCP] tools/call name=get_character_profile userId=1 characterName="Character Name"
+[MCP] get_character_profile success userId=1 characterId=12 characterName="Character Name"
+[MCP] get_character_profile error userId=1 characterName="Missing Character" message="Character not found"
+```
+
+Bearer tokens, passwords, JWT values, and Authorization headers are not logged.
 
 ## Error Cases
 

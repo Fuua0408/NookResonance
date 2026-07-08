@@ -319,7 +319,7 @@ The gallery reads images from `COMFY_OUTPUT_DIR` and stores thumbnails under `da
 - `/api/images`: gallery, thumbnail sync, removed-image markers
 - `/api/llm`: proxy to an OpenAI-compatible LLM server
 - `/api/comfy`: ComfyUI generation, sampler/LoRA lookup, global LoRA management
-- `/mcp` (`/api/mcp`): MCP JSON-RPC endpoint. With a Bearer JWT, call `get_character_profile` with `character_name` to get personality and speaking tone for the authenticated user.
+- `/mcp` (`/api/mcp`): MCP JSON-RPC endpoint. With a Bearer JWT, call `get_character_profile` with `character_name` to get personality, speaking tone, and affection for the authenticated user.
 
 ### Logging
 
