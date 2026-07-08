@@ -55,24 +55,13 @@ function getStoredTone(charData) {
 }
 
 function getCharacterProfileForMcp(authenticatedUser, args = {}) {
-  const requestedUserId = args.user_id ?? args.userId;
   const characterName = typeof args.character_name === 'string'
     ? args.character_name.trim()
     : (typeof args.characterName === 'string' ? args.characterName.trim() : '');
 
-  if (requestedUserId === undefined || requestedUserId === null || requestedUserId === '') {
-    const err = new Error('user_id is required');
-    err.code = 'BAD_REQUEST';
-    throw err;
-  }
   if (!characterName) {
     const err = new Error('character_name is required');
     err.code = 'BAD_REQUEST';
-    throw err;
-  }
-  if (String(requestedUserId) !== String(authenticatedUser.id)) {
-    const err = new Error('Authenticated user does not match user_id');
-    err.code = 'FORBIDDEN';
     throw err;
   }
 

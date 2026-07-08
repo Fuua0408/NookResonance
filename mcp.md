@@ -44,7 +44,6 @@ $login = Invoke-RestMethod `
   -Body '{"username":"alice","password":"your-password"}'
 
 $token = $login.token
-$userId = $login.user.id
 ```
 
 All MCP requests must include:
@@ -55,11 +54,10 @@ Authorization: Bearer <token>
 
 In the web app, open Settings and use the MCP Integration section to copy:
 
-- User ID
 - Endpoint URL
 - Authorization header
 
-The `user_id` passed to the tool must match the authenticated user ID in the JWT. A user cannot read another user's character profile.
+The authenticated user is resolved from the Bearer token. The tool does not accept `user_id` as an input, so a user cannot request another user's character profile by changing arguments.
 
 ## MCP Lifecycle
 
@@ -133,7 +131,6 @@ Returns the personality and speaking tone for a character owned by the authentic
 
 ```json
 {
-  "user_id": 1,
   "character_name": "Character Name"
 }
 ```
@@ -142,7 +139,6 @@ Fields:
 
 | Field | Type | Required | Description |
 |---|---|---:|---|
-| `user_id` | integer or string | yes | Authenticated NookResonance user ID. |
 | `character_name` | string | yes | Exact character name. |
 
 ### Output
@@ -179,7 +175,6 @@ $body = @{
   params = @{
     name = "get_character_profile"
     arguments = @{
-      user_id = $userId
       character_name = "Character Name"
     }
   }
@@ -256,9 +251,7 @@ Common messages:
 
 | Message | Meaning |
 |---|---|
-| `user_id is required` | `user_id` was not provided. |
 | `character_name is required` | `character_name` was not provided. |
-| `Authenticated user does not match user_id` | The JWT user and requested user ID differ. |
 | `Character not found` | No character with the exact name exists for the authenticated user. |
 | `Multiple characters matched the same name` | More than one character has the same name for the user. Rename one character or make names unique. |
 | `Unknown tool: ...` | A tool other than `get_character_profile` was requested. |
