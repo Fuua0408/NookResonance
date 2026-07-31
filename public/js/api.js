@@ -123,6 +123,10 @@ function initSettingsUI() {
   const inp = document.getElementById('customColorInput');
   if (inp) inp.value = s.accentColor || '#8b6348';
 
+  // タイプライター表示（既定 有効）
+  const twEl = document.getElementById('typewriterEnabled');
+  if (twEl) twEl.checked = getSetting('typewriterEnabled', true) !== false;
+
   // ログインユーザー名表示
   const userEl = document.getElementById('settingsUsername');
   if (userEl) userEl.textContent = getCurrentUser()?.username || '';
@@ -218,10 +222,11 @@ async function saveSettingsFromUI() {
   // 全ユーザー共通設定
   const language = document.getElementById('settingsLanguage')?.value || 'ja';
   const userSettings = {
-    userName:         getFieldValue('userName'),
-    userAppearance:   getFieldValue('userAppearance'),
-    userAppearanceEn: getFieldValue('userAppearanceEn'),
-    accentColor:      document.getElementById('customColorInput')?.value || '#8b6348',
+    userName:          getFieldValue('userName'),
+    userAppearance:    getFieldValue('userAppearance'),
+    userAppearanceEn:  getFieldValue('userAppearanceEn'),
+    accentColor:       document.getElementById('customColorInput')?.value || '#8b6348',
+    typewriterEnabled: document.getElementById('typewriterEnabled')?.checked !== false,
     language,
   };
   saveSettings(userSettings);
@@ -344,6 +349,24 @@ async function restPut(path, data) {
     throw e;
   }
 }
+async function restPatch(path, data) {
+  try {
+    const resp = await fetch(`/api/${path}`, {
+      method:  'PATCH',
+      headers: restHeaders(),
+      body:    JSON.stringify(data),
+    });
+    if (resp.status === 401) { showLoginOverlay(); throw new Error(t('toast.login_required', 'ログインが必要です')); }
+    if (!resp.ok) {
+      const body = await resp.json().catch(() => null);
+      throw new Error(body?.error || `サーバーエラー (${resp.status})`);
+    }
+    return resp.json();
+  } catch(e) {
+    if (e.name === 'TypeError') throw new Error(t('toast.cannot_connect', 'サーバーに接続できません'));
+    throw e;
+  }
+}
 async function restDelete(path) {
   try {
     const resp = await fetch(`/api/${path}`, {
@@ -359,6 +382,71 @@ async function restDelete(path) {
   } catch(e) {
     if (e.name === 'TypeError') throw new Error(t('toast.cannot_connect', 'サーバーに接続できません'));
     throw e;
+  }
+}
+
+// SSE（Server-Sent Events）でPOSTし、行単位でパースして event/data を呼び出し側に渡す。
+// EventSourceはカスタムヘッダ（JWT）を送れないため fetch + ReadableStream で読む。
+// `error` イベントを受け取った場合は例外として投げる（呼び出し側は try/catch で拾う）。
+// 未知のイベント名は onEvent へそのまま渡す（呼び出し側で無視すればよい。005以降の拡張用）。
+async function restPostStream(path, data, { onEvent, signal } = {}) {
+  let resp;
+  try {
+    resp = await fetch(`/api/${path}`, {
+      method:  'POST',
+      headers: restHeaders(),
+      body:    JSON.stringify(data),
+      signal,
+    });
+  } catch(e) {
+    if (e.name === 'AbortError') throw e;
+    throw new Error(t('toast.cannot_connect', 'サーバーに接続できません'));
+  }
+
+  if (resp.status === 401) { showLoginOverlay(); throw new Error(t('toast.login_required', 'ログインが必要です')); }
+  if (!resp.ok) {
+    const body = await resp.json().catch(() => null);
+    throw new Error(body?.error || `サーバーエラー (${resp.status})`);
+  }
+  if (!resp.body) throw new Error(t('toast.cannot_connect', 'サーバーに接続できません'));
+
+  const reader  = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  function dispatch(eventName, dataStr) {
+    let payload;
+    try { payload = dataStr ? JSON.parse(dataStr) : {}; }
+    catch(e) { payload = {}; }
+    if (eventName === 'error') {
+      throw new Error(payload.error || 'LLMエラー');
+    }
+    if (typeof onEvent === 'function') onEvent(eventName, payload);
+  }
+
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      // SSEイベントは空行区切り（\n\n）。末尾の未完了分はbufferへ残す
+      const chunks = buffer.split('\n\n');
+      buffer = chunks.pop();
+
+      for (const chunk of chunks) {
+        if (!chunk.trim()) continue;
+        let eventName = 'message';
+        const dataLines = [];
+        for (const line of chunk.split('\n')) {
+          if (line.startsWith('event:')) eventName = line.slice(6).trim();
+          else if (line.startsWith('data:')) dataLines.push(line.slice(5).trim());
+        }
+        dispatch(eventName, dataLines.join('\n'));
+      }
+    }
+  } finally {
+    try { reader.cancel(); } catch(e) { /* noop */ }
   }
 }
 

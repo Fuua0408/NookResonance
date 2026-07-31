@@ -46,8 +46,9 @@ const CHARACTER_PROFILE_TOOL = {
             properties: {
               level: { type: 'integer' },
               label: { type: 'string' },
+              cap: { type: 'integer' },
             },
-            required: ['level', 'label'],
+            required: ['level', 'label', 'cap'],
           },
           { type: 'null' },
         ],
@@ -90,8 +91,9 @@ const LIST_CHARACTERS_TOOL = {
                   properties: {
                     level: { type: 'integer' },
                     label: { type: 'string' },
+                    cap: { type: 'integer' },
                   },
-                  required: ['level', 'label'],
+                  required: ['level', 'label', 'cap'],
                 },
                 { type: 'null' },
               ],
@@ -155,8 +157,9 @@ const SEARCH_CHARACTERS_TOOL = {
                   properties: {
                     level: { type: 'integer' },
                     label: { type: 'string' },
+                    cap: { type: 'integer' },
                   },
-                  required: ['level', 'label'],
+                  required: ['level', 'label', 'cap'],
                 },
                 { type: 'null' },
               ],

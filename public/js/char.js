@@ -528,6 +528,9 @@ function openCharEdit(char) {
     // 初対面フラグ
     const fmEl = document.getElementById('editFirstMeeting');
     if (fmEl) fmEl.checked = char.is_first_meeting !== false;
+    // ツール使用フラグ（既定true。世界観重視のキャラで検索や時刻確認が没入感を壊す場合にOFFにできる）
+    const toolsEl = document.getElementById('editToolsEnabled');
+    if (toolsEl) toolsEl.checked = char.tools_enabled !== false;
     // user_profile オーバーライド
     const up = char.user_profile || {};
     setFieldValue('editUserProfileName',         up.name          || '');
@@ -553,6 +556,8 @@ function openCharEdit(char) {
     document.getElementById('charEditOverlay').dataset.charId = '';
     const fmEl = document.getElementById('editFirstMeeting');
     if (fmEl) fmEl.checked = true;
+    const toolsEl = document.getElementById('editToolsEnabled');
+    if (toolsEl) toolsEl.checked = true;
   }
   closeModal('charOverlay');
   setTimeout(() => openModal('charEditOverlay'), 200);
@@ -667,6 +672,8 @@ async function saveCharFromUI() {
     ...(typeof collectAffectionFromUI === 'function' ? collectAffectionFromUI(existing) : {}),
     // 初対面フラグ
     is_first_meeting: document.getElementById('editFirstMeeting')?.checked ?? existing.is_first_meeting ?? true,
+    // ツール使用フラグ（既定true）
+    tools_enabled: document.getElementById('editToolsEnabled')?.checked ?? existing.tools_enabled ?? true,
     updated_at: new Date().toISOString(),
     created_at: existing.created_at || new Date().toISOString(),
   };
@@ -898,7 +905,7 @@ function renderCharList() {
       ? `<img src="${char.icon_data}" style="width:46px;height:46px;object-fit:cover;border-radius:50%;border:0.5px solid var(--border-input);">`
       : `<div class="char-avatar">${escHtml(char.icon_emoji || '💬')}</div>`;
     const affLabel = (typeof affectionLabel === 'function' && isCharAffectionEnabled?.(char))
-      ? affectionLabel(char.affection ?? 130)
+      ? affectionLabel(typeof getEffectiveAffection === 'function' ? getEffectiveAffection(char) : (char.affection ?? 130))
       : (char.personality || '').split('\n')[0].slice(0, 30);
     div.innerHTML = `
       ${avatarHtml}
@@ -946,7 +953,7 @@ function openCharInfo() {
   if (!activeChar) { showToast(t('chat.no_char', 'キャラクターを選択してください')); return; }
 
   const char      = activeChar;
-  const affValue  = char.affection ?? 130;
+  const affValue  = typeof getEffectiveAffection === 'function' ? getEffectiveAffection(char) : (char.affection ?? 130);
   const stageLabel = typeof affectionLabel    === 'function' ? affectionLabel(affValue)    : '';
   const notes     = char.memory_notes || [];
   const ctx       = activeSession?.context || {};

@@ -239,6 +239,116 @@ body {
 }
 
 /* ─────────────────────────────────────────────
+   006: ツール呼び出しの可視化
+   ロールプレイの没入感を崩さないよう控えめなトーンにする。
+   既存の char-msg / char-bubble クラスの意味には触れず、新規クラスのみ追加。
+   ───────────────────────────────────────────── */
+
+/* 生成中インジケータ（キャラ吹き出しが出る前に一時的に表示） */
+.tool-indicator {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 0 4px 0 38px; /* char-icon幅(30px)+gapに揃える */
+  flex-shrink: 0;
+}
+.tool-indicator-row {
+  display: inline-flex; align-items: center; gap: 6px;
+  align-self: flex-start;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-light);
+  color: var(--text-dim);
+  border: 0.5px solid var(--border-input);
+}
+.tool-indicator-row.tool-indicator-running {
+  color: var(--text-mid);
+}
+.tool-indicator-row.tool-indicator-success {
+  color: var(--text-mid);
+}
+.tool-indicator-row.tool-indicator-error {
+  color: #a04b3a;
+  border-color: #e0b3a6;
+}
+
+/* 完了後の折りたたみサマリ */
+.tool-summary {
+  margin: -4px 0 0 38px; /* char-icon幅に揃え、吹き出しに寄り添わせる */
+  flex-shrink: 0;
+  max-width: 85%;
+}
+.tool-summary-header {
+  cursor: pointer;
+  list-style: none;
+  font-size: 11px;
+  color: var(--text-pale);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  user-select: none;
+  display: inline-block;
+}
+.tool-summary-header::-webkit-details-marker { display: none; }
+.tool-summary-header:hover {
+  color: var(--text-dim);
+  background: var(--accent-light);
+}
+.tool-summary[open] > .tool-summary-header {
+  color: var(--text-dim);
+}
+.tool-summary-body {
+  margin-top: 4px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-log);
+  border: 0.5px solid var(--border);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.tool-summary-item + .tool-summary-item {
+  padding-top: 10px;
+  border-top: 0.5px solid var(--border);
+}
+.tool-summary-item-head {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+.tool-summary-name {
+  color: var(--text); font-weight: 500;
+}
+.tool-summary-status {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: var(--accent-light);
+  color: var(--text-dim);
+  margin-left: auto;
+}
+.tool-summary-status.is-error {
+  background: #f5ded9;
+  color: #a04b3a;
+}
+.tool-summary-label {
+  font-size: 10px;
+  color: var(--text-pale);
+  margin: 4px 0 2px;
+}
+.tool-summary-pre {
+  font-family: ui-monospace, SFMono-Regular, Consolas, 'Courier New', monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-mid);
+  background: var(--bg-white);
+  border: 0.5px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 200px;
+  overflow-y: auto;
+  margin: 0;
+}
+
+/* ─────────────────────────────────────────────
    入力エリア
    ───────────────────────────────────────────── */
 .input-area {
@@ -1160,6 +1270,7 @@ textarea.en-cache {
   margin: 6px 0;
 }
 .affection-bar-bg {
+  position: relative;
   flex: 1;
   height: 6px;
   border-radius: 3px;
@@ -1171,6 +1282,16 @@ textarea.en-cache {
   border-radius: 3px;
   background: var(--accent);
   transition: width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+/* キャップより右側（到達不能域）を淡色でグレーアウトする区切り。
+   left/width はJS側でキャップ位置に応じてインライン指定される。 */
+.affection-bar-cap {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: var(--bg);
+  opacity: 0.65;
+  pointer-events: none;
 }
 .affection-label {
   font-size: 12px;

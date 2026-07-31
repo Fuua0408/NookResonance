@@ -156,7 +156,8 @@ Fields:
   "tone": "Speaking tone text...",
   "affection": {
     "level": 130,
-    "label": "普通"
+    "label": "普通",
+    "cap": 255
   },
   "updated_at": "2026-07-08 12:34:56"
 }
@@ -172,6 +173,8 @@ Fields:
 | `personality` | Value stored in the character `personality` field. |
 | `tone` | Speaking tone extracted from stored tone fields or personality text. |
 | `affection` | Character affection information, or `null` when affection is disabled or invalid. |
+| `affection.level` | Effective affection level, i.e. the stored value clamped to the character's affection cap (`min(affection, affection_cap)`). |
+| `affection.cap` | The character's affection cap (`affection_cap`). `255` when not set (no cap). |
 | `updated_at` | Last character update timestamp. |
 
 ### Call Example
@@ -207,7 +210,7 @@ Successful response:
     "content": [
       {
         "type": "text",
-        "text": "{\n  \"user_id\": 1,\n  \"character_id\": 12,\n  \"character_name\": \"Character Name\",\n  \"personality\": \"...\",\n  \"tone\": \"...\",\n  \"affection\": {\n    \"level\": 130,\n    \"label\": \"普通\"\n  },\n  \"updated_at\": \"2026-07-08 12:34:56\"\n}"
+        "text": "{\n  \"user_id\": 1,\n  \"character_id\": 12,\n  \"character_name\": \"Character Name\",\n  \"personality\": \"...\",\n  \"tone\": \"...\",\n  \"affection\": {\n    \"level\": 130,\n    \"label\": \"普通\",\n    \"cap\": 255\n  },\n  \"updated_at\": \"2026-07-08 12:34:56\"\n}"
       }
     ],
     "structuredContent": {
@@ -218,7 +221,8 @@ Successful response:
       "tone": "...",
       "affection": {
         "level": 130,
-        "label": "普通"
+        "label": "普通",
+        "cap": 255
       },
       "updated_at": "2026-07-08 12:34:56"
     },
@@ -249,7 +253,8 @@ Lists lightweight character information for characters owned by the authenticate
       "character_name": "Character Name",
       "affection": {
         "level": 130,
-        "label": "普通"
+        "label": "普通",
+        "cap": 255
       },
       "summary": "Short tone/personality preview...",
       "updated_at": "2026-07-08 12:34:56"
@@ -303,7 +308,8 @@ Fields:
       "preview": "soft voice / Short personality preview...",
       "affection": {
         "level": 130,
-        "label": "普通"
+        "label": "普通",
+        "cap": 255
       },
       "updated_at": "2026-07-08 12:34:56"
     }
@@ -353,15 +359,35 @@ If no tone information is found, `tone` is returned as an empty string.
 
 The server reads affection from character data:
 
-- `affection`: numeric affection level.
+- `affection`: numeric affection level (the stored/internal value).
 - `affection_enabled`: when this is `false`, affection is returned as `null`.
+- `affection_cap`: optional per-character affection cap. When unset, it defaults to `255`
+  (unlimited). Value range: `0`–`255`.
 
-If `affection` is not stored, the server follows the existing NookResonance default and returns:
+If `affection` is not stored, the server follows the existing NookResonance default (`130`)
+before applying the cap.
+
+`affection.level` in the response is the **effective** value, i.e. the stored value clamped to
+the cap: `min(affection, affection_cap)`. Lowering a character's cap below its current stored
+affection does not delete or rewrite the stored value — it only lowers the effective value
+reported here (and used by the app's UI and LLM prompts) until the stored value is changed again
+or the cap is raised.
 
 ```json
 {
   "level": 130,
-  "label": "普通"
+  "label": "普通",
+  "cap": 255
+}
+```
+
+Example: a character with a stored `affection` of `200` and `affection_cap` of `145` returns:
+
+```json
+{
+  "level": 145,
+  "label": "普通",
+  "cap": 145
 }
 ```
 
