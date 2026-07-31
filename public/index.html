@@ -419,6 +419,15 @@
         </div>
         <div style="font-size:11px;color:var(--text-pale);padding:2px 0 0 2px;" data-i18n="char.first_meeting_note">ONの場合、LLMへのプロンプトに「初対面」として差し込まれます</div>
       </div>
+      <div id="toolsEnabledSection" style="margin-top:8px;">
+        <div class="num-row">
+          <div class="num-label" style="font-size:13px;" data-i18n="char.tools_enabled">このキャラクターでツールを使用する</div>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+            <input type="checkbox" id="editToolsEnabled" style="accent-color:var(--accent);width:18px;height:18px;">
+          </label>
+        </div>
+        <div style="font-size:11px;color:var(--text-pale);padding:2px 0 0 2px;" data-i18n="char.tools_enabled_note">ONの場合、現在時刻の確認などツールが必要な発話でツール呼び出しが行われます</div>
+      </div>
       <div id="loraSection">
         <div class="section-label" data-i18n="char.lora">LoRA（キャラクター個別）</div>
         <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px;">
@@ -688,6 +697,61 @@
           🎨 グローバルLoRAを管理
         </button>
 
+        <!-- MCPサーバー管理 -->
+        <div style="font-size:12px;color:var(--text-pale);margin-bottom:8px;" data-i18n="mcp.servers">MCPサーバー</div>
+        <div class="field-group" id="mcpServerListContainer" style="margin-bottom:8px;">
+          <div style="font-size:12px;color:var(--text-pale);padding:8px 0;" data-i18n="settings.users_loading">読み込み中…</div>
+        </div>
+        <div class="num-row" style="margin-bottom:12px;gap:8px;">
+          <button class="btn-secondary" style="flex:1;" onclick="reloadMcpServers()" data-i18n="mcp.reload">🔄 再接続</button>
+        </div>
+        <div id="mcpReloadResult" style="font-size:11px;color:var(--text-pale);margin-bottom:12px;display:none;"></div>
+
+        <div style="font-size:12px;color:var(--text-pale);margin-bottom:8px;" data-i18n="mcp.add_server">MCPサーバーを追加</div>
+        <div class="field-group" style="margin-bottom:12px;">
+          <div class="field" style="margin-bottom:8px;">
+            <div class="field-label" data-i18n="mcp.label">ラベル</div>
+            <input class="f-input" id="mcpAddLabel" type="text" placeholder="my-server" data-i18n-placeholder="mcp.label_placeholder">
+          </div>
+          <div class="field" style="margin-bottom:8px;">
+            <div class="field-label" data-i18n="mcp.transport">Transport</div>
+            <select class="f-select" id="mcpAddTransport" onchange="onMcpAddTransportChange()">
+              <option value="stdio">stdio (catalog)</option>
+              <option value="http">http</option>
+            </select>
+          </div>
+
+          <div id="mcpAddStdioFields">
+            <div class="field" style="margin-bottom:8px;">
+              <div class="field-label" data-i18n="mcp.catalog">カタログ</div>
+              <select class="f-select" id="mcpAddCatalogSelect" onchange="onMcpAddCatalogChange()"></select>
+              <div style="font-size:11px;color:var(--text-pale);padding:4px 2px 0;" id="mcpAddCatalogDesc"></div>
+            </div>
+            <div id="mcpAddEnvFields"></div>
+          </div>
+
+          <div id="mcpAddHttpFields" style="display:none;">
+            <div class="field" style="margin-bottom:8px;">
+              <div class="field-label" data-i18n="mcp.url">URL</div>
+              <input class="f-input mono" id="mcpAddUrl" type="text" placeholder="https://example.com/mcp">
+            </div>
+            <div class="field" style="margin-bottom:8px;">
+              <div class="field-label" data-i18n="mcp.headers">ヘッダー</div>
+              <div id="mcpAddHeaderRows"></div>
+              <button class="btn-secondary" style="font-size:11px;padding:4px 10px;margin-top:4px;" onclick="addMcpHeaderRow()" data-i18n="mcp.add_header">+ ヘッダーを追加</button>
+            </div>
+          </div>
+
+          <div style="font-size:11px;color:var(--text-pale);padding:2px 0 8px 2px;" id="mcpSecretNote"></div>
+          <button class="btn-secondary" style="width:100%;padding:10px;" onclick="addMcpServer()" data-i18n="mcp.add_server_button">追加</button>
+        </div>
+
+        <!-- ツール台帳 -->
+        <div style="font-size:12px;color:var(--text-pale);margin-bottom:8px;" data-i18n="mcp.tools">ツール一覧</div>
+        <div class="field-group" id="mcpToolListContainer" style="margin-bottom:12px;">
+          <div style="font-size:12px;color:var(--text-pale);padding:8px 0;" data-i18n="settings.users_loading">読み込み中…</div>
+        </div>
+
         <!-- ユーザー管理 -->
         <div style="font-size:12px;color:var(--text-pale);margin-bottom:8px;" data-i18n="settings.users">ユーザー管理</div>
         <div class="field-group" style="margin-bottom:8px;">
@@ -720,6 +784,19 @@
           </div>
           <div style="font-size:11px;color:var(--text-pale);padding:2px 0 0 2px;" data-i18n="settings.language_note">
             ※ 言語変更はページ再読み込み後に完全に反映されます
+          </div>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <!-- 表示設定 -->
+      <div>
+        <div class="section-label" data-i18n="settings.display_section">表示</div>
+        <div class="field-group">
+          <div class="num-row">
+            <div class="num-label" style="font-size:13px;" data-i18n="settings.typewriter">返答をタイプライター表示する</div>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="typewriterEnabled" style="accent-color:var(--accent);width:18px;height:18px;"></label>
           </div>
         </div>
       </div>
@@ -1042,6 +1119,7 @@ async function initAfterLogin() {
 <script src="js/session.js"></script>
 <script src="js/modals/lightbox.js"></script>
 <script src="js/modals/settings.js"></script>
+<script src="js/modals/mcpAdmin.js"></script>
 <script src="js/modals/char-panel.js"></script>
 <script src="js/modals/wf-manager.js"></script>
 <script src="js/modals/prompt-edit.js"></script>

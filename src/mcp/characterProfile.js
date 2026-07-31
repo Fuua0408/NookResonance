@@ -69,13 +69,26 @@ function getStoredTone(charData) {
   return extractToneFromPersonality(charData.personality || '');
 }
 
-function clampAffection(value) {
-  return Math.max(AFFECTION_MIN, Math.min(AFFECTION_MAX, Math.round(value)));
+function clampAffection(value, cap) {
+  const c = Number(cap);
+  const resolvedCap = Number.isFinite(c)
+    ? Math.max(AFFECTION_MIN, Math.min(AFFECTION_MAX, Math.round(c)))
+    : AFFECTION_MAX;
+  return Math.max(AFFECTION_MIN, Math.min(resolvedCap, Math.round(value)));
 }
 
 function getAffectionLabel(level) {
   const stage = AFFECTION_STAGES.find(s => level >= s.min && level <= s.max);
   return stage?.label || '';
+}
+
+// キャラクター単位の親愛度キャップ（未設定なら無制限=AFFECTION_MAX）
+function resolveAffectionCap(charData) {
+  const raw = charData.affection_cap;
+  if (raw === undefined || raw === null || raw === '') return AFFECTION_MAX;
+  const num = Number(raw);
+  if (!Number.isFinite(num)) return AFFECTION_MAX;
+  return Math.max(AFFECTION_MIN, Math.min(AFFECTION_MAX, Math.round(num)));
 }
 
 function getAffection(charData) {
@@ -87,10 +100,14 @@ function getAffection(charData) {
     : Number(raw);
   if (!Number.isFinite(numeric)) return null;
 
-  const level = clampAffection(numeric);
+  const cap = resolveAffectionCap(charData);
+  // 実効値: キャップを下げても内部値(charData.affection)自体は変更しない。
+  // 表示・MCP出力にはキャップでクランプした実効値を使う。
+  const level = clampAffection(numeric, cap);
   return {
     level,
     label: getAffectionLabel(level),
+    cap,
   };
 }
 
