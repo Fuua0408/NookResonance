@@ -3,6 +3,166 @@
    チャットUI・ターン操作・コンテキストメニュー・スクロール
    ═════════════════════════════════════════════ */
 
+// ─────────────────────────────────────────────
+// 006: ツール呼び出しの可視化と turn への永続化
+//
+// 保存先は turn.tool_invocations（配列。呼び出しが無ければキーごと省略）。
+// PlainChatのように別テーブルにすると、ターン削除・分岐・編集・再生成のすべてに
+// 整合性維持コードが必要になる。turn内に持たせれば既存コードにそのまま追随する。
+// ─────────────────────────────────────────────
+
+const TOOL_RESULT_SAVE_MAX_LEN = 4000;
+
+// llm.js の getChatCompletionStream が捕捉した直近のtool_invocationsを、
+// turnへ保存する形（result_textを4000字で切り詰め）に変換する。
+// 呼び出しが無ければ undefined を返す（呼び出し側でキー自体を省略するため）
+function buildToolInvocationsForSave() {
+  const raw = typeof getLastToolInvocations === 'function' ? getLastToolInvocations() : [];
+  if (!Array.isArray(raw) || raw.length === 0) return undefined;
+
+  return raw.map((inv) => {
+    let resultText = typeof inv.result_text === 'string' ? inv.result_text : String(inv.result_text ?? '');
+    if (resultText.length > TOOL_RESULT_SAVE_MAX_LEN) {
+      const note = t('tool.truncated_note', '…（長すぎるため{max}文字で切り詰めました）').replace('{max}', TOOL_RESULT_SAVE_MAX_LEN);
+      resultText = resultText.slice(0, TOOL_RESULT_SAVE_MAX_LEN) + note;
+    }
+    return {
+      round_index:    inv.round_index,
+      tool_name:      inv.tool_name,
+      arguments_json: inv.arguments_json,
+      status:         inv.status,
+      result_text:    resultText,
+    };
+  });
+}
+
+// 直近のツール呼び出し結果をturnへ反映する（無ければキーを削除して差し替える）。
+// 再生成のたびに呼ぶことで、古いtool_invocationsが残らないようにする（完了条件8）
+function applyToolInvocationsToTurn(turn) {
+  if (!turn) return;
+  const invocations = buildToolInvocationsForSave();
+  if (invocations) {
+    turn.tool_invocations = invocations;
+  } else {
+    delete turn.tool_invocations;
+  }
+}
+
+// ── 生成中インジケータ（キャラ吹き出しが出る前に一時的に表示する行） ──
+// isGeneratingフラグにより同時に1生成のみが走る前提のシンプルなモジュール状態
+let _toolIndicatorContainer = null;
+let _toolIndicatorLastRow   = null;
+
+function removeToolIndicator() {
+  if (_toolIndicatorContainer) _toolIndicatorContainer.remove();
+  _toolIndicatorContainer = null;
+  _toolIndicatorLastRow   = null;
+}
+
+// llm.js の getChatCompletionStream から tool_call イベントごとに呼ばれる（存在すれば）
+function handleLiveToolCall(data) {
+  const log = document.getElementById('chatLog');
+  if (!log) return;
+  if (!_toolIndicatorContainer) {
+    _toolIndicatorContainer = document.createElement('div');
+    _toolIndicatorContainer.className = 'tool-indicator';
+    log.appendChild(_toolIndicatorContainer);
+  }
+  const row = document.createElement('div');
+  row.className = 'tool-indicator-row tool-indicator-running';
+  row.textContent = `🔧 ${data?.name || ''} …`;
+  _toolIndicatorContainer.appendChild(row);
+  _toolIndicatorLastRow = row;
+  scrollLogToBottom();
+  if (typeof updateStatusBadge === 'function') updateStatusBadge(t('tool.running', 'ツールを実行中…'));
+}
+
+// tool_result イベントごとに呼ばれる（存在すれば）。直前に追加した行を確定表示に更新する
+function handleLiveToolResult(data) {
+  const row = _toolIndicatorLastRow;
+  if (!row) return;
+  const ok = data?.status !== 'error';
+  row.classList.remove('tool-indicator-running');
+  row.classList.add(ok ? 'tool-indicator-success' : 'tool-indicator-error');
+  row.textContent = `${ok ? '✅' : '❌'} ${data?.name || ''}`;
+  scrollLogToBottom();
+}
+
+// ── 完了後の折りたたみサマリ ──
+// 既存のサマリDOM（あれば）を除去してから、必要なら新しいDOMを turnIdx のキャラ吹き出しの
+// 直後に挿入する。tool_invocationsが空/無しなら何も表示しない（完了条件4）
+const TOOL_SUMMARY_VISIBLE = false; // サマリ表示自体を無効化（turnへの保存には影響しない）
+function renderToolSummary(turnIdx, toolInvocations) {
+  const existing = document.querySelector(`.tool-summary[data-turn-idx="${turnIdx}"]`);
+  if (existing) existing.remove();
+
+  if (!TOOL_SUMMARY_VISIBLE) return;
+  if (!Array.isArray(toolInvocations) || toolInvocations.length === 0) return;
+
+  const details = document.createElement('details');
+  details.className = 'tool-summary';
+  details.dataset.turnIdx = turnIdx;
+
+  const summary = document.createElement('summary');
+  summary.className = 'tool-summary-header';
+  summary.textContent = t('tool.calls_count', '🔧 ツール呼び出し({count}件)').replace('{count}', toolInvocations.length);
+  details.appendChild(summary);
+
+  const body = document.createElement('div');
+  body.className = 'tool-summary-body';
+
+  toolInvocations.forEach((inv) => {
+    const isError = inv.status === 'error';
+    const item = document.createElement('div');
+    item.className = 'tool-summary-item';
+
+    let argsPretty = inv.arguments_json || '';
+    try { argsPretty = JSON.stringify(JSON.parse(inv.arguments_json), null, 2); } catch (e) { /* そのまま生文字列を表示 */ }
+
+    const head = document.createElement('div');
+    head.className = 'tool-summary-item-head';
+    head.innerHTML = `<span class="tool-summary-status-icon">${isError ? '❌' : '✅'}</span>` +
+      `<span class="tool-summary-name">${escHtml(inv.tool_name || '')}</span>` +
+      `<span class="tool-summary-status ${isError ? 'is-error' : 'is-success'}">${escHtml(t(isError ? 'tool.error' : 'tool.success', isError ? 'エラー' : '成功'))}</span>`;
+    item.appendChild(head);
+
+    const argsLabel = document.createElement('div');
+    argsLabel.className = 'tool-summary-label';
+    argsLabel.textContent = t('tool.arguments', '引数');
+    item.appendChild(argsLabel);
+
+    const argsPre = document.createElement('pre');
+    argsPre.className = 'tool-summary-pre';
+    argsPre.textContent = argsPretty;
+    item.appendChild(argsPre);
+
+    const resultLabel = document.createElement('div');
+    resultLabel.className = 'tool-summary-label';
+    resultLabel.textContent = t('tool.result', '結果');
+    item.appendChild(resultLabel);
+
+    const resultPre = document.createElement('pre');
+    resultPre.className = 'tool-summary-pre';
+    resultPre.textContent = inv.result_text || '';
+    item.appendChild(resultPre);
+
+    body.appendChild(item);
+  });
+
+  details.appendChild(body);
+
+  // turnIdxのキャラ吹き出しの直後に挿入する。見つからなければログ末尾に追加
+  const charMsgDivs = document.querySelectorAll('.char-msg[data-turn-idx]');
+  let target = null;
+  charMsgDivs.forEach((d) => { if (parseInt(d.dataset.turnIdx) === turnIdx) target = d; });
+  if (target) {
+    target.insertAdjacentElement('afterend', details);
+  } else {
+    document.getElementById('chatLog')?.appendChild(details);
+  }
+  scrollLogToBottom();
+}
+
 // 直接ComfyUI URLをバックエンドプロキシ経由のURLに変換する
 // 保存済みの http://IP:PORT/view?... を /api/comfy/image-proxy?... に正規化
 function normalizeComfyUrl(url) {
@@ -25,6 +185,9 @@ function normalizeComfyUrl(url) {
 async function _chatSubmitTurnOrig() {
   if (isGenerating) { showToast(t('chat.generating', '生成中です')); return; }
   if (!activeChar)  { showToast(t('chat.no_char', 'キャラクターを選択してください')); openCharModal(); return; }
+
+  // 新しいメッセージ送信時は、進行中のタイプライター演出を即時完了させる
+  skipActiveTypewriters();
 
   // 画像添付があれば専用フローに移譲（既存モードは無視）
   if (typeof _attachedImageDataUrl !== 'undefined' && _attachedImageDataUrl) {
@@ -71,10 +234,13 @@ async function _chatSubmitTurnOrig() {
           throw new Error(t('chat.char_response_failed', 'キャラクターの応答に失敗しました: ') + e.message);
         }
         turn.char_message = charMsg;
+        applyToolInvocationsToTurn(turn);
+        removeToolIndicator();
 
         const tIdx = activeSession.turns.length;
         narrative ? appendNarrativeMessage(jpText, tIdx) : appendUserMessage(jpText, tIdx);
         appendCharMessage(charMsg, tIdx);
+        renderToolSummary(tIdx, turn.tool_invocations);
 
         updateStatusBadge(t('status.translating', '翻訳中…'));
         let enPrompt;
@@ -139,7 +305,10 @@ async function _chatSubmitTurnOrig() {
           throw new Error(t('chat.char_response_failed', 'キャラクターの応答に失敗しました: ') + e.message);
         }
         turn.char_message = charMsg;
+        applyToolInvocationsToTurn(turn);
+        removeToolIndicator();
         appendCharMessage(charMsg, tIdx);
+        renderToolSummary(tIdx, turn.tool_invocations);
       }
 
     } else {
@@ -167,7 +336,10 @@ async function _chatSubmitTurnOrig() {
         throw new Error(t('chat.char_response_failed', 'キャラクターの応答に失敗しました: ') + e.message);
       }
       turn.char_message = charMsg;
+      applyToolInvocationsToTurn(turn);
+      removeToolIndicator();
       appendCharMessage(charMsg, tIdx);
+      renderToolSummary(tIdx, turn.tool_invocations);
 
       // 服装状態の追跡（生成なしターンでも服装変化を見逃さない）
       if (!(document.getElementById('userFocusToggle')?.checked ?? false)) {
@@ -204,6 +376,7 @@ async function _chatSubmitTurnOrig() {
     showToast('❌ ' + (e.message || t('chat.error', 'エラーが発生しました')).slice(0, 60));
     console.error('[Nook] submitTurn error:', e);
   } finally {
+    removeToolIndicator();
     isGenerating = false;
     setBtnState(false);
     updateStatusBadge('SYNC');
@@ -231,7 +404,101 @@ function appendImageToLog(imageUrl, turnIdx = null) {
   log.appendChild(div);
   scrollLogToBottom();
 }
-function appendCharMessage(text, turnIdx = null) {
+// ─────────────────────────────────────────────
+// タイプライター表示演出
+// 確定済みテキストを1文字ずつ描画するだけの純粋な表示演出。
+// アプリの状態遷移（保存・isGenerating解除等）には一切関与しない。
+// ─────────────────────────────────────────────
+const _typewriterState = new WeakMap(); // element -> { done, finish }
+const _activeTypewriters = new Set();   // 現在アニメーション中の element 集合（スキップ対象）
+
+function _typewriterEnabled() {
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
+  return getSetting('typewriterEnabled', true) !== false;
+}
+
+// チャットログを最下部に追従させる。ただしユーザーが上へスクロール中は追従しない
+function scrollLogToBottomIfNearBottom() {
+  const log = document.getElementById('chatLog');
+  if (!log) return;
+  const distFromBottom = log.scrollHeight - log.scrollTop - log.clientHeight;
+  if (distFromBottom <= 60) {
+    log.scrollTop = log.scrollHeight;
+  }
+}
+
+// 平文テキストを el へ1文字ずつ書き出す。整形済みHTMLではなく平文をslice(0,n)で
+// 切り出してから _nl2br(escHtml(...)) を通す（タグが途中で割れるのを防ぐため）。
+// setIntervalではなくrequestAnimationFrameで経過時間ベースに進める。
+// opts.onStep: 描画更新毎に呼ばれる。opts.onDone: 完了時（即時完了含む）に呼ばれる
+function typewriteInto(el, text, opts = {}) {
+  if (!el) return;
+  const { onStep, onDone } = opts;
+
+  // 同一要素で進行中のアニメーションがあれば先に即時完了させる（多重起動防止）
+  const prev = _typewriterState.get(el);
+  if (prev && !prev.done) prev.finish();
+
+  const plain = text || '';
+
+  if (!plain || !_typewriterEnabled()) {
+    el.innerHTML = _nl2br(escHtml(plain));
+    _typewriterState.delete(el);
+    _activeTypewriters.delete(el);
+    if (typeof onDone === 'function') onDone();
+    return;
+  }
+
+  const MS_PER_CHAR   = 40;
+  const MAX_DURATION  = 3500; // ms。長文でも待たせすぎないための上限
+  const duration = Math.min(MAX_DURATION, Math.max(1, plain.length * MS_PER_CHAR));
+  const startTime = performance.now();
+
+  const state = { done: false, finish: null };
+
+  function finish() {
+    if (state.done) return;
+    state.done = true;
+    el.innerHTML = _nl2br(escHtml(plain));
+    _typewriterState.delete(el);
+    _activeTypewriters.delete(el);
+    if (typeof onDone === 'function') onDone();
+  }
+  state.finish = finish;
+
+  _typewriterState.set(el, state);
+  _activeTypewriters.add(el);
+
+  function step(now) {
+    if (state.done) return;
+    const elapsed = now - startTime;
+    if (elapsed >= duration) { finish(); return; }
+    const n = Math.max(1, Math.floor((elapsed / duration) * plain.length));
+    el.innerHTML = _nl2br(escHtml(plain.slice(0, n)));
+    if (typeof onStep === 'function') onStep();
+    requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+// 進行中の全タイプライター演出を即時完了させる
+// （チャットログのクリック／次メッセージ送信時に呼ばれる）
+function skipActiveTypewriters() {
+  Array.from(_activeTypewriters).forEach(el => {
+    const state = _typewriterState.get(el);
+    if (state && typeof state.finish === 'function') state.finish();
+  });
+}
+
+// チャットログ上のクリック／タップで進行中の演出を即時完了させる
+function initTypewriterSkip() {
+  const log = document.getElementById('chatLog');
+  if (!log) return;
+  log.addEventListener('click', () => skipActiveTypewriters());
+  log.addEventListener('touchstart', () => skipActiveTypewriters(), { passive: true });
+}
+
+function appendCharMessage(text, turnIdx = null, opts = {}) {
   const log = document.getElementById('chatLog');
   if (!log) return;
   const div = document.createElement('div');
@@ -250,7 +517,21 @@ function appendCharMessage(text, turnIdx = null) {
       <div class="char-bubble"></div>
     </div>
   `;
-  renderCharBubble(div.querySelector('.char-bubble'), text);
+  const bubble = div.querySelector('.char-bubble');
+
+  // animate既定はtrue。セッション読み込み時の履歴再描画（renderTurn経由）は
+  // 明示的に { animate: false } を渡してアニメーションさせない
+  const animate = opts.animate !== false;
+  if (animate) {
+    typewriteInto(bubble, text, {
+      onStep: scrollLogToBottomIfNearBottom,
+      // 書き出し完了後、セリフ／地の文の分割表示（renderCharBubble）へ差し替える。
+      // これにより最終的な表示は非ストリーミング時と完全に同一になる
+      onDone: () => renderCharBubble(bubble, text),
+    });
+  } else {
+    renderCharBubble(bubble, text);
+  }
   log.appendChild(div);
   scrollLogToBottom();
 }
@@ -591,12 +872,15 @@ async function rerollCharOnly(turnIdx) {
       charMsg = await getCharResponseText(turn.user_message || '', turn.is_narrative);
     }
     turn.char_message = charMsg;
+    applyToolInvocationsToTurn(turn);
     updateTurnCharMessage(turnIdx, charMsg);
+    renderToolSummary(turnIdx, turn.tool_invocations);
     await saveTurnToSession(null);
     showToast(t('chat.response_regenerated', '✓ 反応を再生成しました'));
   } catch(e) {
     showToast('❌ ' + e.message.slice(0, 50));
   } finally {
+    removeToolIndicator();
     isGenerating = false;
     setBtnState(false);
     updateStatusBadge('SYNC');
@@ -675,7 +959,9 @@ async function rerollTurnWithRetranslate(turnIdx, withCharReaction) {
       updateStatusBadge(t('status.char_thinking', 'キャラクターが認識中…'));
       const charMsg = await getCharResponse(newUrl, turn.user_message, turn.is_narrative);
       turn.char_message = charMsg;
+      applyToolInvocationsToTurn(turn);
       updateTurnCharMessage(turnIdx, charMsg);
+      renderToolSummary(turnIdx, turn.tool_invocations);
     }
 
     // サーバー保存
@@ -684,6 +970,7 @@ async function rerollTurnWithRetranslate(turnIdx, withCharReaction) {
   } catch(e) {
     showToast('❌ ' + e.message.slice(0, 50));
   } finally {
+    removeToolIndicator();
     isGenerating = false;
     setBtnState(false);
     updateStatusBadge('SYNC');
@@ -895,18 +1182,22 @@ function renderTurn(turn, idx) {
     appendUserMessage(turn.user_message, idx);
   }
 
+  // 履歴の再描画はアニメーションさせない（即座に全文表示）
   if (turn.generated && turn.image_url && turn.char_message) {
     if (turn.gen_mode === 'char') {
-      appendCharMessage(turn.char_message, idx);
+      appendCharMessage(turn.char_message, idx, { animate: false });
       appendImageToLogWithIndex(turn.image_url, idx);
     } else {
       appendImageToLogWithIndex(turn.image_url, idx);
-      appendCharMessage(turn.char_message, idx);
+      appendCharMessage(turn.char_message, idx, { animate: false });
     }
   } else {
     if (turn.image_url)    appendImageToLogWithIndex(turn.image_url, idx);
-    if (turn.char_message) appendCharMessage(turn.char_message, idx);
+    if (turn.char_message) appendCharMessage(turn.char_message, idx, { animate: false });
   }
+
+  // 006: 保存済みtool_invocationsがあれば折りたたみサマリを復元する（無ければ何も表示しない）
+  renderToolSummary(idx, turn.tool_invocations);
 }
 function appendImageToLogWithIndex(imageUrl, turnIdx) {
   const log = document.getElementById('chatLog');

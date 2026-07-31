@@ -15,6 +15,8 @@ function openSettingsModal() {
     if (typeof renderWfSelect === 'function') renderWfSelect('globalWfSelect');
     // ユーザー管理一覧を読み込み
     loadUserList();
+    // MCPサーバー/ツール管理セクションを読み込み
+    if (typeof loadMcpAdminSection === 'function') loadMcpAdminSection();
   }
   openModal('settingsOverlay');
 }

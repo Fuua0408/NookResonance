@@ -33,6 +33,54 @@ async function getChatCompletion(messages, { noThink = false, maxTokensOverride 
   if (data.error) throw new Error(data.error);
   return (data.text || '').trim();
 }
+
+// 006: 直近の getChatCompletionStream 呼び出しで発生したツール呼び出し履歴。
+// { round_index, tool_name, arguments_json, status, result_text }[]
+// getCharResponse* はこの直後に getLastToolInvocations() を読んでturnへ反映する。
+// getChatCompletion（非ストリーム版・翻訳系など）はこの値に触れないため、
+// getCharResponse* → 翻訳系呼び出し、という順序でも取りこぼされない。
+let _lastToolInvocations = [];
+function getLastToolInvocations() {
+  return _lastToolInvocations;
+}
+
+// SSE経由でLLM呼び出しを行う版。本文はストリーミングせず、生成完了後の確定テキストを
+// `done` イベントで1回だけ受け取る。
+// useTools===true の場合のみサーバー側でツール呼び出しループ（clock等）が有効になりうる
+// （opt-in。既定はfalse＝004と同一の単発挙動）。
+// 戻り値の意味は getChatCompletion と同一（生テキストをtrimしたもの）。
+// エラー時は restPostStream が例外を投げる（error イベント or 通信失敗）。
+// opts.onToolCall / opts.onToolResult: 006のUIインジケータ用フック（省略可）。
+// { name } / { name, status } を受け取る。
+async function getChatCompletionStream(messages, { noThink = false, maxTokensOverride, useTools = false, onToolCall, onToolResult } = {}) {
+  const body = { messages, noThink };
+  if (Number.isInteger(maxTokensOverride) && maxTokensOverride > 0) body.maxTokensOverride = maxTokensOverride;
+  if (useTools) body.useTools = true;
+
+  _lastToolInvocations = [];
+  let text = null;
+  await restPostStream('llm/chat-stream', body, {
+    onEvent: (event, data) => {
+      if (event === 'done') {
+        text = data.text;
+        _lastToolInvocations = Array.isArray(data.tool_invocations) ? data.tool_invocations : [];
+      } else if (event === 'tool_call') {
+        if (typeof onToolCall === 'function') onToolCall(data);
+      } else if (event === 'tool_result') {
+        if (typeof onToolResult === 'function') onToolResult(data);
+      }
+    },
+  });
+  if (text === null) throw new Error('LLMからの応答がありませんでした');
+  return (text || '').trim();
+}
+
+// useTools = TOOLSが有効(サーバー設定) && char.tools_enabled !== false（キャラ単位opt-out）。
+// TOOLS_ENABLED自体はサーバー側で最終判定するため、ここではキャラ設定のみを見て
+// クライアント側の既定値（true）を尊重する。
+function shouldUseToolsForChar(char) {
+  return char?.tools_enabled !== false;
+}
 function cleanLLMResponse(text) {
   if (!text) return '';
 
@@ -714,6 +762,24 @@ const INSTRUCTION_BLOCKS = [
     ],
     condition: (opts) => opts.charLead,
   },
+  {
+    // 008: ツール(Web検索等)有効時のみ付与。ツール結果をそのまま列挙する応答に
+    // ならないよう促す。useTools=falseの時はコンテキストの無駄になるため付与しない
+    priority: 20,
+    ja: [
+      `【ツール利用時の注意】`,
+      `- ツールで調べた内容は、そのまま列挙せずキャラクターの言葉で自然に伝えてください`,
+      `- URLや出典の羅列、Markdown見出し（##など）を本文に含めないでください`,
+      `- 「調べました」「検索しました」のようにツールを使った事実そのものを長々と説明しないでください`,
+    ],
+    en: [
+      `[When Using Tools]`,
+      `- Convey what you found in your own character's voice, not as a raw list of results`,
+      `- Do not include lists of URLs/sources or Markdown headings (like ##) in your reply`,
+      `- Do not dwell on the fact that you used a tool (e.g. "I searched and found...")`,
+    ],
+    condition: (opts) => opts.useTools,
+  },
 ];
 
 function buildInstructionBlocks(options, lang) {
@@ -724,7 +790,7 @@ function buildInstructionBlocks(options, lang) {
     .join('\n\n');
 }
 
-function buildCharSystemPrompt(char, narrative = false) {
+function buildCharSystemPrompt(char, narrative = false, useTools = false) {
   const lang    = isEnglishMode() ? 'en' : 'ja';
   const L       = LABELS[lang];
   const session = activeSession;
@@ -745,7 +811,7 @@ function buildCharSystemPrompt(char, narrative = false) {
 
   // 親愛度・関係性セクション
   if (typeof isCharAffectionEnabled === 'function' && isCharAffectionEnabled(char)) {
-    const affValue   = char.affection ?? 130;
+    const affValue   = typeof getEffectiveAffection === 'function' ? getEffectiveAffection(char) : (char.affection ?? 130);
     const llmLabel   = typeof affectionLLMLabel === 'function' ? affectionLLMLabel(affValue) : '';
     const stageLabel = typeof affectionLabel    === 'function' ? affectionLabel(affValue)    : '';
     const isFirst    = char.is_first_meeting !== false;
@@ -799,7 +865,7 @@ function buildCharSystemPrompt(char, narrative = false) {
 
   // 指示ブロック（priority順・末尾ほど強い）
   const charLead   = document.getElementById('charLeadToggle')?.checked ?? false;
-  const instructions = buildInstructionBlocks({ charLead }, lang);
+  const instructions = buildInstructionBlocks({ charLead, useTools }, lang);
   if (instructions) lines.push(``, instructions);
 
   return lines.join('\n');
@@ -815,8 +881,9 @@ async function getCharResponse(imageUrl, userText, narrative = false) {
     ? 'この画像はユーザー（あなたの相手）の様子を映しています。ユーザーの表情・行動・状況に自然に反応してください。'
     : '自然に反応してください。';
 
+  const useTools = shouldUseToolsForChar(activeChar);
   const messages = [
-    { role: 'system', content: buildCharSystemPrompt(activeChar, narrative) },
+    { role: 'system', content: buildCharSystemPrompt(activeChar, narrative, useTools) },
     ...buildHistoryMessages(),
     {
       role: 'user',
@@ -828,7 +895,11 @@ async function getCharResponse(imageUrl, userText, narrative = false) {
       ],
     },
   ];
-  const result = await getChatCompletion(messages);
+  const result = await getChatCompletionStream(messages, {
+    useTools,
+    onToolCall:   typeof handleLiveToolCall   === 'function' ? handleLiveToolCall   : undefined,
+    onToolResult: typeof handleLiveToolResult === 'function' ? handleLiveToolResult : undefined,
+  });
   if (isAbnormalRaw(result)) { if (getSetting('debugMode', false)) console.warn('[NookResonance] ABNORMAL_RAW\nPrompt:', messages, '\nResponse:', result); throw new Error('ABNORMAL_OUTPUT'); }
   const cleaned = cleanLLMResponse(result);
   if (isAbnormalOutput(cleaned)) {
@@ -851,8 +922,9 @@ async function getCharResponseContinue() {
   const turns = activeSession?.turns || [];
   const lastCharMsg = [...turns].reverse().find(t => t.char_message && t.char_message !== '__ABNORMAL__')?.char_message || '';
 
+  const useTools = shouldUseToolsForChar(activeChar);
   const messages = [
-    { role: 'system',    content: buildCharSystemPrompt(activeChar) },
+    { role: 'system',    content: buildCharSystemPrompt(activeChar, false, useTools) },
     ...buildHistoryMessages(),
   ];
 
@@ -861,7 +933,11 @@ async function getCharResponseContinue() {
     messages.push({ role: 'assistant', content: lastCharMsg });
   }
 
-  const result = await getChatCompletion(messages);
+  const result = await getChatCompletionStream(messages, {
+    useTools,
+    onToolCall:   typeof handleLiveToolCall   === 'function' ? handleLiveToolCall   : undefined,
+    onToolResult: typeof handleLiveToolResult === 'function' ? handleLiveToolResult : undefined,
+  });
   if (isAbnormalRaw(result)) { if (getSetting('debugMode', false)) console.warn('[NookResonance] ABNORMAL_RAW\nPrompt:', messages, '\nResponse:', result); throw new Error('ABNORMAL_OUTPUT'); }
   const cleaned = cleanLLMResponse(result);
   if (isAbnormalOutput(cleaned)) {
@@ -881,12 +957,17 @@ async function getCharResponseContinue() {
 async function getCharResponseText(userText, narrative = false, excludeTurnIdx = -1) {
   if (!activeChar) throw new Error('キャラクターが選択されていません');
   const content = narrative ? `（状況）${stripNarrative(userText)}` : userText;
+  const useTools = shouldUseToolsForChar(activeChar);
   const messages = [
-    { role: 'system', content: buildCharSystemPrompt(activeChar, narrative) },
+    { role: 'system', content: buildCharSystemPrompt(activeChar, narrative, useTools) },
     ...buildHistoryMessages(excludeTurnIdx),
     { role: 'user', content },
   ];
-  const result = await getChatCompletion(messages);
+  const result = await getChatCompletionStream(messages, {
+    useTools,
+    onToolCall:   typeof handleLiveToolCall   === 'function' ? handleLiveToolCall   : undefined,
+    onToolResult: typeof handleLiveToolResult === 'function' ? handleLiveToolResult : undefined,
+  });
   if (isAbnormalRaw(result)) { if (getSetting('debugMode', false)) console.warn('[NookResonance] ABNORMAL_RAW\nPrompt:', messages, '\nResponse:', result); throw new Error('ABNORMAL_OUTPUT'); }
   const cleaned = cleanLLMResponse(result);
   if (isAbnormalOutput(cleaned)) {

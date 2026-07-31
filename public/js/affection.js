@@ -43,8 +43,12 @@ function affectionStageLabel(stage) {
 function affectionStageLLMLabel(stage) {
   return isEnglishMode() ? stage.llmEn : stage.llm;
 }
-function clampAffection(value) {
-  return Math.max(AFFECTION_MIN, Math.min(AFFECTION_MAX, Math.round(value)));
+function clampAffection(value, cap) {
+  const c = Number(cap);
+  const resolvedCap = Number.isFinite(c)
+    ? Math.max(AFFECTION_MIN, Math.min(AFFECTION_MAX, Math.round(c)))
+    : AFFECTION_MAX;
+  return Math.max(AFFECTION_MIN, Math.min(resolvedCap, Math.round(value)));
 }
 
 // ─────────────────────────────────────────────
@@ -69,8 +73,20 @@ function isAffectionPerTurn() {
 function getCharAffection(char) {
   return char?.affection ?? AFFECTION_DEFAULT;
 }
+// キャラクター単位の親愛度キャップ（未設定なら無制限=AFFECTION_MAX）
+function getCharAffectionCap(char) {
+  const raw = char?.affection_cap;
+  if (raw === undefined || raw === null || raw === '') return AFFECTION_MAX;
+  const num = Number(raw);
+  if (!Number.isFinite(num)) return AFFECTION_MAX;
+  return Math.max(AFFECTION_MIN, Math.min(AFFECTION_MAX, Math.round(num)));
+}
+// 表示・LLMプロンプト・ステージ判定に使う実効値（内部の生値はキャップを下げても消えない）
+function getEffectiveAffection(char) {
+  return Math.min(getCharAffection(char), getCharAffectionCap(char));
+}
 function setCharAffection(char, value) {
-  char.affection = clampAffection(value);
+  char.affection = clampAffection(value, getCharAffectionCap(char));
 }
 function isCharAffectionEnabled(char) {
   if (!isAffectionEnabled()) return false;
@@ -80,7 +96,7 @@ function isCharAffectionEnabled(char) {
 // ─────────────────────────────────────────────
 // 親愛度バーをレンダリング（汎用）
 // ─────────────────────────────────────────────
-function renderAffectionBar(containerId, value, showValue = false) {
+function renderAffectionBar(containerId, value, showValue = false, cap = AFFECTION_MAX) {
   const el = document.getElementById(containerId);
   if (!el) return;
   const pct   = ((value - AFFECTION_MIN) / (AFFECTION_MAX - AFFECTION_MIN)) * 100;
@@ -89,6 +105,7 @@ function renderAffectionBar(containerId, value, showValue = false) {
     <div class="affection-bar-wrap">
       <div class="affection-bar-bg">
         <div class="affection-bar-fill" style="width:${pct.toFixed(1)}%"></div>
+        ${affectionCapMarkupHtml(cap)}
       </div>
       <div class="affection-label">${affectionStageLabel(stage)}</div>
       ${showValue ? `<div class="affection-value">${value}</div>` : ''}
@@ -96,9 +113,20 @@ function renderAffectionBar(containerId, value, showValue = false) {
   `;
 }
 
+// バー上のキャップ位置（到達不能域）を示す区切りのHTMLを返す。
+// キャップが無制限（AFFECTION_MAX）のときは何も描画しない。
+function affectionCapMarkupHtml(cap) {
+  if (cap === undefined || cap === null || cap >= AFFECTION_MAX) return '';
+  const capPct = ((cap - AFFECTION_MIN) / (AFFECTION_MAX - AFFECTION_MIN)) * 100;
+  return `<div class="affection-bar-cap" style="left:${capPct.toFixed(1)}%;width:${(100 - capPct).toFixed(1)}%"></div>`;
+}
+
 // ─────────────────────────────────────────────
 // キャラ編集モーダル：親愛度セクション描画
 // ─────────────────────────────────────────────
+// 編集中の元の生値・キャップを保持（入力プレビュー用）
+let _affectionEditCtx = { rawValue: AFFECTION_DEFAULT, cap: AFFECTION_MAX };
+
 function renderAffectionSection(char) {
   const sec = document.getElementById('affectionSection');
   if (!sec) return;
@@ -106,9 +134,13 @@ function renderAffectionSection(char) {
   const enabled     = isAffectionEnabled();
   const charEnabled = char?.affection_enabled !== false;
   const forceEdit   = isAffectionForceEdit();
-  const value       = getCharAffection(char);
+  const rawValue    = getCharAffection(char);
+  const cap         = getCharAffectionCap(char);
+  const value       = Math.min(rawValue, cap); // 実効値（表示・ステージ判定用）
   const stage       = getAffectionStage(value);
   const pct         = ((value - AFFECTION_MIN) / (AFFECTION_MAX - AFFECTION_MIN)) * 100;
+
+  _affectionEditCtx = { rawValue, cap };
 
   // 初対面フラグセクションの表示制御（親愛度が有効なときのみ表示）
   const fmSec = document.getElementById('firstMeetingSection');
@@ -133,18 +165,29 @@ function renderAffectionSection(char) {
         <div class="affection-bar-wrap" style="margin:8px 0 4px;">
           <div class="affection-bar-bg">
             <div class="affection-bar-fill" id="editAffectionFill" style="width:${pct.toFixed(1)}%"></div>
+            ${affectionCapMarkupHtml(cap)}
           </div>
           <div class="affection-label" id="editAffectionLabel">${affectionStageLabel(stage)}</div>
-          ${forceEdit ? `<div class="affection-value" id="editAffectionValueDisplay">${value}</div>` : ''}
+          ${forceEdit ? `<div class="affection-value" id="editAffectionValueDisplay">${rawValue}</div>` : ''}
         </div>
         ${forceEdit ? `
         <div style="display:flex;gap:8px;align-items:center;margin-top:4px;">
           <input class="f-input" id="editAffectionInput" type="number"
-            min="${AFFECTION_MIN}" max="${AFFECTION_MAX}" value="${value}"
+            min="${AFFECTION_MIN}" max="${AFFECTION_MAX}" value="${rawValue}"
             style="max-width:80px;font-family:monospace;"
             oninput="onAffectionInputChange(parseInt(this.value)||0)">
           <span style="font-size:11px;color:var(--text-pale);">0〜255</span>
         </div>` : ''}
+        <div class="num-row" style="margin-top:8px;">
+          <div class="num-label" style="font-size:13px;">${t('aff.cap', '親愛度キャップ')}</div>
+          <input class="f-input" id="editAffectionCap" type="number"
+            min="${AFFECTION_MIN}" max="${AFFECTION_MAX}" value="${cap}"
+            style="max-width:80px;font-family:monospace;"
+            oninput="onAffectionCapInputChange(parseInt(this.value)||0)">
+        </div>
+        <div style="font-size:11px;color:var(--text-pale);margin-top:2px;">
+          ${t('aff.cap_note', 'この値を超えて親愛度は上昇しません（255＝無制限）')}
+        </div>
         <div style="font-size:11px;color:var(--text-pale);margin-top:4px;">
           ${t('aff.current_relationship', '現在の関係性：')}${affectionStageLLMLabel(stage)}
         </div>
@@ -159,7 +202,8 @@ function onAffectionEnabledChange(checked, currentValue) {
 }
 
 function onAffectionInputChange(value) {
-  const clamped = clampAffection(value);
+  const cap     = _affectionEditCtx.cap;
+  const clamped = clampAffection(value, cap);
   const stage   = getAffectionStage(clamped);
   const pct     = ((clamped - AFFECTION_MIN) / (AFFECTION_MAX - AFFECTION_MIN)) * 100;
   const fill    = document.getElementById('editAffectionFill');
@@ -170,6 +214,39 @@ function onAffectionInputChange(value) {
   if (display) display.textContent = clamped;
 }
 
+function onAffectionCapInputChange(capValue) {
+  const cap = Math.max(AFFECTION_MIN, Math.min(AFFECTION_MAX, isNaN(capValue) ? AFFECTION_MAX : capValue));
+  _affectionEditCtx.cap = cap;
+
+  const rawValue  = _affectionEditCtx.rawValue;
+  const effective = Math.min(rawValue, cap);
+  const stage     = getAffectionStage(effective);
+  const pct       = ((effective - AFFECTION_MIN) / (AFFECTION_MAX - AFFECTION_MIN)) * 100;
+
+  const fill  = document.getElementById('editAffectionFill');
+  const label = document.getElementById('editAffectionLabel');
+  const bg    = fill?.parentElement;
+  if (fill)  fill.style.width  = pct.toFixed(1) + '%';
+  if (label) label.textContent = affectionStageLabel(stage);
+
+  if (bg) {
+    let capMark = document.getElementById('editAffectionCapMark');
+    if (cap < AFFECTION_MAX) {
+      const capPct = ((cap - AFFECTION_MIN) / (AFFECTION_MAX - AFFECTION_MIN)) * 100;
+      if (!capMark) {
+        capMark = document.createElement('div');
+        capMark.id = 'editAffectionCapMark';
+        capMark.className = 'affection-bar-cap';
+        bg.appendChild(capMark);
+      }
+      capMark.style.left  = capPct.toFixed(1) + '%';
+      capMark.style.width = (100 - capPct).toFixed(1) + '%';
+    } else if (capMark) {
+      capMark.remove();
+    }
+  }
+}
+
 // ─────────────────────────────────────────────
 // キャラ編集モーダルから親愛度フィールドを収集
 // ─────────────────────────────────────────────
@@ -178,16 +255,32 @@ function collectAffectionFromUI(existing) {
   const enabled = document.getElementById('editAffectionEnabled')?.checked ?? false;
   const forceEdit = isAffectionForceEdit();
   let value = existing?.affection ?? AFFECTION_DEFAULT;
+
+  let cap = getCharAffectionCap(existing);
+  const capInput = document.getElementById('editAffectionCap');
+  if (capInput) {
+    const parsedCap = parseInt(capInput.value);
+    if (!isNaN(parsedCap)) {
+      cap = Math.max(AFFECTION_MIN, Math.min(AFFECTION_MAX, parsedCap));
+    }
+  }
+
   if (forceEdit) {
     const input = document.getElementById('editAffectionInput');
     if (input) {
       const parsed = parseInt(input.value);
-      value = clampAffection(isNaN(parsed) ? value : parsed);
+      // 入力欄が実際に変更された場合のみクランプして反映する。
+      // 触れていなければ生値をそのまま保持し、キャップだけを下げても
+      // 保存操作で内部値が切り下げられないようにする。
+      if (!isNaN(parsed) && parsed !== value) {
+        value = clampAffection(parsed, cap);
+      }
     }
   }
   return {
     affection_enabled: enabled,
     affection:         value,
+    affection_cap:     cap,
     is_first_meeting:  existing?.is_first_meeting ?? true,
     memory_notes:      existing?.memory_notes     ?? [],
     last_state:        existing?.last_state        ?? { appearance: '', location: '' },
@@ -201,7 +294,8 @@ function renderSessionAffectionCtrl(containerEl) {
   if (!activeChar || !isCharAffectionEnabled(activeChar)) return;
   if (!isAffectionMutable()) return;
 
-  const value = getCharAffection(activeChar);
+  const cap   = getCharAffectionCap(activeChar);
+  const value = getEffectiveAffection(activeChar);
   const pct   = ((value - AFFECTION_MIN) / (AFFECTION_MAX - AFFECTION_MIN)) * 100;
   const stage = getAffectionStage(value);
 
@@ -213,6 +307,7 @@ function renderSessionAffectionCtrl(containerEl) {
     <div class="affection-bar-wrap">
       <div class="affection-bar-bg">
         <div class="affection-bar-fill" id="sessionAffectionFill" style="width:${pct.toFixed(1)}%"></div>
+        ${affectionCapMarkupHtml(cap)}
       </div>
       <div class="affection-label" id="sessionAffectionLabel">${affectionStageLabel(stage)}</div>
     </div>
@@ -229,18 +324,20 @@ function renderSessionAffectionCtrl(containerEl) {
 
 async function changeSessionAffection(delta) {
   if (!activeChar) return;
-  const newVal = clampAffection(getCharAffection(activeChar) + delta);
+  const cap    = getCharAffectionCap(activeChar);
+  const newVal = clampAffection(getCharAffection(activeChar) + delta, cap);
   setCharAffection(activeChar, newVal);
 
-  // UI更新
-  const pct   = ((newVal - AFFECTION_MIN) / (AFFECTION_MAX - AFFECTION_MIN)) * 100;
-  const stage = getAffectionStage(newVal);
+  // UI更新（実効値＝newValはすでにキャップ以下）
+  const effective = getEffectiveAffection(activeChar);
+  const pct   = ((effective - AFFECTION_MIN) / (AFFECTION_MAX - AFFECTION_MIN)) * 100;
+  const stage = getAffectionStage(effective);
   const fill  = document.getElementById('sessionAffectionFill');
   const label = document.getElementById('sessionAffectionLabel');
   const val   = document.getElementById('sessionAffectionVal');
   if (fill)  fill.style.width   = pct.toFixed(1) + '%';
   if (label) label.textContent  = affectionStageLabel(stage);
-  if (val)   val.textContent    = newVal;
+  if (val)   val.textContent    = effective;
 
   // サーバー保存
   if (isRestEnabled()) {
@@ -275,9 +372,11 @@ async function quickAffectionUpdate() {
   try {
     const char       = activeChar;
     const turns      = activeSession.turns;
-    const affValue   = char.affection ?? AFFECTION_DEFAULT;
-    const stageLabel = affectionLabel(affValue);
-    const llmLabel   = affectionLLMLabel(affValue);
+    const cap        = getCharAffectionCap(char);
+    const affValue   = getCharAffection(char);
+    const effValue   = Math.min(affValue, cap);
+    const stageLabel = affectionLabel(effValue);
+    const llmLabel   = affectionLLMLabel(effValue);
 
     // セッション内容をテキスト化
     const sessionText = turns.slice(-10).map(t => {
@@ -304,7 +403,7 @@ async function quickAffectionUpdate() {
     ]);
 
     const delta   = Math.max(-20, Math.min(20, parseInt(cleanLLMResponse(deltaRaw).replace(/[^-\d]/g, '')) || 0));
-    const newVal  = clampAffection(affValue + delta);
+    const newVal  = clampAffection(affValue + delta, cap);
     const newStage = affectionLabel(newVal);
 
     // 確認トースト → 適用
@@ -345,9 +444,11 @@ async function perTurnAffectionUpdate(turn) {
   if (!isAffectionPerTurn()) return;
 
   const char      = activeChar;
-  const affValue  = char.affection ?? AFFECTION_DEFAULT;
-  const stageLabel = affectionLabel(affValue);
-  const llmLabel   = affectionLLMLabel(affValue);
+  const cap       = getCharAffectionCap(char);
+  const affValue  = getCharAffection(char);
+  const effValue  = Math.min(affValue, cap);
+  const stageLabel = affectionLabel(effValue);
+  const llmLabel   = affectionLLMLabel(effValue);
 
   const turnText = [
     turn.user_message ? `ユーザー: ${turn.user_message}` : '',
@@ -373,11 +474,12 @@ async function perTurnAffectionUpdate(turn) {
     const delta  = Math.max(-5, Math.min(5, parseInt(cleanLLMResponse(deltaRaw).replace(/[^-\d]/g, '')) || 0));
     if (delta === 0) return;
 
-    char.affection = clampAffection(affValue + delta);
+    char.affection = clampAffection(affValue + delta, cap);
 
-    // バーをサイレント更新
-    const pct   = ((char.affection - AFFECTION_MIN) / (AFFECTION_MAX - AFFECTION_MIN)) * 100;
-    const stage = getAffectionStage(char.affection);
+    // バーをサイレント更新（実効値＝char.affectionはすでにキャップ以下）
+    const effective = char.affection;
+    const pct   = ((effective - AFFECTION_MIN) / (AFFECTION_MAX - AFFECTION_MIN)) * 100;
+    const stage = getAffectionStage(effective);
     ['sessionAffectionFill', 'editAffectionFill'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.style.width = pct.toFixed(1) + '%';
@@ -387,7 +489,7 @@ async function perTurnAffectionUpdate(turn) {
       if (el) el.textContent = affectionStageLabel(stage);
     });
     const valEl = document.getElementById('sessionAffectionVal');
-    if (valEl) valEl.textContent = char.affection;
+    if (valEl) valEl.textContent = effective;
 
     // サーバー保存（silent）
     if (isRestEnabled()) {

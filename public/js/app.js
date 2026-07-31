@@ -297,4 +297,5 @@ function submitTurn() {
 document.addEventListener('DOMContentLoaded', () => {
   initScrollTracking();
   if (typeof initPhotoCarouselSwipe === 'function') initPhotoCarouselSwipe();
+  if (typeof initTypewriterSkip === 'function') initTypewriterSkip();
 });

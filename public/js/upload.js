@@ -231,7 +231,10 @@ async function submitTurnWithImage() {
         throw new Error(t('chat.char_response_failed', 'キャラクターの応答に失敗しました: ') + e.message);
       }
       turn.char_message = charMsg;
+      if (typeof applyToolInvocationsToTurn === 'function') applyToolInvocationsToTurn(turn);
+      if (typeof removeToolIndicator === 'function') removeToolIndicator();
       appendCharMessage(charMsg, tIdx);
+      if (typeof renderToolSummary === 'function') renderToolSummary(tIdx, turn.tool_invocations);
 
     } else {
       // ── 感想モード (react) ──
@@ -251,7 +254,10 @@ async function submitTurnWithImage() {
         throw new Error(t('chat.char_response_failed', 'キャラクターの応答に失敗しました: ') + e.message);
       }
       turn.char_message = charMsg;
+      if (typeof applyToolInvocationsToTurn === 'function') applyToolInvocationsToTurn(turn);
+      if (typeof removeToolIndicator === 'function') removeToolIndicator();
       appendCharMessage(charMsg, tIdx);
+      if (typeof renderToolSummary === 'function') renderToolSummary(tIdx, turn.tool_invocations);
 
       // 服装状態の追跡（感想モードでも服装変化を見逃さない）
       if (!(document.getElementById('userFocusToggle')?.checked ?? false)) {
@@ -280,6 +286,7 @@ async function submitTurnWithImage() {
     showToast('❌ ' + (e.message || t('chat.error', 'エラーが発生しました')).slice(0, 60));
     console.error('[Nook] submitTurnWithImage error:', e);
   } finally {
+    if (typeof removeToolIndicator === 'function') removeToolIndicator();
     isGenerating = false;
     setBtnState(false);
     updateStatusBadge('SYNC');

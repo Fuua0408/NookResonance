@@ -123,6 +123,20 @@ nookresonance/1/12/20260609_223416_0001
 
 ギャラリーは `.env` の `COMFY_OUTPUT_DIR` 配下から画像を読み、`data/cache/{user_id}/{char_id}/thumbs` にサムネイルを生成します。
 
+### MCP連携 (Web検索: SearXNG)
+
+キャラクターに Web 検索・URL 本文取得をさせる場合は、`mcp-searxng` を stdio MCP サーバーとしてカタログから追加します。
+
+- **前提**: 別途、稼働中の [SearXNG](https://docs.searxng.org/) インスタンスが必要です（本アプリはインスタンス自体の構築・同梱は行いません）。JSON 形式のAPI応答が有効になっている必要があります。
+- **暗号化キーが必須**: SearXNG の接続先 URL は `mcp_servers` テーブルに暗号化して保存されるため、`.env` に `SECRET_ENC_KEY`（base64エンコードされた32バイト）を設定してからサーバーを起動してください。未設定のままだとシークレットを含むMCPサーバーの追加に失敗します。
+- **追加手順**:
+  1. 管理者アカウントで設定モーダルを開き、「MCPサーバー」セクションへ移動する
+  2. カタログから「SearXNG (Web検索)」を選択する
+  3. `SEARXNG_URL`（例: `http://localhost:8080`）を入力して追加する
+  4. 「再接続」を実行し、接続成功のログとツール一覧（`searxng__searxng_web_search` / `searxng__web_url_read`）を確認する
+- 組み込みの現在日時取得ツール（clock）と併用すると、モデルが年号を要するクエリの前に現在日時を確認してから検索するようになります。
+- Web検索・URL読み取りの結果はコンテキスト長を圧迫しないよう、LLMへ再送する際にサーバー側で自動的に切り詰められます（既定8000文字）。
+
 ### データ構成
 
 - `data/nookresonance.db`: SQLite DB
@@ -299,6 +313,20 @@ nookresonance/1/12/20260609_223416_0001
 ```
 
 The gallery reads images from `COMFY_OUTPUT_DIR` and stores thumbnails under `data/cache/{user_id}/{char_id}/thumbs`.
+
+### MCP Integration (Web Search: SearXNG)
+
+To let characters search the web and read URL content, add `mcp-searxng` as a stdio MCP server from the catalog.
+
+- **Prerequisite**: a running [SearXNG](https://docs.searxng.org/) instance is required separately (this app does not bundle or manage the instance itself). Its JSON API format must be enabled.
+- **Encryption key required**: the SearXNG connection URL is stored encrypted in the `mcp_servers` table, so set `SECRET_ENC_KEY` (a base64-encoded 32-byte value) in `.env` before starting the server. Without it, adding an MCP server with secrets will fail.
+- **How to add it**:
+  1. As an admin, open the settings modal and go to the "MCP Servers" section
+  2. Select "SearXNG (Web検索)" from the catalog
+  3. Enter `SEARXNG_URL` (e.g. `http://localhost:8080`) and add the server
+  4. Click "Reconnect" and confirm the connection succeeded and the tools `searxng__searxng_web_search` / `searxng__web_url_read` are listed
+- Combined with the built-in current-datetime tool (clock), the model will check the current date before composing search queries that need a year.
+- Web search / URL read results are automatically truncated server-side before being sent back to the LLM (default 8000 characters) so they don't crowd out character settings and chat history.
 
 ### Data Layout
 
