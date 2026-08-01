@@ -132,6 +132,9 @@ function initSettingsUI() {
   if (userEl) userEl.textContent = getCurrentUser()?.username || '';
   const mcpEndpointEl = document.getElementById('mcpEndpointDisplay');
   if (mcpEndpointEl) mcpEndpointEl.textContent = `${location.origin}/mcp`;
+  const mcpKeyNewBox = document.getElementById('mcpKeyNewBox');
+  if (mcpKeyNewBox) mcpKeyNewBox.style.display = 'none';
+  if (getAuthToken()) loadMcpKeys();
 
   // 管理者専用セクション（値の反映 + 表示制御）
   const isAdmin = !!getCurrentUser()?.is_admin;
@@ -184,17 +187,124 @@ function copyMcpEndpoint() {
   copyToClipboard(`${location.origin}/mcp`);
 }
 
-function copyMcpBearerHeader() {
-  const token = getAuthToken();
-  if (!token) {
-    showToast(t('toast.login_required', 'ログインが必要です'));
-    return;
+// ─────────────────────────────────────────────
+// MCP アクセスキー管理
+// ─────────────────────────────────────────────
+let _mcpNewKeyValue = ''; // 発行直後のみ保持。コピー用（画面には常時表示しない）
+
+async function loadMcpKeys() {
+  const listEl = document.getElementById('mcpKeyList');
+  if (!listEl) return;
+  try {
+    const { keys } = await restGet('mcp-keys');
+    renderMcpKeys(keys || []);
+  } catch (e) {
+    renderMcpKeysError(e.message);
   }
-  copyToClipboard(`Authorization: Bearer ${token}`);
+}
+
+// 取得失敗を「キー0本」と区別できるよう、専用のエラー表示にする（重複発行の事故を防ぐ）
+function renderMcpKeysError(message) {
+  const listEl = document.getElementById('mcpKeyList');
+  const emptyEl = document.getElementById('mcpKeyEmpty');
+  if (!listEl) return;
+  listEl.innerHTML = '';
+  if (emptyEl) {
+    emptyEl.textContent = `${t('settings.mcp_key_load_error', 'キー一覧の取得に失敗しました')}: ${message}`;
+    emptyEl.style.color = 'var(--danger, #c0392b)';
+    emptyEl.style.display = '';
+  }
+}
+
+function renderMcpKeys(keys) {
+  const listEl = document.getElementById('mcpKeyList');
+  const emptyEl = document.getElementById('mcpKeyEmpty');
+  if (!listEl) return;
+  listEl.innerHTML = '';
+  if (emptyEl) {
+    emptyEl.textContent = t('settings.mcp_key_empty', 'アクセスキーはまだありません');
+    emptyEl.style.color = '';
+    emptyEl.style.display = keys.length ? 'none' : '';
+  }
+
+  for (const key of keys) {
+    const row = document.createElement('div');
+    row.className = 'num-row';
+
+    const info = document.createElement('div');
+    info.style.minWidth = '0';
+    info.style.flex = '1';
+
+    const labelEl = document.createElement('div');
+    labelEl.style.fontSize = '13px';
+    labelEl.textContent = key.label || t('settings.mcp_key_unlabeled', '(no label)');
+
+    const prefixEl = document.createElement('div');
+    prefixEl.className = 'mono';
+    prefixEl.style.cssText = 'font-size:11px;color:var(--text-dim);';
+    prefixEl.textContent = `${key.key_prefix}…`;
+
+    const usedEl = document.createElement('div');
+    usedEl.style.cssText = 'font-size:11px;color:var(--text-pale);';
+    usedEl.textContent = key.last_used_at
+      ? `${t('settings.mcp_key_last_used', 'Last used')}: ${key.last_used_at}`
+      : t('settings.mcp_key_never_used', 'Never used');
+
+    info.appendChild(labelEl);
+    info.appendChild(prefixEl);
+    info.appendChild(usedEl);
+
+    const revokeBtn = document.createElement('button');
+    revokeBtn.className = 'btn-secondary';
+    revokeBtn.style.cssText = 'font-size:11px;padding:4px 10px;flex-shrink:0;';
+    revokeBtn.textContent = t('settings.mcp_key_revoke', 'Revoke');
+    revokeBtn.onclick = () => revokeMcpKey(key.id, key.label || key.key_prefix);
+
+    row.appendChild(info);
+    row.appendChild(revokeBtn);
+    listEl.appendChild(row);
+  }
+}
+
+async function issueMcpKey() {
+  const input = document.getElementById('mcpKeyLabelInput');
+  const label = input ? input.value.trim() : '';
+  try {
+    const { key } = await restPost('mcp-keys', { label });
+    if (input) input.value = '';
+    _mcpNewKeyValue = key.key;
+    const box = document.getElementById('mcpKeyNewBox');
+    const valueEl = document.getElementById('mcpKeyNewValue');
+    if (valueEl) valueEl.textContent = key.key;
+    if (box) box.style.display = '';
+    await loadMcpKeys();
+  } catch (e) {
+    showToast(e.message || t('toast.error', 'エラーが発生しました'));
+  }
+}
+
+function copyNewMcpKey() {
+  if (!_mcpNewKeyValue) return;
+  copyToClipboard(_mcpNewKeyValue);
+}
+
+async function revokeMcpKey(id, displayName) {
+  const msg = t('mcp.key_revoke_confirm', `アクセスキー「${displayName}」を失効させますか？このキーを使っているクライアントは即座に使えなくなります。`).replace('{name}', displayName);
+  if (!confirm(msg)) return;
+  try {
+    await restDelete(`mcp-keys/${id}`);
+    const box = document.getElementById('mcpKeyNewBox');
+    if (box) box.style.display = 'none';
+    await loadMcpKeys();
+  } catch (e) {
+    showToast(e.message || t('toast.error', 'エラーが発生しました'));
+  }
 }
 
 window.copyMcpEndpoint = copyMcpEndpoint;
-window.copyMcpBearerHeader = copyMcpBearerHeader;
+window.issueMcpKey = issueMcpKey;
+window.copyNewMcpKey = copyNewMcpKey;
+window.revokeMcpKey = revokeMcpKey;
 
 async function loadAdminWfSettings() {
   try {

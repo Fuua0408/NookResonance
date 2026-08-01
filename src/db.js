@@ -117,6 +117,23 @@ function migrate(db) {
       created_at   TEXT    NOT NULL DEFAULT (datetime('now')),
       updated_at   TEXT    NOT NULL DEFAULT (datetime('now'))
     );
+
+    -- MCPアクセスキー（009）。JWTの代わりに/mcpを認証するユーザー紐づけキー。
+    -- 平文キーはDBに保存しない(key_hashのみ)。revoked_atは論理削除(key_hashを残し再利用を弾く)
+    CREATE TABLE IF NOT EXISTS mcp_access_keys (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      label        TEXT,
+      key_prefix   TEXT    NOT NULL,
+      key_hash     TEXT    NOT NULL UNIQUE,
+      last_used_at TEXT,
+      expires_at   TEXT,
+      revoked_at   TEXT,
+      created_at   TEXT    NOT NULL DEFAULT (datetime('now')),
+      updated_at   TEXT    NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_mcp_access_keys_user_id ON mcp_access_keys(user_id);
   `);
 
   // is_advanced カラムが存在しない場合のみ追加（既存DBへのマイグレーション）

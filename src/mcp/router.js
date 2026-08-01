@@ -1,7 +1,7 @@
 'use strict';
 
 const express = require('express');
-const { authMiddleware } = require('../auth');
+const { mcpAuthMiddleware } = require('../mcpKeys');
 const {
   getCharacterProfileForMcp,
   listCharactersForMcp,
@@ -313,11 +313,11 @@ function createMcpRouter() {
       protocolVersion: PROTOCOL_VERSION,
       transport: 'streamable-http-json-rpc',
       endpoint: '/mcp',
-      authentication: 'Bearer JWT from /api/auth/login',
+      authentication: 'Bearer MCP access key (issue one from Settings > MCP Integration, prefixed "nrk_")',
     });
   });
 
-  router.post('/', authMiddleware, (req, res) => {
+  router.post('/', mcpAuthMiddleware, (req, res) => {
     const body = req.body;
     const messages = Array.isArray(body) ? body : [body];
     const responses = [];

@@ -32,39 +32,73 @@ GET http://localhost:18090/mcp
 
 ## Authentication
 
-The MCP endpoint uses the same JWT authentication as the normal NookResonance API.
+The MCP endpoint is authenticated with a dedicated **MCP access key**, not the login JWT.
+The normal login JWT (`/api/auth/login`) is **not accepted** on `/mcp` — sending it returns `401`.
 
-First, log in through `/api/auth/login` and obtain a token.
+### Issuing a key
 
-```powershell
-$login = Invoke-RestMethod `
-  -Method Post `
-  -Uri "http://localhost:18090/api/auth/login" `
-  -ContentType "application/json" `
-  -Body '{"username":"alice","password":"your-password"}'
+1. Log in to the web app and open **Settings → MCP Integration**.
+2. Enter an optional label (e.g. `Claude Desktop`) and click **Issue Key**.
+3. The plaintext key is shown **once**, right after issuance. Copy it now — it cannot be
+   displayed again. If you lose it, revoke it and issue a new one.
 
-$token = $login.token
-```
-
-All MCP requests must include:
+Each key is scoped to the user who issued it. All MCP requests must include:
 
 ```text
-Authorization: Bearer <token>
+Authorization: Bearer nrk_...
 ```
 
-In the web app, open Settings and use the MCP Integration section to copy:
+The authenticated user is resolved from the access key. The tool does not accept `user_id` as
+an input, so a user cannot request another user's character profile by changing arguments.
 
-- Endpoint URL
-- Authorization header
+### Managing keys
 
-The authenticated user is resolved from the Bearer token. The tool does not accept `user_id` as an input, so a user cannot request another user's character profile by changing arguments.
+The same Settings section lists your active keys (label, key prefix, last-used time) and lets
+you revoke any of them. Revoking a key takes effect immediately — the next request with that
+key returns `401`, indistinguishable from an unknown or expired key.
+
+Key management itself (issue / list / revoke) uses the normal login JWT, via:
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/mcp-keys` | List your active keys (no key material returned). |
+| POST | `/api/mcp-keys` | Issue a new key. Returns the plaintext key once. |
+| DELETE | `/api/mcp-keys/:id` | Revoke a key you own. |
+
+### Expiration
+
+Keys issued from Settings never expire. `POST /api/mcp-keys` also accepts an optional
+`expires_in_days`, but **the UI does not expose it** — setting an expiring key currently
+requires calling the API directly with your login JWT:
+
+```powershell
+Invoke-RestMethod `
+  -Method Post `
+  -Uri "http://localhost:18090/api/mcp-keys" `
+  -Headers @{ Authorization = "Bearer $jwtToken" } `
+  -ContentType "application/json" `
+  -Body '{"label":"temporary-client","expires_in_days":7}'
+```
+
+`GET /api/mcp-keys` lists a key until it is revoked, including keys whose `expires_at` has
+already passed — the current UI does not display `expires_at`, so an expired-but-not-revoked
+key looks identical to a valid one in the list. This is not a security gap: `/mcp` itself
+(`mcpAuthMiddleware`) always checks `expires_at` and returns `401` once a key has expired,
+regardless of what the list shows. Revoke keys you no longer need instead of relying on
+expiration to hide them from the list.
+
+### Migration note
+
+Access keys replace the previous "copy the JWT as a Bearer header" flow. Existing MCP client
+configs that used a JWT stop working after this change and must be updated with a newly issued
+access key — there is no JWT fallback.
 
 ## MCP Lifecycle
 
 ### 1. Initialize
 
 ```powershell
-$headers = @{ Authorization = "Bearer $token" }
+$headers = @{ Authorization = "Bearer nrk_..." }  # key issued from Settings > MCP Integration
 
 Invoke-RestMethod `
   -Method Post `
@@ -431,7 +465,9 @@ Common messages:
 | `limit is invalid` | `search_characters` received a non-integer or non-positive limit. |
 | `Unknown tool: ...` | An undefined MCP tool was requested. |
 
-Authentication failures return normal HTTP `401` JSON responses from the shared NookResonance auth middleware.
+Authentication failures return normal HTTP `401` JSON responses (`{"error":"Unauthorized"}`) from
+the MCP access key middleware. Missing key, unknown key, revoked key, and expired key are all
+indistinguishable `401` responses — the reason is never disclosed.
 
 ## Implementation Files
 
@@ -440,4 +476,6 @@ Authentication failures return normal HTTP `401` JSON responses from the shared 
 | `src/mcp/index.js` | Exports the MCP router factory. |
 | `src/mcp/router.js` | Handles MCP JSON-RPC methods and tool calls. |
 | `src/mcp/characterProfile.js` | Reads character data and builds the profile response. |
-| `src/index.js` | Mounts `/mcp` and `/api/mcp`. |
+| `src/mcpKeys.js` | Issues/lists/revokes access keys and provides the `/mcp` auth middleware. |
+| `src/routes/mcpKeys.js` | `/api/mcp-keys` key management API (JWT-authenticated). |
+| `src/index.js` | Mounts `/mcp`, `/api/mcp`, and `/api/mcp-keys`. |

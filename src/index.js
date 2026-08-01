@@ -23,6 +23,7 @@ const comfyRoutes   = require('./routes/comfy');
 const uploadsRoutes = require('./routes/uploads');
 const mcpRoutes = require('./mcp');
 const mcpAdminRoutes = require('./routes/mcpAdmin');
+const mcpKeysRoutes = require('./routes/mcpKeys');
 
 const app = express();
 const PORT = process.env.PORT || 18090;
@@ -47,6 +48,7 @@ app.use('/api/uploads', uploadsRoutes);
 app.use('/mcp', mcpRoutes());
 app.use('/api/mcp', mcpRoutes());
 app.use('/api/mcp-admin', mcpAdminRoutes);
+app.use('/api/mcp-keys', mcpKeysRoutes);
 
 // API fallback must stay JSON; otherwise the SPA fallback returns HTML to fetch().
 app.use('/api', (req, res) => {
