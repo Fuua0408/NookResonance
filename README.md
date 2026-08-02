@@ -14,6 +14,9 @@ NookResonance is a multi-user character experience web app built around chat rol
 
 ### 概要
 
+### 重要
+後続プロジェクト、AssistatntKeeper,NookSceneへ移行のため、本プロジェクトは単独動作が可能な状態で開発完了
+
 NookResonance は、キャラクターとの会話・画像生成・関係性の蓄積を中心にしたWebアプリケーションです。  
 チャットRP、フォトモード、ギャラリー、親愛度、引き継ぎシステムを核に、Node.js サーバー、SQLite DB、ログイン認証、ユーザー別データ管理、管理者/上級者権限、キャラクター作成ウィザード、チュートリアル、多言語UIなどを備えています。
 
@@ -202,6 +205,9 @@ nookresonance/1/12/20260609_223416_0001
 ---
 
 ## English
+
+### Important
+Development of this project has been completed with the software capable of standalone operation, in preparation for the transition to the successor projects: AssistantKeeper and NookScene.
 
 ### Overview
 
